@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="GreatKart - One of the Biggest Online Shopping Platform" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="%PUBLIC_URL%/css/bootstrap.css" as="style"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="%PUBLIC_URL%/css/bootstrap.css">
+    </noscript>
+
+    <!-- Font Awesome -->
+    <link href="%PUBLIC_URL%/fonts/fontawesome/css/all.min.css" type="text/css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="%PUBLIC_URL%/css/ui.css" rel="stylesheet" type="text/css" />
+    <link href="%PUBLIC_URL%/css/responsive.css" rel="stylesheet" media="only screen and (max-width: 1200px)" />
+
+    <!-- Roboto Font -->
+    <link href="%PUBLIC_URL%/fonts/roboto/font.css" rel="stylesheet" type="text/css" />
+
+    <title>GreatKart | One of the Biggest Online Shopping Platform</title>
+
+    <!-- JavaScript loading optimization -->
+    <script>
+        // Load jQuery first
+        (function () {
+            var script = document.createElement('script');
+            script.src = '%PUBLIC_URL%/js/jquery-2.0.0.min.js';
+            script.onload = function () {
+                // Load Bootstrap after jQuery
+                var bootstrapScript = document.createElement('script');
+                bootstrapScript.src = '%PUBLIC_URL%/js/bootstrap.bundle.min.js';
+                bootstrapScript.onload = function () {
+                    // Load custom script after Bootstrap
+                    var customScript = document.createElement('script');
+                    customScript.src = '%PUBLIC_URL%/js/script.js';
+                    document.head.appendChild(customScript);
+                };
+                document.head.appendChild(bootstrapScript);
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+</body>
+
+</html>
