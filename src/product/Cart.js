@@ -2,10 +2,12 @@ import React, {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Cart = () => {
     const {items, removeFromCart, increaseQuantity, decreaseQuantity, clearCart, getTotalPrice, loading} = useCart();
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
+    const [confirmDialog, setConfirmDialog] = useState({show: false, title: '', message: '', onConfirm: null, itemId: null});
 
     const handleIncreaseQuantity = async (itemId) => {
         const result = await increaseQuantity(itemId);
@@ -41,7 +43,19 @@ const Cart = () => {
         }
     };
 
-    const handleRemoveItem = async (itemId) => {
+    const handleRemoveItem = (itemId) => {
+        setConfirmDialog({
+            show: true,
+            title: 'Remove Item',
+            message: 'Are you sure you want to remove this item from your cart?',
+            onConfirm: () => confirmRemoveItem(itemId),
+            itemId: itemId
+        });
+    };
+
+    const confirmRemoveItem = async (itemId) => {
+        setConfirmDialog({show: false, title: '', message: '', onConfirm: null, itemId: null});
+
         const result = await removeFromCart(itemId);
         if(result.success) {
             setToast({
@@ -58,22 +72,32 @@ const Cart = () => {
         }
     };
 
-    const handleClearCart = async () => {
-        if(window.confirm('Are you sure you want to clear all items from your cart?')) {
-            const result = await clearCart();
-            if(result.success) {
-                setToast({
-                    show: true,
-                    message: result.message || 'Cart cleared successfully!',
-                    type: 'success'
-                });
-            } else {
-                setToast({
-                    show: true,
-                    message: `Failed to clear cart: ${result.error}`,
-                    type: 'error'
-                });
-            }
+    const handleClearCart = () => {
+        setConfirmDialog({
+            show: true,
+            title: 'Clear Cart',
+            message: 'Are you sure you want to clear all items from your cart?',
+            onConfirm: () => confirmClearCart(),
+            itemId: null
+        });
+    };
+
+    const confirmClearCart = async () => {
+        setConfirmDialog({show: false, title: '', message: '', onConfirm: null, itemId: null});
+
+        const result = await clearCart();
+        if(result.success) {
+            setToast({
+                show: true,
+                message: result.message || 'Cart cleared successfully!',
+                type: 'success'
+            });
+        } else {
+            setToast({
+                show: true,
+                message: `Failed to clear cart: ${result.error}`,
+                type: 'error'
+            });
         }
     };
 
@@ -249,6 +273,17 @@ const Cart = () => {
                     onClose={() => setToast({show: false, message: '', type: 'success'})}
                 />
             )}
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog
+                show={confirmDialog.show}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                onConfirm={confirmDialog.onConfirm}
+                onCancel={() => setConfirmDialog({show: false, title: '', message: '', onConfirm: null, itemId: null})}
+                confirmText="Remove"
+                cancelText="Cancel"
+            />
         </>
     );
 };

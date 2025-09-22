@@ -1,10 +1,89 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {Link} from 'react-router-dom';
 
 const AdminDashboard = () => {
     const {user, logout} = useAuth();
     const [activeTab, setActiveTab] = useState('dashboard'); // Default active tab
+
+    // Order management states
+    const [orders, setOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [ordersError, setOrdersError] = useState(null);
+    const [toast, setToast] = useState({show: false, message: '', type: 'success'});
+
+    // Fetch all orders (admin can see all orders)
+    const fetchAllOrders = async () => {
+        setOrdersLoading(true);
+        setOrdersError(null);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/orders/', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                console.log('All orders fetched:', data);
+                setOrders(data.results || data);
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to fetch orders:', errorData);
+                setOrdersError('Failed to fetch orders');
+            }
+        } catch(error) {
+            console.error('Error fetching orders:', error);
+            setOrdersError('Network error occurred');
+        } finally {
+            setOrdersLoading(false);
+        }
+    };
+
+    // Update order status
+    const updateOrderStatus = async (orderId, newStatus) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/orders/${orderId}/update-status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({status: newStatus})
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                console.log('Order status updated:', data);
+                setToast({show: true, message: data.message, type: 'success'});
+
+                // Refresh orders list
+                fetchAllOrders();
+
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to update order status:', errorData);
+                setToast({show: true, message: errorData.message || 'Failed to update order status', type: 'error'});
+                return false;
+            }
+        } catch(error) {
+            console.error('Error updating order status:', error);
+            setToast({show: true, message: 'Network error occurred', type: 'error'});
+            return false;
+        }
+    };
+
+    // Fetch orders when orders tab is active
+    useEffect(() => {
+        if(activeTab === 'orders') {
+            fetchAllOrders();
+        }
+    }, [activeTab]);
 
     return (
         <section className="section-conten padding-y bg">
@@ -183,9 +262,144 @@ const AdminDashboard = () => {
                             <article className="card">
                                 <header className="card-header">
                                     <strong className="d-inline-block mr-3">Manage Orders</strong>
+                                    <button
+                                        className="btn btn-sm btn-outline-primary float-right"
+                                        onClick={fetchAllOrders}
+                                        disabled={ordersLoading}
+                                    >
+                                        {ordersLoading ? 'Refreshing...' : 'Refresh'}
+                                    </button>
                                 </header>
                                 <div className="card-body">
-                                    <p>Order management functionality will be here.</p>
+                                    {ordersLoading ? (
+                                        <div className="text-center py-4">
+                                            <i className="fa fa-spinner fa-spin fa-2x text-primary"></i>
+                                            <p className="mt-2">Loading orders...</p>
+                                        </div>
+                                    ) : ordersError ? (
+                                        <div className="alert alert-danger">
+                                            <i className="fa fa-exclamation-triangle mr-2"></i>
+                                            {ordersError}
+                                        </div>
+                                    ) : orders && orders.length > 0 ? (
+                                        <div className="table-responsive">
+                                            <table className="table table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Order #</th>
+                                                        <th>Customer</th>
+                                                        <th>Date</th>
+                                                        <th>Status</th>
+                                                        <th>Total</th>
+                                                        <th>Items</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {orders.map((order) => (
+                                                        <tr key={order.id}>
+                                                            <td>
+                                                                <strong>#{order.order_number}</strong>
+                                                            </td>
+                                                            <td>
+                                                                <div>
+                                                                    <strong>{order.user?.email || 'N/A'}</strong>
+                                                                    {order.delivery_address && (
+                                                                        <>
+                                                                            <br />
+                                                                            <small className="text-muted">
+                                                                                {order.delivery_address.full_name}
+                                                                            </small>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                {new Date(order.created_at).toLocaleDateString()}
+                                                            </td>
+                                                            <td>
+                                                                <span
+                                                                    className={`badge ${order.status === 'delivered' ? 'badge-success' :
+                                                                        order.status === 'pending' ? 'badge-warning' :
+                                                                            order.status === 'confirmed' ? 'badge-info' :
+                                                                                order.status === 'processing' ? 'badge-primary' :
+                                                                                    order.status === 'shipped' ? 'badge-secondary' :
+                                                                                        order.status === 'cancelled' ? 'badge-danger' :
+                                                                                            'badge-light'
+                                                                        }`}
+                                                                >
+                                                                    {order.status_display || order.status}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                            </td>
+                                                            <td>
+                                                                <span className="badge badge-light">
+                                                                    {order.items ? order.items.length : 0} items
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <div className="btn-group" role="group">
+                                                                    {order.status !== 'delivered' && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-success"
+                                                                            onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                                            title="Mark as Delivered"
+                                                                        >
+                                                                            <i className="fa fa-check mr-1"></i>Delivered
+                                                                        </button>
+                                                                    )}
+                                                                    {order.status !== 'confirmed' && order.status !== 'delivered' && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-info"
+                                                                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                                                                            title="Confirm Order"
+                                                                        >
+                                                                            <i className="fa fa-check-circle mr-1"></i>Confirm
+                                                                        </button>
+                                                                    )}
+                                                                    {order.status !== 'processing' && order.status !== 'delivered' && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-primary"
+                                                                            onClick={() => updateOrderStatus(order.id, 'processing')}
+                                                                            title="Mark as Processing"
+                                                                        >
+                                                                            <i className="fa fa-cog mr-1"></i>Processing
+                                                                        </button>
+                                                                    )}
+                                                                    {order.status !== 'shipped' && order.status !== 'delivered' && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-secondary"
+                                                                            onClick={() => updateOrderStatus(order.id, 'shipped')}
+                                                                            title="Mark as Shipped"
+                                                                        >
+                                                                            <i className="fa fa-truck mr-1"></i>Shipped
+                                                                        </button>
+                                                                    )}
+                                                                    {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-danger"
+                                                                            onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                                                                            title="Cancel Order"
+                                                                        >
+                                                                            <i className="fa fa-times mr-1"></i>Cancel
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-5">
+                                            <i className="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                            <h5 className="text-muted">No Orders Found</h5>
+                                            <p className="text-muted">There are no orders to manage at the moment.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </article>
                         )}
@@ -225,6 +439,21 @@ const AdminDashboard = () => {
                     </main>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className={`alert alert-${toast.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`}
+                    style={{position: 'fixed', top: '20px', right: '20px', zIndex: 9999, minWidth: '300px'}}>
+                    {toast.message}
+                    <button
+                        type="button"
+                        className="close"
+                        onClick={() => setToast({show: false, message: '', type: 'success'})}
+                    >
+                        <span>&times;</span>
+                    </button>
+                </div>
+            )}
         </section>
     );
 };

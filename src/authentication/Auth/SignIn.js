@@ -61,7 +61,7 @@ const SignIn = () => {
                 if(result.user_type === 'admin') {
                     navigate('/admin/dashboard');
                 } else {
-                    navigate('/dashboard');
+                    navigate('/'); // Redirect to home page instead of dashboard
                 }
             }, 1500); // Navigate after 1.5 seconds
         } else {

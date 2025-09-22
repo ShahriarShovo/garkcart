@@ -294,7 +294,11 @@ export const CartProvider = ({children}) => {
     };
 
     const getTotalItems = () => {
-        return state.items.reduce((total, item) => total + item.quantity, 0);
+        return state.items.length; // Return count of unique items, not total quantity
+    };
+
+    const getTotalQuantity = () => {
+        return state.items.reduce((total, item) => total + item.quantity, 0); // Total quantity of all items
     };
 
     const getTotalPrice = () => {
@@ -317,6 +321,7 @@ export const CartProvider = ({children}) => {
         clearCart,
         fetchCart,
         getTotalItems,
+        getTotalQuantity,
         getTotalPrice
     };
 

@@ -131,6 +131,17 @@ const ProductDetail = () => {
     }
 
     const handleAddToCart = async () => {
+        // Check stock availability
+        const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
+        if(quantity > availableStock) {
+            setToast({
+                show: true,
+                message: `Only ${availableStock} items available in stock`,
+                type: 'error'
+            });
+            return;
+        }
+
         const productToAdd = {
             ...product,
             selectedColor,
@@ -148,7 +159,7 @@ const ProductDetail = () => {
         if(result.success) {
             setToast({
                 show: true,
-                message: 'Product added to cart successfully!',
+                message: result.message || 'Product added to cart successfully!',
                 type: 'success'
             });
         } else {
@@ -329,18 +340,33 @@ const ProductDetail = () => {
                                                     type="text"
                                                     className="form-control"
                                                     value={quantity}
-                                                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                                    onChange={(e) => {
+                                                        const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                                                        const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
+                                                        setQuantity(Math.min(newQuantity, availableStock));
+                                                    }}
                                                 />
                                                 <div className="input-group-append">
                                                     <button
                                                         className="btn btn-light"
                                                         type="button"
-                                                        onClick={() => setQuantity(quantity + 1)}
+                                                        onClick={() => {
+                                                            const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
+                                                            setQuantity(Math.min(quantity + 1, availableStock));
+                                                        }}
                                                     >
                                                         <i className="fa fa-plus"></i>
                                                     </button>
                                                 </div>
                                             </div>
+                                            {/* Stock information */}
+                                            <small className="text-muted">
+                                                {selectedVariant ? (
+                                                    `${selectedVariant.quantity} items available`
+                                                ) : (
+                                                    `${product?.quantity || 0} items available`
+                                                )}
+                                            </small>
                                         </div>
                                         <div className="col-md-4">
                                             {/* Extra space for better layout */}
@@ -476,6 +502,7 @@ const ProductDetail = () => {
             {/* Toast Notification */}
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     message={toast.message}
                     type={toast.type}
                     onClose={() => setToast({show: false, message: '', type: 'success'})}

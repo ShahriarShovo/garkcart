@@ -1,7 +1,10 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 
 const OrderComplete = () => {
+    const location = useLocation();
+    const orderData = location.state?.order;
+    const orderNumber = location.state?.orderNumber;
     return (
         <div>
             <div className="container" style={{marginTop: '50px'}}>
@@ -30,10 +33,11 @@ const OrderComplete = () => {
                                         <div className="invoice-from">
                                             <ul className="list-unstyled text-right">
                                                 <li><strong>Invoiced To</strong></li>
-                                                <li>Jakob Smith</li>
-                                                <li>Roupark 37</li>
-                                                <li>New York, NY, 2014</li>
-                                                <li>USA</li>
+                                                <li>{orderData?.delivery_address?.full_name || 'Customer'}</li>
+                                                <li>{orderData?.delivery_address?.address_line_1 || 'Address Line 1'}</li>
+                                                <li>{orderData?.delivery_address?.address_line_2 || ''}</li>
+                                                <li>{orderData?.delivery_address?.city || 'City'}, {orderData?.delivery_address?.country || 'Country'}</li>
+                                                <li>{orderData?.delivery_address?.postal_code || ''}</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -41,15 +45,20 @@ const OrderComplete = () => {
                                         <div className="invoice-details mt25">
                                             <div className="well">
                                                 <ul className="list-unstyled mb0">
-                                                    <li><strong>Order</strong> #12345</li>
-                                                    <li><strong>Transaction</strong> #TXN67890</li>
-                                                    <li><strong>Order Date:</strong> {new Date().toLocaleDateString('en-US', {
+                                                    <li><strong>Order</strong> #{orderNumber || orderData?.order_number || 'N/A'}</li>
+                                                    <li><strong>Status</strong> {orderData?.status || 'Pending'}</li>
+                                                    <li><strong>Order Date:</strong> {orderData?.created_at ? new Date(orderData.created_at).toLocaleDateString('en-US', {
+                                                        weekday: 'long',
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    }) : new Date().toLocaleDateString('en-US', {
                                                         weekday: 'long',
                                                         year: 'numeric',
                                                         month: 'long',
                                                         day: 'numeric'
                                                     })}</li>
-                                                    <li><strong>Status:</strong> PAID</li>
+                                                    <li><strong>Payment Method:</strong> {orderData?.payment_method || 'Cash on Delivery'}</li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -65,34 +74,42 @@ const OrderComplete = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <tr>
-                                                            <td>Camera Canon EOS M50 Kit</td>
-                                                            <td className="text-center">1</td>
-                                                            <td className="text-center">$1156.00 USD</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>ADATA Premier ONE microSDXC</td>
-                                                            <td className="text-center">1</td>
-                                                            <td className="text-center">$149.97 USD</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Logitec headset for gaming</td>
-                                                            <td className="text-center">1</td>
-                                                            <td className="text-center">$98.00 USD</td>
-                                                        </tr>
+                                                        {orderData?.items?.map((item, index) => (
+                                                            <tr key={index}>
+                                                                <td>
+                                                                    {item.product_name}
+                                                                    {item.variant_title && (
+                                                                        <>
+                                                                            <br />
+                                                                            <small className="text-muted">Variant: {item.variant_title}</small>
+                                                                        </>
+                                                                    )}
+                                                                </td>
+                                                                <td className="text-center">{item.quantity}</td>
+                                                                <td className="text-center">${parseFloat(item.total_price || 0).toFixed(2)} USD</td>
+                                                            </tr>
+                                                        )) || (
+                                                                <tr>
+                                                                    <td colSpan="3" className="text-center">No items found</td>
+                                                                </tr>
+                                                            )}
                                                     </tbody>
                                                     <tfoot>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Sub Total:</th>
-                                                            <th className="text-center">$1403.97 USD</th>
+                                                            <th className="text-center">${parseFloat(orderData?.subtotal || 0).toFixed(2)} USD</th>
+                                                        </tr>
+                                                        <tr>
+                                                            <th colSpan="2" className="text-right">Shipping:</th>
+                                                            <th className="text-center">${parseFloat(orderData?.shipping_cost || 0).toFixed(2)} USD</th>
                                                         </tr>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Tax:</th>
-                                                            <th className="text-center">$140.40 USD</th>
+                                                            <th className="text-center">${parseFloat(orderData?.tax_amount || 0).toFixed(2)} USD</th>
                                                         </tr>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Grand Total:</th>
-                                                            <th className="text-center">$1544.37 USD</th>
+                                                            <th className="text-center">${parseFloat(orderData?.total_amount || 0).toFixed(2)} USD</th>
                                                         </tr>
                                                     </tfoot>
                                                 </table>

@@ -290,24 +290,32 @@ const Home = () => {
                                                         <button
                                                             className="btn btn-block btn-success"
                                                             onClick={async () => {
+                                                                // Determine variant ID - use default variant if product has variants
+                                                                let variantId = null;
+                                                                if(product.has_variants && product.default_variant_id) {
+                                                                    variantId = product.default_variant_id;
+                                                                }
+
                                                                 const result = await addToCart({
                                                                     id: product.id,
                                                                     name: product.title,
                                                                     price: product.price,
                                                                     image: product.image_url || "/images/items/1.jpg",
-                                                                    category: product.category_name || "General"
+                                                                    category: product.category_name || "General",
+                                                                    quantity: 1,
+                                                                    selectedVariant: variantId ? {id: variantId} : null
                                                                 });
 
-                                                                if(result.success) {
+                                                                if(result && result.success) {
                                                                     setToast({
                                                                         show: true,
-                                                                        message: 'Product added to cart successfully!',
+                                                                        message: result.message || 'Product added to cart successfully!',
                                                                         type: 'success'
                                                                     });
                                                                 } else {
                                                                     setToast({
                                                                         show: true,
-                                                                        message: `Failed to add to cart: ${result.error}`,
+                                                                        message: `Failed to add to cart: ${result?.error || 'Unknown error'}`,
                                                                         type: 'error'
                                                                     });
                                                                 }
@@ -351,6 +359,7 @@ const Home = () => {
             {/* Toast Notification */}
             {toast.show && (
                 <Toast
+                    show={toast.show}
                     message={toast.message}
                     type={toast.type}
                     onClose={() => setToast({show: false, message: '', type: 'success'})}

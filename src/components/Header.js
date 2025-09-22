@@ -1,10 +1,11 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 
 const Header = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [profile, setProfile] = useState(null);
     const {getTotalItems} = useCart();
     const {user, isAuthenticated, logout} = useAuth();
     const navigate = useNavigate();
@@ -16,57 +17,43 @@ const Header = () => {
         }
     };
 
-    const handleLogout = () => {
-        logout();
-        navigate('/');
+
+    // Fetch user profile
+    const fetchProfile = async () => {
+        if(!isAuthenticated || !user) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/accounts/profile/', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                setProfile(data);
+            } else {
+                console.error('Failed to fetch profile');
+            }
+        } catch(error) {
+            console.error('Error fetching profile:', error);
+        }
     };
+
+    // Fetch profile when user is authenticated
+    useEffect(() => {
+        if(isAuthenticated && user) {
+            fetchProfile();
+        } else {
+            setProfile(null);
+        }
+    }, [isAuthenticated, user]);
 
     return (
         <header className="section-header">
-            <nav className="navbar p-md-0 navbar-expand-sm navbar-light border-bottom">
-                <div className="container">
-                    <button
-                        className="navbar-toggler"
-                        type="button"
-                        data-toggle="collapse"
-                        data-target="#navbarTop4"
-                        aria-controls="navbarNav"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation"
-                    >
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                    <div className="collapse navbar-collapse" id="navbarTop4">
-                        <ul className="navbar-nav mr-auto">
-                            <li className="nav-item dropdown">
-                                <button className="nav-link dropdown-toggle btn btn-link" data-toggle="dropdown">
-                                    Language
-                                </button>
-                                <ul className="dropdown-menu small">
-                                    <li><button className="dropdown-item">English</button></li>
-                                    <li><button className="dropdown-item">Arabic</button></li>
-                                    <li><button className="dropdown-item">Russian</button></li>
-                                </ul>
-                            </li>
-                            <li className="nav-item dropdown">
-                                <button className="nav-link dropdown-toggle btn btn-link" data-toggle="dropdown">
-                                    USD
-                                </button>
-                                <ul className="dropdown-menu small">
-                                    <li><button className="dropdown-item">EUR</button></li>
-                                    <li><button className="dropdown-item">AED</button></li>
-                                    <li><button className="dropdown-item">RUBL</button></li>
-                                </ul>
-                            </li>
-                        </ul>
-                        <ul className="navbar-nav">
-                            <li><button className="nav-link btn btn-link"><i className="fa fa-envelope"></i> Email</button></li>
-                            <li><button className="nav-link btn btn-link"><i className="fa fa-phone"></i> Call us</button></li>
-                        </ul>
-                    </div>
-                </div>
-            </nav>
-
             <section className="header-main border-bottom">
                 <div className="container">
                     <div className="row align-items-center">
@@ -94,7 +81,6 @@ const Header = () => {
                                 </div>
                             </div>
                         </div>
-                        <Link to="/store" className="btn btn-outline-primary">Store</Link>
                         <div className="col-lg col-md-6 col-sm-12 col">
                             <form onSubmit={handleSearch} className="search">
                                 <div className="input-group w-100">
@@ -120,7 +106,7 @@ const Header = () => {
                                     <small className="title text-muted">
                                         {isAuthenticated ? (
                                             <>
-                                                Welcome {user?.full_name || user?.email || 'User'}!
+                                                Welcome {profile?.username || user?.username || user?.full_name || 'User'}!
                                                 {user?.user_type === 'admin' && (
                                                     <span className="badge badge-warning ml-2">Admin</span>
                                                 )}
@@ -131,23 +117,10 @@ const Header = () => {
                                         {isAuthenticated ? (
                                             <>
                                                 {user?.user_type === 'admin' ? (
-                                                    <>
-                                                        <Link to="/admin/dashboard">Admin Dashboard</Link>
-                                                        <span className="dark-transp"> | </span>
-                                                    </>
+                                                    <Link to="/admin/dashboard">Admin Dashboard</Link>
                                                 ) : (
-                                                    <>
-                                                        <Link to="/dashboard">Dashboard</Link>
-                                                        <span className="dark-transp"> | </span>
-                                                    </>
+                                                    <Link to="/dashboard">Dashboard</Link>
                                                 )}
-                                                <button
-                                                    onClick={handleLogout}
-                                                    className="btn btn-link p-0"
-                                                    style={{textDecoration: 'none', color: 'inherit'}}
-                                                >
-                                                    Logout
-                                                </button>
                                             </>
                                         ) : (
                                             <>
