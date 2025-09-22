@@ -1,9 +1,10 @@
 import React, {useState, useEffect} from 'react';
 import {useAuth} from '../../context/AuthContext';
-import {Link} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 
 const Dashboard = () => {
-    const {user, logout} = useAuth();
+    const {user, logout, isAuthenticated} = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [orders, setOrders] = useState([]);
     const [receivedOrders, setReceivedOrders] = useState([]);
@@ -49,6 +50,7 @@ const Dashboard = () => {
         savedAddresses: 0
     });
     const [statsLoading, setStatsLoading] = useState(false);
+    const [authChecking, setAuthChecking] = useState(true);
 
     // Fetch dashboard statistics
     const fetchDashboardStats = async () => {
@@ -524,6 +526,60 @@ const Dashboard = () => {
         });
     };
 
+    // Authentication check and auto redirect
+    useEffect(() => {
+        setAuthChecking(true);
+
+        // Check localStorage for token as well
+        const token = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
+
+        if(!isAuthenticated || !user || !token || !savedUser) {
+            // Clear any stale data
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/');
+            return;
+        }
+
+        // Check if user is admin, redirect to admin dashboard
+        if(user.user_type === 'admin') {
+            navigate('/admin/dashboard');
+            return;
+        }
+
+        setAuthChecking(false);
+    }, [isAuthenticated, user, navigate]);
+
+    // Additional check for localStorage changes (logout from other tabs)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const token = localStorage.getItem('token');
+            const savedUser = localStorage.getItem('user');
+
+            if(!token || !savedUser) {
+                navigate('/');
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        // Also check periodically for token validity
+        const interval = setInterval(() => {
+            const token = localStorage.getItem('token');
+            const savedUser = localStorage.getItem('user');
+
+            if(!token || !savedUser) {
+                navigate('/');
+            }
+        }, 1000); // Check every second
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, [navigate]);
+
     // Fetch orders when component mounts
     useEffect(() => {
         if(user && activeTab === 'dashboard') {
@@ -627,6 +683,27 @@ const Dashboard = () => {
         );
     };
 
+    // Show loading screen while checking authentication
+    if(authChecking) {
+        return (
+            <section className="section-conten padding-y bg">
+                <div className="container">
+                    <div className="row justify-content-center">
+                        <div className="col-md-6 text-center">
+                            <div className="card">
+                                <div className="card-body py-5">
+                                    <i className="fa fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+                                    <h5>Checking Authentication...</h5>
+                                    <p className="text-muted">Please wait while we verify your access.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="section-conten padding-y bg">
             <div className="container">
@@ -719,6 +796,10 @@ const Dashboard = () => {
                         <a className="btn btn-light btn-block" href="#" onClick={(e) => {
                             e.preventDefault();
                             logout();
+                            // Navigate to home page using React Router
+                            navigate('/');
+                            // Also force immediate redirect as fallback
+                            window.location.href = '/';
                         }}>
                             <i className="fa fa-power-off"></i>
                             <span className="text">Log out</span>
