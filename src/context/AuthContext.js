@@ -8,7 +8,7 @@ export const AuthProvider = ({children}) => {
 
     const login = async (userData) => {
         try {
-            const response = await fetch('http://localhost:8000/accounts/login/', {
+            const response = await fetch('http://localhost:8000/api/accounts/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export const AuthProvider = ({children}) => {
 
     const register = async (userData) => {
         try {
-            const response = await fetch('http://localhost:8000/accounts/signup/', {
+            const response = await fetch('http://localhost:8000/api/accounts/signup/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

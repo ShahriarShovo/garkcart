@@ -242,7 +242,7 @@ const Dashboard = () => {
         setProfileLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/accounts/profile/', {
+            const response = await fetch('http://localhost:8000/api/accounts/profile/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
