@@ -246,11 +246,11 @@ const ProductDetail = () => {
 
                                     <div className="mb-3">
                                         <var className="price h4">
-                                            ${selectedVariant ? selectedVariant.price : product.price}
+                                            ৳{selectedVariant ? selectedVariant.price : product.price}
                                         </var>
                                         {(selectedVariant ? selectedVariant.old_price : product.old_price) && (
                                             <del className="price-old ml-2">
-                                                ${selectedVariant ? selectedVariant.old_price : product.old_price}
+                                                ৳{selectedVariant ? selectedVariant.old_price : product.old_price}
                                             </del>
                                         )}
                                     </div>
@@ -286,9 +286,9 @@ const ProductDetail = () => {
                                                                     <strong>SKU:</strong> {variant.sku}
                                                                 </p>
                                                                 <p className="card-text">
-                                                                    <strong>Price:</strong> ${variant.price}
+                                                                    <strong>Price:</strong> ৳{variant.price}
                                                                     {variant.old_price && (
-                                                                        <del className="ml-2 text-muted">${variant.old_price}</del>
+                                                                        <del className="ml-2 text-muted">৳{variant.old_price}</del>
                                                                     )}
                                                                 </p>
                                                                 <p className="card-text">

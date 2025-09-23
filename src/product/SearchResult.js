@@ -52,7 +52,7 @@ const SearchResult = () => {
                                                         {product.name}
                                                     </Link>
                                                     <div className="price-wrap mt-2">
-                                                        <span className="price">${product.price}</span>
+                                                        <span className="price">৳{product.price}</span>
                                                     </div>
                                                 </div>
                                                 <Link to={`/product/${product.id}`} className="btn btn-block btn-primary">

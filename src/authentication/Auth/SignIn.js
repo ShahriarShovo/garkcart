@@ -50,20 +50,21 @@ const SignIn = () => {
 
         const result = await login(userData);
         if(result.success) {
-            // Show different success messages based on user type
-            const successMessage = result.user_type === 'admin'
+            // Determine admin based on flags
+            const isAdmin = !!(result.user?.is_superuser || result.user?.is_staff || result.user?.is_admin || result.user?.user_type === 'admin');
+            const successMessage = isAdmin
                 ? 'Admin login successful! Welcome to admin panel!'
                 : 'Login successful! Welcome back!';
 
             showToast(successMessage, 'success');
             setTimeout(() => {
-                // Navigate based on user type
-                if(result.user_type === 'admin') {
+                // Navigate based on role
+                if(isAdmin) {
                     navigate('/admin/dashboard');
                 } else {
-                    navigate('/'); // Redirect to home page instead of dashboard
+                    navigate('/');
                 }
-            }, 1500); // Navigate after 1.5 seconds
+            }, 1500);
         } else {
             showToast(result.message || 'Login failed. Please check your credentials.', 'error');
         }

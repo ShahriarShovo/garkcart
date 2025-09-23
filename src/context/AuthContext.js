@@ -5,6 +5,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({children}) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [refreshTimer, setRefreshTimer] = useState(null);
 
     const login = async (userData) => {
         try {
@@ -26,15 +27,20 @@ export const AuthProvider = ({children}) => {
                     token: data.token,
                     user_type: data.user_type,
                     is_admin: data.is_admin,
-                    is_superuser: data.is_superuser
+                    is_superuser: data.is_superuser,
+                    is_staff: data.is_staff
                 };
 
                 setUser(userInfo);
                 setIsAuthenticated(true);
                 localStorage.setItem('user', JSON.stringify(userInfo));
                 localStorage.setItem('token', data.token.access);
+                localStorage.setItem('refresh_token', data.token.refresh);
 
-                return {success: true, message: data.message};
+                // schedule token refresh ~5 minutes before expiry
+                scheduleTokenRefresh();
+
+                return {success: true, message: data.message, user: userInfo};
             } else {
                 const errorData = await response.json();
                 console.error('Login failed:', errorData);
@@ -51,6 +57,11 @@ export const AuthProvider = ({children}) => {
         setIsAuthenticated(false);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        if(refreshTimer) {
+            clearTimeout(refreshTimer);
+            setRefreshTimer(null);
+        }
     };
 
     const register = async (userData) => {
@@ -78,8 +89,10 @@ export const AuthProvider = ({children}) => {
                 setIsAuthenticated(true);
                 localStorage.setItem('user', JSON.stringify(userInfo));
                 localStorage.setItem('token', data.token.access);
+                localStorage.setItem('refresh_token', data.token.refresh);
+                scheduleTokenRefresh();
 
-                return {success: true, message: data.message};
+                return {success: true, message: data.message, user: userInfo};
             } else {
                 const errorData = await response.json();
                 console.error('Registration failed:', errorData);
@@ -91,12 +104,57 @@ export const AuthProvider = ({children}) => {
         }
     };
 
+    const refreshAccessToken = async () => {
+        const refresh = localStorage.getItem('refresh_token');
+        if(!refresh) return false;
+        try {
+            const response = await fetch('http://localhost:8000/api/accounts/token/refresh/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({refresh})
+            });
+            if(response.ok) {
+                const data = await response.json();
+                if(data.access) {
+                    localStorage.setItem('token', data.access);
+                    // re-schedule next refresh
+                    scheduleTokenRefresh();
+                    return true;
+                }
+            } else {
+                // refresh failed; force logout
+                logout();
+            }
+        } catch(e) {
+            console.error('Token refresh failed', e);
+        }
+        return false;
+    };
+
+    const scheduleTokenRefresh = () => {
+        if(refreshTimer) {
+            clearTimeout(refreshTimer);
+        }
+        // Access token lifetime is 90 minutes; refresh 5 minutes before expiry
+        const ms = (90 - 5) * 60 * 1000;
+        const timer = setTimeout(() => {
+            refreshAccessToken();
+        }, ms);
+        setRefreshTimer(timer);
+    };
+
     // Check for existing user on app load
     React.useEffect(() => {
         const savedUser = localStorage.getItem('user');
         if(savedUser) {
             setUser(JSON.parse(savedUser));
             setIsAuthenticated(true);
+            // ensure refresh loop is scheduled if tokens exist
+            const token = localStorage.getItem('token');
+            const refresh = localStorage.getItem('refresh_token');
+            if(token && refresh) {
+                scheduleTokenRefresh();
+            }
         }
     }, []);
 

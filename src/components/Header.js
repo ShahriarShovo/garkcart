@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import {Link, useNavigate, useLocation} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 
@@ -9,6 +9,10 @@ const Header = () => {
     const {getTotalItems} = useCart();
     const {user, isAuthenticated, logout} = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const isAdminUser = !!(user?.is_superuser || user?.is_staff || user?.is_admin || user?.user_type === 'admin');
+    const isAdminView = isAdminUser && location.pathname.startsWith('/admin');
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -62,47 +66,51 @@ const Header = () => {
                                 <img className="logo" src="/images/logo.png" alt="GreatKart" />
                             </Link>
                         </div>
-                        <div className="col-lg col-sm col-md col-6 flex-grow-0">
-                            <div className="category-wrap dropdown d-inline-block float-right">
-                                <button
-                                    type="button"
-                                    className="btn btn-primary dropdown-toggle"
-                                    data-toggle="dropdown"
-                                >
-                                    <i className="fa fa-bars"></i> All category
-                                </button>
-                                <div className="dropdown-menu">
-                                    <a className="dropdown-item" href="#">Machinery / Mechanical Parts / Tools</a>
-                                    <a className="dropdown-item" href="#">Consumer Electronics / Home Appliances</a>
-                                    <a className="dropdown-item" href="#">Auto / Transportation</a>
-                                    <a className="dropdown-item" href="#">Apparel / Textiles / Timepieces</a>
-                                    <a className="dropdown-item" href="#">Home & Garden / Construction / Lights</a>
-                                    <a className="dropdown-item" href="#">Beauty & Personal Care / Health</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="col-lg col-md-6 col-sm-12 col">
-                            <form onSubmit={handleSearch} className="search">
-                                <div className="input-group w-100">
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        style={{width: '60%'}}
-                                        placeholder="Search"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                    <div className="input-group-append">
-                                        <button className="btn btn-primary" type="submit">
-                                            <i className="fa fa-search"></i>
-                                        </button>
+                        {!isAdminView && (
+                            <div className="col-lg col-sm col-md col-6 flex-grow-0">
+                                <div className="category-wrap dropdown d-inline-block float-right">
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary dropdown-toggle"
+                                        data-toggle="dropdown"
+                                    >
+                                        <i className="fa fa-bars"></i> All category
+                                    </button>
+                                    <div className="dropdown-menu">
+                                        <a className="dropdown-item" href="#">Machinery / Mechanical Parts / Tools</a>
+                                        <a className="dropdown-item" href="#">Consumer Electronics / Home Appliances</a>
+                                        <a className="dropdown-item" href="#">Auto / Transportation</a>
+                                        <a className="dropdown-item" href="#">Apparel / Textiles / Timepieces</a>
+                                        <a className="dropdown-item" href="#">Home & Garden / Construction / Lights</a>
+                                        <a className="dropdown-item" href="#">Beauty & Personal Care / Health</a>
                                     </div>
                                 </div>
-                            </form>
-                        </div>
-                        <div className="col-lg-3 col-sm-6 col-8 order-2 order-lg-3">
+                            </div>
+                        )}
+                        {!isAdminView && (
+                            <div className="col-lg col-md-6 col-sm-12 col">
+                                <form onSubmit={handleSearch} className="search">
+                                    <div className="input-group w-100">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            style={{width: '60%'}}
+                                            placeholder="Search"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                        <div className="input-group-append">
+                                            <button className="btn btn-primary" type="submit">
+                                                <i className="fa fa-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+                        <div className={isAdminView ? "col-12" : "col-lg-3 col-sm-6 col-8 order-2 order-lg-3"}>
                             <div className="d-flex justify-content-end mb-3 mb-lg-0">
-                                <div className="widget-header">
+                                <div className={isAdminView ? "widget-header text-right" : "widget-header"}>
                                     <small className="title text-muted">
                                         {isAuthenticated ? (
                                             <>
@@ -131,14 +139,16 @@ const Header = () => {
                                         )}
                                     </div>
                                 </div>
-                                <Link to="/cart" className="widget-header pl-3 ml-3">
-                                    <div className="icon icon-sm rounded-circle border">
-                                        <i className="fa fa-shopping-cart"></i>
-                                    </div>
-                                    <span className="badge badge-pill badge-danger notify">
-                                        {getTotalItems() || 0}
-                                    </span>
-                                </Link>
+                                {!isAdminView && (
+                                    <Link to="/cart" className="widget-header pl-3 ml-3">
+                                        <div className="icon icon-sm rounded-circle border">
+                                            <i className="fa fa-shopping-cart"></i>
+                                        </div>
+                                        <span className="badge badge-pill badge-danger notify">
+                                            {getTotalItems() || 0}
+                                        </span>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>

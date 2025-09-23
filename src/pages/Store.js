@@ -135,13 +135,13 @@ const Store = () => {
                                                             value={priceRange.min}
                                                             onChange={(e) => setPriceRange(prev => ({...prev, min: parseInt(e.target.value)}))}
                                                         >
-                                                            <option value="0">$0</option>
-                                                            <option value="50">$50</option>
-                                                            <option value="100">$100</option>
-                                                            <option value="150">$150</option>
-                                                            <option value="200">$200</option>
-                                                            <option value="500">$500</option>
-                                                            <option value="1000">$1000</option>
+                                                            <option value="0">৳0</option>
+                                                            <option value="50">৳50</option>
+                                                            <option value="100">৳100</option>
+                                                            <option value="150">৳150</option>
+                                                            <option value="200">৳200</option>
+                                                            <option value="500">৳500</option>
+                                                            <option value="1000">৳1000</option>
                                                         </select>
                                                     </div>
                                                     <div className="form-group text-right col-md-6">
@@ -151,13 +151,13 @@ const Store = () => {
                                                             value={priceRange.max}
                                                             onChange={(e) => setPriceRange(prev => ({...prev, max: parseInt(e.target.value)}))}
                                                         >
-                                                            <option value="50">$50</option>
-                                                            <option value="100">$100</option>
-                                                            <option value="150">$150</option>
-                                                            <option value="200">$200</option>
-                                                            <option value="500">$500</option>
-                                                            <option value="1000">$1000</option>
-                                                            <option value="2000">$2000+</option>
+                                                            <option value="50">৳50</option>
+                                                            <option value="100">৳100</option>
+                                                            <option value="150">৳150</option>
+                                                            <option value="200">৳200</option>
+                                                            <option value="500">৳500</option>
+                                                            <option value="1000">৳1000</option>
+                                                            <option value="2000">৳2000+</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -189,8 +189,8 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
-                                                            <del className="price-old">$1980</del>
+                                                            <span className="price">৳1280</span>
+                                                            <del className="price-old">৳1980</del>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(4.5)}
@@ -226,7 +226,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -262,7 +262,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -298,7 +298,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -334,7 +334,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -370,7 +370,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -406,7 +406,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}
@@ -442,7 +442,7 @@ const Store = () => {
                                                 <div className="price-wrap mt-2">
                                                     <div className="d-flex align-items-center justify-content-between">
                                                         <div>
-                                                            <span className="price">$1280</span>
+                                                            <span className="price">৳1280</span>
                                                         </div>
                                                         <div className="rating">
                                                             {renderStars(3.5)}

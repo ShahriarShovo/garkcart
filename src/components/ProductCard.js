@@ -10,6 +10,26 @@ const ProductCard = ({product}) => {
         addToCart(product);
     };
 
+    const renderRating = () => {
+        const ratingValue = Number(product?.rating) || 0; // default 0 when no rating
+        const stars = [];
+        for(let i = 1; i <= 5; i++) {
+            if(i <= Math.floor(ratingValue)) {
+                stars.push(<i key={i} className="fa fa-star"></i>);
+            } else {
+                stars.push(<i key={i} className="fa fa-star-o"></i>);
+            }
+        }
+        return (
+            <div className="rating">
+                {stars}
+                {product?.review_count !== undefined && (
+                    <small>({product.review_count})</small>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="col-md-3">
             <div className="card card-product-grid">
@@ -20,7 +40,8 @@ const ProductCard = ({product}) => {
                     <Link to={`/product/${product.id}`} className="title">
                         {product.name}
                     </Link>
-                    <div className="price mt-1">${product.price}</div>
+                    {renderRating()}
+                    <div className="price mt-1">৳{product.price}</div>
                     <button
                         className="btn btn-primary btn-sm mt-2"
                         onClick={handleAddToCart}

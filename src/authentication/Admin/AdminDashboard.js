@@ -84,7 +84,7 @@ const AdminDashboard = () => {
         is_active: true
     });
 
-    const [toast, setToast] = useState({show: false, message: '', type: 'success'});
+    const [toast, setToast] = useState({show: false, message: '', type: 'success', title: ''});
     const [authChecking, setAuthChecking] = useState(true);
 
     // Delete confirmation modal states
@@ -440,13 +440,10 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
 
-            // Build query parameters
             const params = new URLSearchParams({
                 type: reportType,
                 period: reportPeriod
             });
-
-            // Add custom dates if period is 'custom'
             if(reportPeriod === 'custom' && customStartDate && customEndDate) {
                 params.append('start_date', customStartDate);
                 params.append('end_date', customEndDate);
@@ -459,7 +456,6 @@ const AdminDashboard = () => {
             });
 
             if(response.ok) {
-                // Get filename from response headers
                 const contentDisposition = response.headers.get('Content-Disposition');
                 let filename = `${reportType}_report.xlsx`;
                 if(contentDisposition) {
@@ -469,7 +465,6 @@ const AdminDashboard = () => {
                     }
                 }
 
-                // Create blob and download
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -480,14 +475,13 @@ const AdminDashboard = () => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
-                alert('Excel report generated successfully!');
+                setToast({show: true, title: 'Excel Generated', message: 'Your Excel report is downloading now.', type: 'success'});
             } else {
-                console.error('Failed to generate Excel report:', response.statusText);
-                alert('Failed to generate Excel report. Please try again.');
+                const text = await response.text();
+                setToast({show: true, title: 'Generation Failed', message: text || 'Failed to generate Excel report. Please try again.', type: 'error'});
             }
         } catch(error) {
-            console.error('Error generating Excel report:', error);
-            alert('Error generating Excel report. Please try again.');
+            setToast({show: true, title: 'Network Error', message: 'Could not generate the Excel report. Please check your connection.', type: 'error'});
         } finally {
             setIsGeneratingReport(false);
         }
@@ -1189,7 +1183,9 @@ const AdminDashboard = () => {
         }
 
         // Check if user is not admin, redirect to user dashboard
-        if(user.user_type !== 'admin') {
+        const parsed = typeof user === 'string' ? JSON.parse(user) : user;
+        const isAdmin = !!(parsed?.is_superuser || parsed?.is_staff || parsed?.is_admin || parsed?.user_type === 'admin');
+        if(!isAdmin) {
             navigate('/dashboard');
             return;
         }
@@ -1281,6 +1277,24 @@ const AdminDashboard = () => {
 
     return (
         <section className="section-conten padding-y bg">
+            {/* Toast Renderer */}
+            {toast.show && (
+                <div className={`toast-notification ${toast.show ? 'toast-show' : ''} ${toast.type === 'success' ? 'toast-success' : 'toast-error'}`}>
+                    <div className="toast-content">
+                        <div className="toast-icon">
+                            <i className={`fa ${toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                        </div>
+                        <div className="toast-message">
+                            {toast.title && <strong>{toast.title}</strong>}
+                            <p>{toast.message}</p>
+                        </div>
+                        <button className="toast-close" onClick={() => setToast({...toast, show: false})}>×</button>
+                    </div>
+                    <div className="toast-progress">
+                        <div className="toast-progress-bar"></div>
+                    </div>
+                </div>
+            )}
             <div className="container">
                 <div className="row">
                     <aside className="col-md-3">
@@ -1593,114 +1607,6 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
 
-                                    {/* Excel Report Generation Section */}
-                                    <div className="row mt-4">
-                                        <div className="col-12">
-                                            <div className="card">
-                                                <div className="card-header">
-                                                    <h6 className="mb-0">
-                                                        <i className="fa fa-file-excel mr-2 text-success"></i>
-                                                        Generate Excel Reports
-                                                    </h6>
-                                                </div>
-                                                <div className="card-body">
-                                                    <div className="row">
-                                                        <div className="col-md-3">
-                                                            <label className="form-label">Report Type</label>
-                                                            <select
-                                                                className="form-control"
-                                                                value={reportType}
-                                                                onChange={(e) => setReportType(e.target.value)}
-                                                            >
-                                                                <option value="sales">Sales Report</option>
-                                                                <option value="orders">Orders Report</option>
-                                                                <option value="users">Users Report</option>
-                                                                <option value="products">Products Report</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="col-md-3">
-                                                            <label className="form-label">Time Period</label>
-                                                            <select
-                                                                className="form-control"
-                                                                value={reportPeriod}
-                                                                onChange={(e) => setReportPeriod(e.target.value)}
-                                                            >
-                                                                <option value="7">Last 7 Days</option>
-                                                                <option value="30">Last 30 Days</option>
-                                                                <option value="365">Last 1 Year</option>
-                                                                <option value="custom">Custom Date Range</option>
-                                                            </select>
-                                                        </div>
-                                                        {reportPeriod === 'custom' && (
-                                                            <>
-                                                                <div className="col-md-2">
-                                                                    <label className="form-label">Start Date</label>
-                                                                    <input
-                                                                        type="date"
-                                                                        className="form-control"
-                                                                        value={customStartDate}
-                                                                        onChange={(e) => setCustomStartDate(e.target.value)}
-                                                                    />
-                                                                </div>
-                                                                <div className="col-md-2">
-                                                                    <label className="form-label">End Date</label>
-                                                                    <input
-                                                                        type="date"
-                                                                        className="form-control"
-                                                                        value={customEndDate}
-                                                                        onChange={(e) => setCustomEndDate(e.target.value)}
-                                                                    />
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                        <div className="col-md-2">
-                                                            <label className="form-label">&nbsp;</label>
-                                                            <button
-                                                                className="btn btn-success btn-block"
-                                                                onClick={generateExcelReport}
-                                                                disabled={isGeneratingReport || (reportPeriod === 'custom' && (!customStartDate || !customEndDate))}
-                                                            >
-                                                                {isGeneratingReport ? (
-                                                                    <>
-                                                                        <i className="fa fa-spinner fa-spin mr-1"></i>
-                                                                        Generating...
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <i className="fa fa-download mr-1"></i>
-                                                                        Generate Excel
-                                                                    </>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Report Type Descriptions */}
-                                                    <div className="row mt-3">
-                                                        <div className="col-12">
-                                                            <div className="alert alert-info">
-                                                                <h6 className="mb-2">Report Types:</h6>
-                                                                <div className="row">
-                                                                    <div className="col-md-3">
-                                                                        <strong>Sales Report:</strong> Daily sales breakdown with totals and averages
-                                                                    </div>
-                                                                    <div className="col-md-3">
-                                                                        <strong>Orders Report:</strong> Detailed order information with customer and item details
-                                                                    </div>
-                                                                    <div className="col-md-3">
-                                                                        <strong>Users Report:</strong> User registration data with activity and spending statistics
-                                                                    </div>
-                                                                    <div className="col-md-3">
-                                                                        <strong>Products Report:</strong> Product performance with sales and inventory data
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </article>
                         )}
@@ -2594,7 +2500,114 @@ const AdminDashboard = () => {
                                     <strong className="d-inline-block mr-3">Reports</strong>
                                 </header>
                                 <div className="card-body">
-                                    <p>Reports and analytics will be here.</p>
+                                    {/* Excel Report Generation Section */}
+                                    <div className="row">
+                                        <div className="col-12">
+                                            <div className="card">
+                                                <div className="card-header">
+                                                    <h6 className="mb-0">
+                                                        <i className="fa fa-file-excel mr-2 text-success"></i>
+                                                        Generate Excel Reports
+                                                    </h6>
+                                                </div>
+                                                <div className="card-body">
+                                                    <div className="row">
+                                                        <div className="col-md-3">
+                                                            <label className="form-label">Report Type</label>
+                                                            <select
+                                                                className="form-control"
+                                                                value={reportType}
+                                                                onChange={(e) => setReportType(e.target.value)}
+                                                            >
+                                                                <option value="sales">Sales Report</option>
+                                                                <option value="orders">Orders Report</option>
+                                                                <option value="users">Users Report</option>
+                                                                <option value="products">Products Report</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-md-3">
+                                                            <label className="form-label">Time Period</label>
+                                                            <select
+                                                                className="form-control"
+                                                                value={reportPeriod}
+                                                                onChange={(e) => setReportPeriod(e.target.value)}
+                                                            >
+                                                                <option value="7">Last 7 Days</option>
+                                                                <option value="30">Last 30 Days</option>
+                                                                <option value="365">Last 1 Year</option>
+                                                                <option value="custom">Custom Date Range</option>
+                                                            </select>
+                                                        </div>
+                                                        {reportPeriod === 'custom' && (
+                                                            <>
+                                                                <div className="col-md-2">
+                                                                    <label className="form-label">Start Date</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        className="form-control"
+                                                                        value={customStartDate}
+                                                                        onChange={(e) => setCustomStartDate(e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                <div className="col-md-2">
+                                                                    <label className="form-label">End Date</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        className="form-control"
+                                                                        value={customEndDate}
+                                                                        onChange={(e) => setCustomEndDate(e.target.value)}
+                                                                    />
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                        <div className="col-md-2">
+                                                            <label className="form-label">&nbsp;</label>
+                                                            <button
+                                                                className="btn btn-success btn-block btn-sm"
+                                                                onClick={generateExcelReport}
+                                                                disabled={isGeneratingReport || (reportPeriod === 'custom' && (!customStartDate || !customEndDate))}
+                                                            >
+                                                                {isGeneratingReport ? (
+                                                                    <>
+                                                                        <i className="fa fa-spinner fa-spin mr-1"></i>
+                                                                        Generating...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <i className="fa fa-download mr-1"></i>
+                                                                        Generate Excel
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Report Type Descriptions */}
+                                                    <div className="row mt-3">
+                                                        <div className="col-12">
+                                                            <div className="alert alert-info">
+                                                                <h6 className="mb-2">Report Types:</h6>
+                                                                <div className="row">
+                                                                    <div className="col-md-3">
+                                                                        <strong>Sales Report:</strong> Daily sales breakdown with totals and averages
+                                                                    </div>
+                                                                    <div className="col-md-3">
+                                                                        <strong>Orders Report:</strong> Detailed order information with customer and item details
+                                                                    </div>
+                                                                    <div className="col-md-3">
+                                                                        <strong>Users Report:</strong> User registration data with activity and spending statistics
+                                                                    </div>
+                                                                    <div className="col-md-3">
+                                                                        <strong>Products Report:</strong> Product performance with sales and inventory data
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </article>
                         )}
@@ -4009,21 +4022,6 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Toast Notification */}
-            {toast.show && (
-                <div className={`alert alert-${toast.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`}
-                    style={{position: 'fixed', top: '20px', right: '20px', zIndex: 9999, minWidth: '300px'}}>
-                    {toast.message}
-                    <button
-                        type="button"
-                        className="close"
-                        onClick={() => setToast({show: false, message: '', type: 'success'})}
-                    >
-                        <span>&times;</span>
-                    </button>
                 </div>
             )}
         </section>

@@ -8,6 +8,7 @@ import Home from './pages/Home';
 import Store from './pages/Store';
 import ProductDetail from './product/ProductDetail';
 import Cart from './product/Cart';
+import CategoryProducts from './product/CategoryProducts';
 import SignIn from './authentication/Auth/SignIn';
 import Register from './authentication/Auth/Register';
 import EmailVerification from './authentication/Auth/EmailVerification';
@@ -30,6 +31,7 @@ function App() {
                                 <Route path="/store" element={<Store />} />
                                 <Route path="/product/:id" element={<ProductDetail />} />
                                 <Route path="/cart" element={<Cart />} />
+                                <Route path="/category-products" element={<CategoryProducts />} />
                                 <Route path="/signin" element={<SignIn />} />
                                 <Route path="/register" element={<Register />} />
                                 <Route path="/email-verification" element={<EmailVerification />} />
