@@ -4,7 +4,7 @@ import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 
 const CategoryProducts = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [category, setCategory] = useState(null);
     const [subcategory, setSubcategory] = useState(null);
@@ -13,21 +13,36 @@ const CategoryProducts = () => {
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
     const {addToCart} = useCart();
 
+    // Sidebar state (mirrors Home sidebar)
+    const [categories, setCategories] = useState([]);
+    const [categoriesLoading, setCategoriesLoading] = useState(false);
+    const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+    const [priceExpanded, setPriceExpanded] = useState(true);
+    const [subcategories, setSubcategories] = useState({}); // { [slug]: [] }
+    const [hoveredCategory, setHoveredCategory] = useState(null);
+
+    // Price range from URL or defaults
+    const initialMin = parseInt(searchParams.get('min_price') || '0', 10);
+    const initialMax = parseInt(searchParams.get('max_price') || '2000', 10);
+    const [priceRange, setPriceRange] = useState({min: initialMin, max: initialMax});
+
     const categorySlug = searchParams.get('category');
     const subcategorySlug = searchParams.get('subcategory');
 
-    // Fetch products by category/subcategory
+    // Fetch products by category/subcategory and price filters
     const fetchCategoryProducts = async () => {
         if(!categorySlug) return;
 
         setLoading(true);
         setError(null);
         try {
-            let url = `http://localhost:8000/api/products/product/category_products/?category=${categorySlug}`;
-            if(subcategorySlug) {
-                url += `&subcategory=${subcategorySlug}`;
-            }
+            const params = new URLSearchParams();
+            params.set('category', categorySlug);
+            if(subcategorySlug) params.set('subcategory', subcategorySlug);
+            if(searchParams.get('min_price')) params.set('min_price', searchParams.get('min_price'));
+            if(searchParams.get('max_price')) params.set('max_price', searchParams.get('max_price'));
 
+            const url = `http://localhost:8000/api/products/product/category_products/?${params.toString()}`;
             const response = await fetch(url);
 
             if(response.ok) {
@@ -37,47 +52,84 @@ const CategoryProducts = () => {
                 setSubcategory(data.subcategory);
             } else {
                 const errorData = await response.json();
-                console.error('Failed to fetch category products:', errorData);
                 setError(errorData.error || 'Failed to fetch products');
             }
         } catch(error) {
-            console.error('Error fetching category products:', error);
             setError('Network error occurred');
         } finally {
             setLoading(false);
         }
     };
 
-    // Fetch products when component mounts or params change
+    // Fetch categories for sidebar
+    const fetchCategories = async () => {
+        setCategoriesLoading(true);
+        try {
+            const response = await fetch('http://localhost:8000/api/products/category/');
+            if(response.ok) {
+                const data = await response.json();
+                setCategories(data.results || data);
+            }
+        } catch(e) {
+            // noop
+        } finally {
+            setCategoriesLoading(false);
+        }
+    };
+
+    // Fetch subcategories for a category (once)
+    const fetchSubcategories = async (catSlug) => {
+        if(subcategories[catSlug]) return;
+        try {
+            const response = await fetch(`http://localhost:8000/api/products/category/${catSlug}/subcategories/`);
+            if(response.ok) {
+                const data = await response.json();
+                setSubcategories(prev => ({...prev, [catSlug]: data.subcategories || []}));
+            }
+        } catch(e) {
+            // noop
+        }
+    };
+
+    const handleCategoryHover = (cat) => {
+        setHoveredCategory(cat);
+        if(cat.slug && !subcategories[cat.slug]) fetchSubcategories(cat.slug);
+    };
+    const handleCategoryLeave = () => setHoveredCategory(null);
+
+    // Apply price filter (update URL and refetch)
+    const applyPriceFilter = () => {
+        const newParams = new URLSearchParams(searchParams.toString());
+        newParams.set('min_price', String(priceRange.min));
+        newParams.set('max_price', String(priceRange.max));
+        setSearchParams(newParams);
+        // fetchCategoryProducts will react via useEffect below
+    };
+
+    // Effects
+    useEffect(() => {
+        fetchCategories();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     useEffect(() => {
         fetchCategoryProducts();
-    }, [categorySlug, subcategorySlug]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categorySlug, subcategorySlug, searchParams.get('min_price'), searchParams.get('max_price')]);
 
-    // Function to render star rating
+    // Rating renderer (unchanged)
     const renderStars = (rating, reviewCount = 0) => {
         const numRating = parseFloat(rating) || 0;
         const stars = [];
         const fullStars = Math.floor(numRating);
         const hasHalfStar = numRating % 1 !== 0;
-
-        for(let i = 0; i < fullStars && i < 5; i++) {
-            stars.push(<i key={`full-${i}`} className="fa fa-star"></i>);
-        }
-
-        if(hasHalfStar && stars.length < 5) {
-            stars.push(<i key="half" className="fa fa-star-half-o"></i>);
-        }
-
-        while(stars.length < 5) {
-            stars.push(<i key={`empty-${stars.length}`} className="far fa-star fa-star-o"></i>);
-        }
-
+        for(let i = 0; i < fullStars && i < 5; i++) stars.push(<i key={`full-${i}`} className="fa fa-star"></i>);
+        if(hasHalfStar && stars.length < 5) stars.push(<i key="half" className="fa fa-star-half-o"></i>);
+        while(stars.length < 5) stars.push(<i key={`empty-${stars.length}`} className="far fa-star fa-star-o"></i>);
         return (
             <div className="rating">
                 {stars}
-                <small className="text-muted ml-1">
-                    ({numRating.toFixed(1)}) {reviewCount > 0 && `(${reviewCount} review${reviewCount > 1 ? 's' : ''})`}
-                </small>
+                <small className="text-muted ml-1">({numRating.toFixed(1)}) {reviewCount > 0 && `(${reviewCount} review${reviewCount > 1 ? 's' : ''})`}</small>
             </div>
         );
     };
@@ -113,17 +165,153 @@ const CategoryProducts = () => {
                             <div className="card">
                                 <article className="filter-group">
                                     <header className="card-header">
-                                        <h6 className="title">Categories</h6>
+                                        <button
+                                            className="btn btn-link p-0"
+                                            onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                                            style={{border: 'none', background: 'none', width: '100%', textAlign: 'left'}}
+                                        >
+                                            <i className={`icon-control fa ${categoriesExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}`}></i>
+                                            <h6 className="title">Categories</h6>
+                                        </button>
                                     </header>
-                                    <div className="filter-content collapse show">
-                                        <div className="card-body">
-                                            <ul className="list-menu">
-                                                <li><Link to="/category-products?category=apple">Apple</Link></li>
-                                                <li><Link to="/category-products?category=electronics">Electronics</Link></li>
-                                                <li><Link to="/category-products?category=google">Google</Link></li>
-                                            </ul>
+                                    {categoriesExpanded && (
+                                        <div className="filter-content collapse show">
+                                            <div className="card-body">
+                                                {categoriesLoading ? (
+                                                    <div className="text-center py-2">
+                                                        <i className="fa fa-spinner fa-spin"></i>
+                                                        <small className="ml-2">Loading categories...</small>
+                                                    </div>
+                                                ) : (
+                                                    <ul className="list-menu">
+                                                        {categories.slice(0, 10).map((cat) => (
+                                                            <li
+                                                                key={cat.id}
+                                                                className="position-relative"
+                                                                onMouseEnter={() => handleCategoryHover(cat)}
+                                                                onMouseLeave={handleCategoryLeave}
+                                                            >
+                                                                <Link to={`/category-products?category=${cat.slug}`}>
+                                                                    {cat.name}
+                                                                    {cat.subcategories_count > 0 && (
+                                                                        <i className="fa fa-chevron-right float-right mt-1"></i>
+                                                                    )}
+                                                                </Link>
+                                                                {/* Subcategories dropdown */}
+                                                                {hoveredCategory && hoveredCategory.id === cat.id &&
+                                                                    subcategories[cat.slug] && subcategories[cat.slug].length > 0 && (
+                                                                        <div
+                                                                            className="subcategory-dropdown"
+                                                                            style={{
+                                                                                position: 'absolute',
+                                                                                left: '100%',
+                                                                                top: '-8px',
+                                                                                background: 'white',
+                                                                                border: 'none',
+                                                                                borderRadius: '12px',
+                                                                                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+                                                                                zIndex: 1000,
+                                                                                minWidth: '240px',
+                                                                                padding: '12px 0',
+                                                                                backdropFilter: 'blur(10px)',
+                                                                                border: '1px solid rgba(255,255,255,0.2)'
+                                                                            }}
+                                                                        >
+                                                                            <div style={{
+                                                                                padding: '8px 16px 12px 16px',
+                                                                                borderBottom: '1px solid #f0f0f0',
+                                                                                marginBottom: '8px',
+                                                                                textAlign: 'center'
+                                                                            }}>
+                                                                                <small style={{
+                                                                                    color: '#666',
+                                                                                    fontWeight: '600',
+                                                                                    textTransform: 'uppercase',
+                                                                                    letterSpacing: '0.5px',
+                                                                                    fontSize: '11px'
+                                                                                }}>
+                                                                                    {cat.name}
+                                                                                </small>
+                                                                            </div>
+                                                                            {subcategories[cat.slug].map((subcat) => (
+                                                                                <div key={subcat.id} style={{padding: 0, margin: '0 8px', borderRadius: '8px', transition: 'all 0.2s ease'}}>
+                                                                                    <Link
+                                                                                        to={`/category-products?category=${cat.slug}&subcategory=${subcat.slug}`}
+                                                                                        style={{display: 'block', padding: '12px 16px', color: '#333', textDecoration: 'none', borderRadius: '8px', transition: 'all 0.2s ease', position: 'relative'}}
+                                                                                        onMouseEnter={(e) => {e.target.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'; e.target.style.color = 'white'; e.target.style.transform = 'translateX(4px)'; e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';}}
+                                                                                        onMouseLeave={(e) => {e.target.style.background = 'transparent'; e.target.style.color = '#333'; e.target.style.transform = 'translateX(0)'; e.target.style.boxShadow = 'none';}}
+                                                                                    >
+                                                                                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                                                                            <span style={{fontWeight: 500, fontSize: '14px'}}>{subcat.name}</span>
+                                                                                            <i className="fa fa-arrow-right" style={{fontSize: '12px', opacity: 0.6, transition: 'all 0.2s ease'}}></i>
+                                                                                        </div>
+                                                                                    </Link>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
+                                </article>
+
+                                {/* Price Range Filter */}
+                                <article className="filter-group">
+                                    <header className="card-header">
+                                        <button
+                                            className="btn btn-link p-0"
+                                            onClick={() => setPriceExpanded(!priceExpanded)}
+                                            style={{border: 'none', background: 'none', width: '100%', textAlign: 'left'}}
+                                        >
+                                            <i className={`icon-control fa ${priceExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}`}></i>
+                                            <h6 className="title">Price range</h6>
+                                        </button>
+                                    </header>
+                                    {priceExpanded && (
+                                        <div className="filter-content" id="collapse_3">
+                                            <div className="card-body">
+                                                <div className="form-row">
+                                                    <div className="form-group col-md-6">
+                                                        <label>Min</label>
+                                                        <select
+                                                            className="mr-2 form-control"
+                                                            value={priceRange.min}
+                                                            onChange={(e) => setPriceRange(prev => ({...prev, min: parseInt(e.target.value, 10)}))}
+                                                        >
+                                                            <option value="0">৳0</option>
+                                                            <option value="50">৳50</option>
+                                                            <option value="100">৳100</option>
+                                                            <option value="150">৳150</option>
+                                                            <option value="200">৳200</option>
+                                                            <option value="500">৳500</option>
+                                                            <option value="1000">৳1000</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group text-right col-md-6">
+                                                        <label>Max</label>
+                                                        <select
+                                                            className="mr-2 form-control"
+                                                            value={priceRange.max}
+                                                            onChange={(e) => setPriceRange(prev => ({...prev, max: parseInt(e.target.value, 10)}))}
+                                                        >
+                                                            <option value="50">৳50</option>
+                                                            <option value="100">৳100</option>
+                                                            <option value="150">৳150</option>
+                                                            <option value="200">৳200</option>
+                                                            <option value="500">৳500</option>
+                                                            <option value="1000">৳1000</option>
+                                                            <option value="2000">৳2000+</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <button className="btn btn-block btn-primary" onClick={applyPriceFilter}>Apply</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </article>
                             </div>
                         </aside>
