@@ -501,7 +501,7 @@ const Home = () => {
                                                             </div>
                                                         </div>
                                                         <button
-                                                            className="btn btn-block btn-success"
+                                                            className="btn btn-block btn-primary"
                                                             onClick={async () => {
                                                                 // Determine variant ID - use default variant if product has variants
                                                                 let variantId = null;
@@ -534,6 +534,7 @@ const Home = () => {
                                                                 }
                                                             }}
                                                         >
+                                                            <i className="fa fa-shopping-cart mr-1"></i>
                                                             Add to cart
                                                         </button>
                                                     </figcaption>

@@ -77,6 +77,8 @@ const AdminDashboard = () => {
     const [subcategories, setSubcategories] = useState([]);
     const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
     const [subcategoriesError, setSubcategoriesError] = useState(null);
+    const [categoriesPage, setCategoriesPage] = useState(1);
+    const [subcategoriesPage, setSubcategoriesPage] = useState(1);
     const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
     const [editingSubcategory, setEditingSubcategory] = useState(null);
     const [subcategoryForm, setSubcategoryForm] = useState({
@@ -128,6 +130,56 @@ const AdminDashboard = () => {
     const [productOptions, setProductOptions] = useState([]);
     const [productImages, setProductImages] = useState([]);
     const [productVariants, setProductVariants] = useState([]);
+
+    // Settings (Admin Profile) states
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [profileSaving, setProfileSaving] = useState(false);
+    const [profileError, setProfileError] = useState(null);
+    const [profileSuccess, setProfileSuccess] = useState(null);
+    const [settingsForm, setSettingsForm] = useState({
+        id: null,
+        email: '',
+        username: '',
+        full_name: '',
+        address: '',
+        city: '',
+        zipcode: '',
+        country: '',
+        phone: ''
+    });
+    // Change password states
+    const [pwdForm, setPwdForm] = useState({password: '', confirm_password: ''});
+    const [pwdLoading, setPwdLoading] = useState(false);
+    const [pwdError, setPwdError] = useState(null);
+    const [pwdSuccess, setPwdSuccess] = useState(null);
+
+    // Settings extended UI (frontend-only placeholders)
+    const [settingsTab, setSettingsTab] = useState('profile');
+    const [generalSettings, setGeneralSettings] = useState({
+        site_name: 'GreatKart',
+        currency: 'BDT',
+        maintenance_mode: false
+    });
+    const [staffForm, setStaffForm] = useState({
+        email: '',
+        full_name: '',
+        is_staff: true,
+        is_superuser: false
+    });
+    const [roleForm, setRoleForm] = useState({
+        user_email: '',
+        role: 'staff'
+    });
+    const [featureToggles, setFeatureToggles] = useState({
+        reviews_enabled: true,
+        inventory_tracking: true,
+        allow_guest_checkout: false
+    });
+    const [integrationSettings, setIntegrationSettings] = useState({
+        email_provider: 'smtp',
+        sms_gateway: '',
+        payment_gateway: 'cod'
+    });
 
     // Fetch all orders (admin can see all orders)
     const fetchAllOrders = async () => {
@@ -1256,6 +1308,39 @@ const AdminDashboard = () => {
             if(subcategories.length === 0) {
                 fetchSubcategories();
             }
+        } else if(activeTab === 'settings') {
+            // Load current admin profile
+            const loadProfile = async () => {
+                try {
+                    setProfileLoading(true);
+                    setProfileError(null);
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('http://localhost:8000/api/accounts/profile/', {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    if(res.ok) {
+                        const data = await res.json();
+                        setSettingsForm({
+                            id: data.id || null,
+                            email: data.email || '',
+                            username: data.username || '',
+                            full_name: data.full_name || '',
+                            address: data.address || '',
+                            city: data.city || '',
+                            zipcode: data.zipcode || '',
+                            country: data.country || '',
+                            phone: data.phone || ''
+                        });
+                    } else {
+                        setProfileError('Failed to load profile');
+                    }
+                } catch(err) {
+                    setProfileError('Network error while loading profile');
+                } finally {
+                    setProfileLoading(false);
+                }
+            };
+            loadProfile();
         } else if(activeTab === 'archived-products') {
             fetchArchivedProducts();
         }
@@ -1387,6 +1472,16 @@ const AdminDashboard = () => {
                                 }}
                             >
                                 Reports
+                            </a>
+                            <a
+                                className={`list-group-item ${activeTab === 'settings' ? 'active' : ''}`}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveTab('settings');
+                                }}
+                            >
+                                Settings
                             </a>
                         </ul>
                         <br />
@@ -2312,71 +2407,74 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {categories.map((category) => (
-                                                        <tr key={category.id}>
-                                                            <td>
-                                                                {category.image && (
-                                                                    <img
-                                                                        src={category.image.startsWith('http') ? category.image : `http://localhost:8000${category.image}`}
-                                                                        className="img-xs border"
-                                                                        alt={category.name}
-                                                                        style={{width: '50px', height: '50px', objectFit: 'cover'}}
-                                                                    />
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <strong>{category.name}</strong>
-                                                                <br />
-                                                                <small className="text-muted">/{category.slug}</small>
-                                                            </td>
-                                                            <td>
-                                                                <span className="text-muted">
-                                                                    {category.description ?
-                                                                        (category.description.length > 50 ?
-                                                                            `${category.description.substring(0, 50)}...` :
-                                                                            category.description
-                                                                        ) :
-                                                                        'No description'
-                                                                    }
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${category.is_active ? 'badge-success' : 'badge-secondary'}`}>
-                                                                    {category.is_active ? 'Active' : 'Inactive'}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className="badge badge-light">
-                                                                    {category.subcategories_count || 0} subcategories
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <small className="text-muted">
-                                                                    {new Date(category.created_at).toLocaleDateString()}
-                                                                </small>
-                                                            </td>
-                                                            <td>
-                                                                <div className="btn-group" role="group">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-primary"
-                                                                        onClick={() => handleEditCategory(category)}
-                                                                        title="Edit Category"
-                                                                    >
-                                                                        <i className="fa fa-edit"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-danger"
-                                                                        onClick={() => handleDeleteCategory(category)}
-                                                                        title="Delete Category"
-                                                                    >
-                                                                        <i className="fa fa-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {categories
+                                                        .slice((categoriesPage - 1) * 10, (categoriesPage - 1) * 10 + 10)
+                                                        .map((category) => (
+                                                            <tr key={category.id}>
+                                                                <td>
+                                                                    {category.image && (
+                                                                        <img
+                                                                            src={category.image.startsWith('http') ? category.image : `http://localhost:8000${category.image}`}
+                                                                            className="img-xs border"
+                                                                            alt={category.name}
+                                                                            style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    <strong>{category.name}</strong>
+                                                                    <br />
+                                                                    <small className="text-muted">/{category.slug}</small>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="text-muted">
+                                                                        {category.description ?
+                                                                            (category.description.length > 50 ?
+                                                                                `${category.description.substring(0, 50)}...` :
+                                                                                category.description
+                                                                            ) :
+                                                                            'No description'
+                                                                        }
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${category.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                                                                        {category.is_active ? 'Active' : 'Inactive'}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="badge badge-light">
+                                                                        {category.subcategories_count || 0} subcategories
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small className="text-muted">
+                                                                        {new Date(category.created_at).toLocaleDateString()}
+                                                                    </small>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="btn-group" role="group">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            onClick={() => handleEditCategory(category)}
+                                                                            title="Edit Category"
+                                                                        >
+                                                                            <i className="fa fa-edit"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            onClick={() => handleDeleteCategory(category)}
+                                                                            title="Delete Category"
+                                                                        >
+                                                                            <i className="fa fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
+                                            <Pagination totalItems={categories.length} currentPage={categoriesPage} pageSize={10} onPageChange={(p) => setCategoriesPage(p)} />
                                         </div>
                                     ) : (
                                         <div className="text-center py-5">
@@ -2432,71 +2530,74 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {subcategories.map((subcategory) => (
-                                                        <tr key={subcategory.id}>
-                                                            <td>
-                                                                {subcategory.image && (
-                                                                    <img
-                                                                        src={subcategory.image.startsWith('http') ? subcategory.image : `http://localhost:8000${subcategory.image}`}
-                                                                        className="img-xs border"
-                                                                        alt={subcategory.name}
-                                                                        style={{width: '50px', height: '50px', objectFit: 'cover'}}
-                                                                    />
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <strong>{subcategory.category_name}</strong>
-                                                                <br />
-                                                                <small className="text-muted">/{subcategory.category_slug}</small>
-                                                            </td>
-                                                            <td>
-                                                                <strong>{subcategory.name}</strong>
-                                                                <br />
-                                                                <small className="text-muted">/{subcategory.slug}</small>
-                                                            </td>
-                                                            <td>
-                                                                <span className="text-muted">
-                                                                    {subcategory.description ?
-                                                                        (subcategory.description.length > 50 ?
-                                                                            `${subcategory.description.substring(0, 50)}...` :
-                                                                            subcategory.description
-                                                                        ) :
-                                                                        'No description'
-                                                                    }
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${subcategory.is_active ? 'badge-success' : 'badge-secondary'}`}>
-                                                                    {subcategory.is_active ? 'Active' : 'Inactive'}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <small className="text-muted">
-                                                                    {new Date(subcategory.created_at).toLocaleDateString()}
-                                                                </small>
-                                                            </td>
-                                                            <td>
-                                                                <div className="btn-group" role="group">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-primary"
-                                                                        onClick={() => handleEditSubcategory(subcategory)}
-                                                                        title="Edit Subcategory"
-                                                                    >
-                                                                        <i className="fa fa-edit"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-danger"
-                                                                        onClick={() => handleDeleteSubcategory(subcategory)}
-                                                                        title="Delete Subcategory"
-                                                                    >
-                                                                        <i className="fa fa-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {subcategories
+                                                        .slice((subcategoriesPage - 1) * 10, (subcategoriesPage - 1) * 10 + 10)
+                                                        .map((subcategory) => (
+                                                            <tr key={subcategory.id}>
+                                                                <td>
+                                                                    {subcategory.image && (
+                                                                        <img
+                                                                            src={subcategory.image.startsWith('http') ? subcategory.image : `http://localhost:8000${subcategory.image}`}
+                                                                            className="img-xs border"
+                                                                            alt={subcategory.name}
+                                                                            style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                                                        />
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    <strong>{subcategory.category_name}</strong>
+                                                                    <br />
+                                                                    <small className="text-muted">/{subcategory.category_slug}</small>
+                                                                </td>
+                                                                <td>
+                                                                    <strong>{subcategory.name}</strong>
+                                                                    <br />
+                                                                    <small className="text-muted">/{subcategory.slug}</small>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="text-muted">
+                                                                        {subcategory.description ?
+                                                                            (subcategory.description.length > 50 ?
+                                                                                `${subcategory.description.substring(0, 50)}...` :
+                                                                                subcategory.description
+                                                                            ) :
+                                                                            'No description'
+                                                                        }
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${subcategory.is_active ? 'badge-success' : 'badge-secondary'}`}>
+                                                                        {subcategory.is_active ? 'Active' : 'Inactive'}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small className="text-muted">
+                                                                        {new Date(subcategory.created_at).toLocaleDateString()}
+                                                                    </small>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="btn-group" role="group">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            onClick={() => handleEditSubcategory(subcategory)}
+                                                                            title="Edit Subcategory"
+                                                                        >
+                                                                            <i className="fa fa-edit"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            onClick={() => handleDeleteSubcategory(subcategory)}
+                                                                            title="Delete Subcategory"
+                                                                        >
+                                                                            <i className="fa fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
+                                            <Pagination totalItems={subcategories.length} currentPage={subcategoriesPage} pageSize={10} onPageChange={(p) => setSubcategoriesPage(p)} />
                                         </div>
                                     ) : (
                                         <div className="text-center py-5">
@@ -2632,1420 +2733,1813 @@ const AdminDashboard = () => {
                                 </div>
                             </article>
                         )}
+
+                        {activeTab === 'settings' && (
+                            <article className="card">
+                                <header className="card-header">
+                                    <strong className="d-inline-block mr-3">Settings</strong>
+                                </header>
+                                <div className="card-body">
+                                    <ul className="nav nav-tabs mb-3">
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'profile' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('profile')}}>Admin Profile</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'general' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('general')}}>General</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'staff' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('staff')}}>Staff Users</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'roles' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('roles')}}>Roles & Permissions</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'features' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('features')}}>Features</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'integrations' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('integrations')}}>Integrations</a>
+                                        </li>
+                                    </ul>
+
+                                    {settingsTab === 'profile' && (
+                                        profileLoading ? (
+                                            <div className="text-center py-4">
+                                                <i className="fa fa-spinner fa-spin fa-2x text-primary"></i>
+                                                <p className="mt-2">Loading profile...</p>
+                                            </div>
+                                        ) : (
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                try {
+                                                    setProfileSaving(true);
+                                                    setProfileError(null);
+                                                    setProfileSuccess(null);
+                                                    const token = localStorage.getItem('token');
+                                                    const res = await fetch(`http://localhost:8000/api/accounts/update-profile/${settingsForm.id || 0}/`, {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Authorization': `Bearer ${token}`,
+                                                            'Content-Type': 'application/json'
+                                                        },
+                                                        body: JSON.stringify({
+                                                            username: settingsForm.username,
+                                                            full_name: settingsForm.full_name,
+                                                            address: settingsForm.address,
+                                                            city: settingsForm.city,
+                                                            zipcode: settingsForm.zipcode,
+                                                            country: settingsForm.country,
+                                                            phone: settingsForm.phone
+                                                        })
+                                                    });
+                                                    if(res.ok) {
+                                                        const data = await res.json();
+                                                        setProfileSuccess('Profile updated successfully');
+                                                        setSettingsForm({
+                                                            id: data.id || settingsForm.id,
+                                                            email: data.email || settingsForm.email,
+                                                            username: data.username || '',
+                                                            full_name: data.full_name || '',
+                                                            address: data.address || '',
+                                                            city: data.city || '',
+                                                            zipcode: data.zipcode || '',
+                                                            country: data.country || '',
+                                                            phone: data.phone || ''
+                                                        });
+                                                    } else {
+                                                        setProfileError('Failed to update profile');
+                                                    }
+                                                } catch(err) {
+                                                    setProfileError('Network error while saving');
+                                                } finally {
+                                                    setProfileSaving(false);
+                                                }
+                                            }}>
+                                                {profileError && (
+                                                    <div className="alert alert-danger">
+                                                        <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                        {profileError}
+                                                    </div>
+                                                )}
+                                                {profileSuccess && (
+                                                    <div className="alert alert-success">
+                                                        <i className="fa fa-check-circle mr-2"></i>
+                                                        {profileSuccess}
+                                                    </div>
+                                                )}
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Email (read-only)</label>
+                                                            <input type="email" className="form-control" value={settingsForm.email} readOnly />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Username</label>
+                                                            <input type="text" className="form-control" value={settingsForm.username} onChange={(e) => setSettingsForm({...settingsForm, username: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Full Name</label>
+                                                            <input type="text" className="form-control" value={settingsForm.full_name} onChange={(e) => setSettingsForm({...settingsForm, full_name: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Phone</label>
+                                                            <input type="text" className="form-control" value={settingsForm.phone} onChange={(e) => setSettingsForm({...settingsForm, phone: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Address</label>
+                                                            <input type="text" className="form-control" value={settingsForm.address} onChange={(e) => setSettingsForm({...settingsForm, address: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-3">
+                                                        <div className="form-group">
+                                                            <label>City</label>
+                                                            <input type="text" className="form-control" value={settingsForm.city} onChange={(e) => setSettingsForm({...settingsForm, city: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-3">
+                                                        <div className="form-group">
+                                                            <label>Zip Code</label>
+                                                            <input type="text" className="form-control" value={settingsForm.zipcode} onChange={(e) => setSettingsForm({...settingsForm, zipcode: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label>Country</label>
+                                                            <input type="text" className="form-control" value={settingsForm.country} onChange={(e) => setSettingsForm({...settingsForm, country: e.target.value})} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <button type="submit" className="btn btn-primary" disabled={profileSaving}>
+                                                        {profileSaving ? 'Saving...' : 'Save Changes'}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        ))}
+                                    {settingsTab === 'general' && (
+                                        <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Saved (placeholder)'})}}>
+                                            <div className="row">
+                                                <div className="col-md-6">
+                                                    <div className="form-group">
+                                                        <label>Site Name</label>
+                                                        <input className="form-control" value={generalSettings.site_name} onChange={(e) => setGeneralSettings({...generalSettings, site_name: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-3">
+                                                    <div className="form-group">
+                                                        <label>Currency</label>
+                                                        <input className="form-control" value={generalSettings.currency} onChange={(e) => setGeneralSettings({...generalSettings, currency: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-3">
+                                                    <div className="form-group form-check mt-4">
+                                                        <input type="checkbox" className="form-check-input" id="maintMode" checked={generalSettings.maintenance_mode} onChange={(e) => setGeneralSettings({...generalSettings, maintenance_mode: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="maintMode">Maintenance Mode</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="btn btn-primary">Save</button>
+                                        </form>
+                                    )}
+                                    {settingsTab === 'staff' && (
+                                        <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Staff created (placeholder)'})}}>
+                                            <div className="row">
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label>Email</label>
+                                                        <input className="form-control" value={staffForm.email} onChange={(e) => setStaffForm({...staffForm, email: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label>Full Name</label>
+                                                        <input className="form-control" value={staffForm.full_name} onChange={(e) => setStaffForm({...staffForm, full_name: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-2">
+                                                    <div className="form-group form-check mt-4">
+                                                        <input type="checkbox" className="form-check-input" id="isStaff" checked={staffForm.is_staff} onChange={(e) => setStaffForm({...staffForm, is_staff: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="isStaff">Is Staff</label>
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-2">
+                                                    <div className="form-group form-check mt-4">
+                                                        <input type="checkbox" className="form-check-input" id="isSuper" checked={staffForm.is_superuser} onChange={(e) => setStaffForm({...staffForm, is_superuser: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="isSuper">Superuser</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="btn btn-primary">Create Staff (UI only)</button>
+                                        </form>
+                                    )}
+                                    {settingsTab === 'roles' && (
+                                        <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Role updated (placeholder)'})}}>
+                                            <div className="row">
+                                                <div className="col-md-6">
+                                                    <div className="form-group">
+                                                        <label>User Email</label>
+                                                        <input className="form-control" value={roleForm.user_email} onChange={(e) => setRoleForm({...roleForm, user_email: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <div className="form-group">
+                                                        <label>Role</label>
+                                                        <select className="form-control" value={roleForm.role} onChange={(e) => setRoleForm({...roleForm, role: e.target.value})}>
+                                                            <option value="staff">Staff</option>
+                                                            <option value="manager">Manager</option>
+                                                            <option value="admin">Admin</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="btn btn-primary">Assign Role (UI only)</button>
+                                        </form>
+                                    )}
+                                    {settingsTab === 'features' && (
+                                        <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Features saved (placeholder)'})}}>
+                                            <div className="row">
+                                                <div className="col-md-4">
+                                                    <div className="form-group form-check">
+                                                        <input type="checkbox" className="form-check-input" id="featReviews" checked={featureToggles.reviews_enabled} onChange={(e) => setFeatureToggles({...featureToggles, reviews_enabled: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="featReviews">Enable Reviews</label>
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group form-check">
+                                                        <input type="checkbox" className="form-check-input" id="featInventory" checked={featureToggles.inventory_tracking} onChange={(e) => setFeatureToggles({...featureToggles, inventory_tracking: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="featInventory">Inventory Tracking</label>
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group form-check">
+                                                        <input type="checkbox" className="form-check-input" id="featGuest" checked={featureToggles.allow_guest_checkout} onChange={(e) => setFeatureToggles({...featureToggles, allow_guest_checkout: e.target.checked})} />
+                                                        <label className="form-check-label" htmlFor="featGuest">Allow Guest Checkout</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="btn btn-primary">Save (UI only)</button>
+                                        </form>
+                                    )}
+                                    {settingsTab === 'integrations' && (
+                                        <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Integrations saved (placeholder)'})}}>
+                                            <div className="row">
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label>Email Provider</label>
+                                                        <select className="form-control" value={integrationSettings.email_provider} onChange={(e) => setIntegrationSettings({...integrationSettings, email_provider: e.target.value})}>
+                                                            <option value="smtp">SMTP</option>
+                                                            <option value="sendgrid">SendGrid</option>
+                                                            <option value="mailgun">Mailgun</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label>SMS Gateway</label>
+                                                        <input className="form-control" value={integrationSettings.sms_gateway} onChange={(e) => setIntegrationSettings({...integrationSettings, sms_gateway: e.target.value})} />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label>Payment Gateway</label>
+                                                        <select className="form-control" value={integrationSettings.payment_gateway} onChange={(e) => setIntegrationSettings({...integrationSettings, payment_gateway: e.target.value})}>
+                                                            <option value="cod">Cash on Delivery</option>
+                                                            <option value="sslcommerz">SSLCommerz</option>
+                                                            <option value="stripe">Stripe</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button className="btn btn-primary">Save (UI only)</button>
+                                        </form>
+                                    )}
+                                </div>
+                            </article>
+                        )}
+
+                        {activeTab === 'settings' && (
+                            <article className="card mt-3">
+                                <header className="card-header">
+                                    <strong className="d-inline-block mr-3">Change Password</strong>
+                                </header>
+                                <div className="card-body">
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        setPwdError(null);
+                                        setPwdSuccess(null);
+                                        if(!pwdForm.password || !pwdForm.confirm_password) {
+                                            setPwdError('Please fill both fields');
+                                            return;
+                                        }
+                                        if(pwdForm.password !== pwdForm.confirm_password) {
+                                            setPwdError('Passwords do not match');
+                                            return;
+                                        }
+                                        try {
+                                            setPwdLoading(true);
+                                            const token = localStorage.getItem('token');
+                                            const res = await fetch('http://localhost:8000/api/accounts/change-password/', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({
+                                                    password: pwdForm.password,
+                                                    confirm_password: pwdForm.confirm_password
+                                                })
+                                            });
+                                            if(res.ok) {
+                                                setPwdSuccess('Password changed successfully');
+                                                setPwdForm({password: '', confirm_password: ''});
+                                            } else {
+                                                const err = await res.json().catch(() => ({}));
+                                                setPwdError(err.message || 'Failed to change password');
+                                            }
+                                        } catch(err) {
+                                            setPwdError('Network error while changing password');
+                                        } finally {
+                                            setPwdLoading(false);
+                                        }
+                                    }}>
+                                        {pwdError && (
+                                            <div className="alert alert-danger">
+                                                <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                {pwdError}
+                                            </div>
+                                        )}
+                                        {pwdSuccess && (
+                                            <div className="alert alert-success">
+                                                <i className="fa fa-check-circle mr-2"></i>
+                                                {pwdSuccess}
+                                            </div>
+                                        )}
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label>New Password</label>
+                                                    <input type="password" className="form-control" value={pwdForm.password} onChange={(e) => setPwdForm({...pwdForm, password: e.target.value})} />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label>Confirm Password</label>
+                                                    <input type="password" className="form-control" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <button type="submit" className="btn btn-warning" disabled={pwdLoading}>
+                                                {pwdLoading ? 'Changing...' : 'Change Password'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </article>
+                        )}
                     </main>
                 </div>
             </div>
 
             {/* Category Modal */}
-            {showCategoryModal && (
-                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    {editingCategory ? 'Edit Category' : 'Create New Category'}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={resetCategoryForm}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <form onSubmit={handleCategorySubmit}>
-                                <div className="modal-body">
-                                    <div className="row">
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="categoryName">Category Name *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="categoryName"
-                                                    value={categoryForm.name}
-                                                    onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
-                                                    required
-                                                    placeholder="Enter category name"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="categoryStatus">Status</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="categoryStatus"
-                                                    value={categoryForm.is_active}
-                                                    onChange={(e) => setCategoryForm({...categoryForm, is_active: e.target.value === 'true'})}
-                                                >
-                                                    <option value={true}>Active</option>
-                                                    <option value={false}>Inactive</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="categoryDescription">Description</label>
-                                        <textarea
-                                            className="form-control"
-                                            id="categoryDescription"
-                                            rows="3"
-                                            value={categoryForm.description}
-                                            onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
-                                            placeholder="Enter category description (optional)"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="categoryImage">Category Image</label>
-                                        <input
-                                            type="file"
-                                            className="form-control-file"
-                                            id="categoryImage"
-                                            accept="image/*"
-                                            onChange={(e) => setCategoryForm({...categoryForm, image: e.target.files[0]})}
-                                        />
-                                        <small className="form-text text-muted">
-                                            Upload an image for this category (optional)
-                                        </small>
-                                        {editingCategory && editingCategory.image && (
-                                            <div className="mt-2">
-                                                <small className="text-muted">Current image:</small>
-                                                <br />
-                                                <img
-                                                    src={editingCategory.image.startsWith('http') ? editingCategory.image : `http://localhost:8000${editingCategory.image}`}
-                                                    alt="Current category"
-                                                    style={{width: '100px', height: '100px', objectFit: 'cover'}}
-                                                    className="border rounded"
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
+            {
+                showCategoryModal && (
+                    <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {editingCategory ? 'Edit Category' : 'Create New Category'}
+                                    </h5>
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="close"
                                         onClick={resetCategoryForm}
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                    >
-                                        {editingCategory ? 'Update Category' : 'Create Category'}
+                                        <span>&times;</span>
                                     </button>
                                 </div>
-                            </form>
+                                <form onSubmit={handleCategorySubmit}>
+                                    <div className="modal-body">
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="categoryName">Category Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        id="categoryName"
+                                                        value={categoryForm.name}
+                                                        onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                                                        required
+                                                        placeholder="Enter category name"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="categoryStatus">Status</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="categoryStatus"
+                                                        value={categoryForm.is_active}
+                                                        onChange={(e) => setCategoryForm({...categoryForm, is_active: e.target.value === 'true'})}
+                                                    >
+                                                        <option value={true}>Active</option>
+                                                        <option value={false}>Inactive</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="categoryDescription">Description</label>
+                                            <textarea
+                                                className="form-control"
+                                                id="categoryDescription"
+                                                rows="3"
+                                                value={categoryForm.description}
+                                                onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value})}
+                                                placeholder="Enter category description (optional)"
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="categoryImage">Category Image</label>
+                                            <input
+                                                type="file"
+                                                className="form-control-file"
+                                                id="categoryImage"
+                                                accept="image/*"
+                                                onChange={(e) => setCategoryForm({...categoryForm, image: e.target.files[0]})}
+                                            />
+                                            <small className="form-text text-muted">
+                                                Upload an image for this category (optional)
+                                            </small>
+                                            {editingCategory && editingCategory.image && (
+                                                <div className="mt-2">
+                                                    <small className="text-muted">Current image:</small>
+                                                    <br />
+                                                    <img
+                                                        src={editingCategory.image.startsWith('http') ? editingCategory.image : `http://localhost:8000${editingCategory.image}`}
+                                                        alt="Current category"
+                                                        style={{width: '100px', height: '100px', objectFit: 'cover'}}
+                                                        className="border rounded"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={resetCategoryForm}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                        >
+                                            {editingCategory ? 'Update Category' : 'Create Category'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Subcategory Modal */}
-            {showSubcategoryModal && (
-                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    {editingSubcategory ? 'Edit Subcategory' : 'Create New Subcategory'}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={resetSubcategoryForm}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <form onSubmit={handleSubcategorySubmit}>
-                                <div className="modal-body">
-                                    <div className="row">
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="subcategoryCategory">Category *</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="subcategoryCategory"
-                                                    value={subcategoryForm.category}
-                                                    onChange={(e) => setSubcategoryForm({...subcategoryForm, category: e.target.value})}
-                                                    required
-                                                >
-                                                    <option value="">Select Category</option>
-                                                    {categories.map((category) => (
-                                                        <option key={category.id} value={category.id}>
-                                                            {category.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="subcategoryName">Subcategory Name *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="subcategoryName"
-                                                    value={subcategoryForm.name}
-                                                    onChange={(e) => setSubcategoryForm({...subcategoryForm, name: e.target.value})}
-                                                    required
-                                                    placeholder="Enter subcategory name"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="subcategoryStatus">Status</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="subcategoryStatus"
-                                                    value={subcategoryForm.is_active}
-                                                    onChange={(e) => setSubcategoryForm({...subcategoryForm, is_active: e.target.value === 'true'})}
-                                                >
-                                                    <option value={true}>Active</option>
-                                                    <option value={false}>Inactive</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="subcategoryDescription">Description</label>
-                                        <textarea
-                                            className="form-control"
-                                            id="subcategoryDescription"
-                                            rows="3"
-                                            value={subcategoryForm.description}
-                                            onChange={(e) => setSubcategoryForm({...subcategoryForm, description: e.target.value})}
-                                            placeholder="Enter subcategory description (optional)"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="subcategoryImage">Subcategory Image</label>
-                                        <input
-                                            type="file"
-                                            className="form-control-file"
-                                            id="subcategoryImage"
-                                            accept="image/*"
-                                            onChange={(e) => setSubcategoryForm({...subcategoryForm, image: e.target.files[0]})}
-                                        />
-                                        <small className="form-text text-muted">
-                                            Upload an image for this subcategory (optional)
-                                        </small>
-                                        {editingSubcategory && editingSubcategory.image && (
-                                            <div className="mt-2">
-                                                <small className="text-muted">Current image:</small>
-                                                <br />
-                                                <img
-                                                    src={editingSubcategory.image.startsWith('http') ? editingSubcategory.image : `http://localhost:8000${editingSubcategory.image}`}
-                                                    alt="Current subcategory"
-                                                    style={{width: '100px', height: '100px', objectFit: 'cover'}}
-                                                    className="border rounded"
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
+            {
+                showSubcategoryModal && (
+                    <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {editingSubcategory ? 'Edit Subcategory' : 'Create New Subcategory'}
+                                    </h5>
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="close"
                                         onClick={resetSubcategoryForm}
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                    >
-                                        {editingSubcategory ? 'Update Subcategory' : 'Create Subcategory'}
+                                        <span>&times;</span>
                                     </button>
                                 </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteModal && (
-                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header border-0 pb-0">
-                                <h5 className="modal-title text-danger">
-                                    <i className="fa fa-exclamation-triangle mr-2"></i>
-                                    Confirm Delete
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={() => {
-                                        setShowDeleteModal(false);
-                                        setDeleteItem(null);
-                                        setDeleteType('');
-                                    }}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body pt-0">
-                                <div className="text-center">
-                                    <div className="mb-3">
-                                        <i className="fa fa-trash fa-3x text-danger"></i>
-                                    </div>
-                                    <h6 className="mb-3">
-                                        Are you sure you want to delete this {deleteType}?
-                                    </h6>
-                                    <div className="alert alert-warning">
-                                        <strong>{deleteItem?.name || deleteItem?.title}</strong>
-                                        {deleteType === 'subcategory' && (
-                                            <div>
-                                                <small className="text-muted">
-                                                    Category: {deleteItem?.category_name}
-                                                </small>
-                                            </div>
-                                        )}
-                                        {deleteType === 'product' && (
-                                            <div>
-                                                <small className="text-muted">
-                                                    Type: {deleteItem?.product_type} | Status: {deleteItem?.status}
-                                                </small>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-muted mb-0">
-                                        {deleteType === 'product' ?
-                                            'If the product is referenced in orders, it will be archived instead of deleted.' :
-                                            'This action cannot be undone.'
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="modal-footer border-0 pt-0">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => {
-                                        setShowDeleteModal(false);
-                                        setDeleteItem(null);
-                                        setDeleteType('');
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-danger"
-                                    onClick={() => {
-                                        if(deleteType === 'category') {
-                                            confirmDeleteCategory();
-                                        } else if(deleteType === 'subcategory') {
-                                            confirmDeleteSubcategory();
-                                        } else if(deleteType === 'product') {
-                                            confirmDeleteProduct();
-                                        }
-                                    }}
-                                >
-                                    <i className="fa fa-trash mr-1"></i>
-                                    Delete {deleteType === 'category' ? 'Category' : deleteType === 'subcategory' ? 'Subcategory' : 'Product'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Product Modal */}
-            {showProductModal && (
-                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-xl">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    {editingProduct ? 'Edit Product' : 'Create New Product'}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={resetProductForm}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <form onSubmit={handleProductSubmit}>
-                                <div className="modal-body" style={{maxHeight: '80vh', overflowY: 'auto'}}>
-                                    {/* Basic Information */}
-                                    <div className="row mb-4">
-                                        <div className="col-12">
-                                            <h6 className="text-primary border-bottom pb-2">Basic Information</h6>
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-8">
-                                            <div className="form-group">
-                                                <label htmlFor="productTitle">Product Title *</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="productTitle"
-                                                    value={productForm.title}
-                                                    onChange={(e) => setProductForm({...productForm, title: e.target.value})}
-                                                    required
-                                                    placeholder="Enter product title"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="col-md-4">
-                                            <div className="form-group">
-                                                <label htmlFor="productType">Product Type *</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="productType"
-                                                    value={productForm.product_type}
-                                                    onChange={(e) => setProductForm({...productForm, product_type: e.target.value})}
-                                                    required
-                                                >
-                                                    <option value="simple">Simple Product</option>
-                                                    <option value="variable">Variable Product</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="productCategory">Category</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="productCategory"
-                                                    value={productForm.category}
-                                                    onChange={(e) => {
-                                                        const newCategory = e.target.value;
-                                                        setProductForm({
-                                                            ...productForm,
-                                                            category: newCategory,
-                                                            subcategory: '' // Reset subcategory when category changes
-                                                        });
-                                                    }}
-                                                >
-                                                    <option value="">Select Category</option>
-                                                    {categoriesLoading ? (
-                                                        <option disabled>Loading categories...</option>
-                                                    ) : (
-                                                        categories.map((category) => (
+                                <form onSubmit={handleSubcategorySubmit}>
+                                    <div className="modal-body">
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="subcategoryCategory">Category *</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="subcategoryCategory"
+                                                        value={subcategoryForm.category}
+                                                        onChange={(e) => setSubcategoryForm({...subcategoryForm, category: e.target.value})}
+                                                        required
+                                                    >
+                                                        <option value="">Select Category</option>
+                                                        {categories.map((category) => (
                                                             <option key={category.id} value={category.id}>
                                                                 {category.name}
                                                             </option>
-                                                        ))
-                                                    )}
-                                                </select>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label htmlFor="productSubcategory">Subcategory</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="productSubcategory"
-                                                    value={productForm.subcategory}
-                                                    onChange={(e) => setProductForm({...productForm, subcategory: e.target.value})}
-                                                >
-                                                    <option value="">Select Subcategory</option>
-                                                    {subcategoriesLoading ? (
-                                                        <option disabled>Loading subcategories...</option>
-                                                    ) : subcategories.length === 0 ? (
-                                                        <option disabled>No subcategories found</option>
-                                                    ) : (
-                                                        subcategories
-                                                            .filter(sub => sub.category == productForm.category)
-                                                            .map((subcategory) => (
-                                                                <option key={subcategory.id} value={subcategory.id}>
-                                                                    {subcategory.name}
-                                                                </option>
-                                                            ))
-                                                    )}
-                                                </select>
-                                                <small className="form-text text-muted">
-                                                    Total subcategories: {subcategories.length} |
-                                                    Filtered for category {productForm.category}: {subcategories.filter(sub => sub.category == productForm.category).length}
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="productShortDescription">Short Description</label>
-                                        <textarea
-                                            className="form-control"
-                                            id="productShortDescription"
-                                            rows="2"
-                                            value={productForm.short_description}
-                                            onChange={(e) => setProductForm({...productForm, short_description: e.target.value})}
-                                            placeholder="Brief product description"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="productDescription">Description</label>
-                                        <textarea
-                                            className="form-control"
-                                            id="productDescription"
-                                            rows="4"
-                                            value={productForm.description}
-                                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                                            placeholder="Detailed product description"
-                                        />
-                                    </div>
-
-                                    {/* Pricing & Inventory */}
-                                    <div className="row mb-4 mt-4">
-                                        <div className="col-12">
-                                            <h6 className="text-primary border-bottom pb-2">Pricing & Inventory</h6>
-                                        </div>
-                                    </div>
-
-                                    {productForm.product_type === 'simple' ? (
-                                        <div className="row">
-                                            <div className="col-md-4">
+                                            <div className="col-md-6">
                                                 <div className="form-group">
-                                                    <label htmlFor="productPrice">Price *</label>
+                                                    <label htmlFor="subcategoryName">Subcategory Name *</label>
                                                     <input
-                                                        type="number"
-                                                        step="0.01"
+                                                        type="text"
                                                         className="form-control"
-                                                        id="productPrice"
-                                                        value={productForm.price}
-                                                        onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                                                        id="subcategoryName"
+                                                        value={subcategoryForm.name}
+                                                        onChange={(e) => setSubcategoryForm({...subcategoryForm, name: e.target.value})}
                                                         required
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="col-md-4">
-                                                <div className="form-group">
-                                                    <label htmlFor="productOldPrice">Old Price</label>
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        className="form-control"
-                                                        id="productOldPrice"
-                                                        value={productForm.old_price}
-                                                        onChange={(e) => setProductForm({...productForm, old_price: e.target.value})}
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="col-md-4">
-                                                <div className="form-group">
-                                                    <label htmlFor="productQuantity">Quantity</label>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        id="productQuantity"
-                                                        value={productForm.quantity}
-                                                        onChange={(e) => setProductForm({...productForm, quantity: e.target.value})}
-                                                        placeholder="0"
+                                                        placeholder="Enter subcategory name"
                                                     />
                                                 </div>
                                             </div>
                                         </div>
-                                    ) : (
+
                                         <div className="row">
-                                            <div className="col-12">
-                                                <div className="alert alert-info mb-3">
-                                                    <i className="fa fa-info-circle mr-2"></i>
-                                                    <strong>Variable Product:</strong> Pricing and inventory will be managed through product variants below.
-                                                    The main product will show the default variant's price on the product detail page.
-                                                </div>
-                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                    <h6 className="mb-0">Product Options</h6>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-sm btn-outline-primary"
-                                                        onClick={addOption}
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="subcategoryStatus">Status</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="subcategoryStatus"
+                                                        value={subcategoryForm.is_active}
+                                                        onChange={(e) => setSubcategoryForm({...subcategoryForm, is_active: e.target.value === 'true'})}
                                                     >
-                                                        <i className="fa fa-plus mr-1"></i>Add Option
-                                                    </button>
-                                                </div>
-
-                                                {productOptions.length === 0 ? (
-                                                    <div className="text-center py-3 border border-dashed rounded">
-                                                        <i className="fa fa-plus-circle fa-2x text-muted mb-2"></i>
-                                                        <p className="text-muted mb-0">No options defined yet</p>
-                                                        <small className="text-muted">Click "Add Option" to define product options like Size, Color, etc.</small>
-                                                    </div>
-                                                ) : (
-                                                    <div className="row">
-                                                        {productOptions.map((option, index) => (
-                                                            <div key={option.id} className="col-md-4 mb-3">
-                                                                <div className="card">
-                                                                    <div className="card-body p-3">
-                                                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                                                            <small className="text-muted">Option {index + 1}</small>
-                                                                            <button
-                                                                                type="button"
-                                                                                className="btn btn-sm btn-outline-danger"
-                                                                                onClick={() => removeOption(index)}
-                                                                            >
-                                                                                <i className="fa fa-times"></i>
-                                                                            </button>
-                                                                        </div>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-control form-control-sm"
-                                                                            value={option.name}
-                                                                            onChange={(e) => updateOption(index, 'name', e.target.value)}
-                                                                            placeholder={`Option ${index + 1} (e.g., Size)`}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Product Images */}
-                                    <div className="row mb-4 mt-4">
-                                        <div className="col-12">
-                                            <h6 className="text-primary border-bottom pb-2">Product Images</h6>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label htmlFor="productImages">Upload Images</label>
-                                        <input
-                                            type="file"
-                                            className="form-control-file"
-                                            id="productImages"
-                                            accept="image/*"
-                                            multiple
-                                            onChange={(e) => {
-                                                const files = Array.from(e.target.files);
-                                                if(files.length > 10) {
-                                                    setToast({
-                                                        show: true,
-                                                        message: 'Maximum 10 images allowed',
-                                                        type: 'error'
-                                                    });
-                                                    return;
-                                                }
-                                                setProductImages(files);
-                                            }}
-                                        />
-                                        <small className="form-text text-muted">
-                                            Upload multiple images for this product (Max 10 images)
-                                        </small>
-
-                                        {/* Image Preview */}
-                                        {productImages.length > 0 && (
-                                            <div className="mt-3">
-                                                <h6>Selected Images ({productImages.length}):</h6>
-                                                <div className="row">
-                                                    {productImages.map((image, index) => (
-                                                        <div key={index} className="col-md-3 mb-2">
-                                                            <div className="position-relative">
-                                                                <img
-                                                                    src={URL.createObjectURL(image)}
-                                                                    alt={`Preview ${index + 1}`}
-                                                                    className="img-thumbnail"
-                                                                    style={{width: '100%', height: '100px', objectFit: 'cover'}}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-danger position-absolute"
-                                                                    style={{top: '5px', right: '5px'}}
-                                                                    onClick={() => {
-                                                                        const newImages = productImages.filter((_, i) => i !== index);
-                                                                        setProductImages(newImages);
-                                                                    }}
-                                                                >
-                                                                    <i className="fa fa-times"></i>
-                                                                </button>
-                                                            </div>
-                                                            <small className="text-muted d-block text-center">
-                                                                {image.name}
-                                                            </small>
-                                                        </div>
-                                                    ))}
+                                                        <option value={true}>Active</option>
+                                                        <option value={false}>Inactive</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-
-                                    {/* Variants for Variable Products */}
-                                    {productForm.product_type === 'variable' && (
-                                        <div className="row mb-4 mt-4">
-                                            <div className="col-12">
-                                                <h6 className="text-primary border-bottom pb-2">Product Variants</h6>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-outline-primary mb-3"
-                                                    onClick={addVariant}
-                                                >
-                                                    <i className="fa fa-plus mr-1"></i>Add Variant
-                                                </button>
-                                            </div>
                                         </div>
-                                    )}
 
-                                    {productForm.product_type === 'variable' && productVariants.map((variant, index) => (
-                                        <div key={index} className="card mb-3">
-                                            <div className="card-header d-flex justify-content-between align-items-center">
-                                                <h6 className="mb-0">Variant {index + 1}</h6>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    onClick={() => removeVariant(index)}
-                                                >
-                                                    <i className="fa fa-trash"></i>
-                                                </button>
-                                            </div>
-                                            <div className="card-body">
-                                                <div className="row">
-                                                    <div className="col-md-6">
-                                                        <div className="form-group">
-                                                            <label>Variant Title</label>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control"
-                                                                value={variant.title}
-                                                                onChange={(e) => updateVariant(index, 'title', e.target.value)}
-                                                                placeholder="e.g., Small - Red"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-md-3">
-                                                        <div className="form-group">
-                                                            <label>Price *</label>
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                className="form-control"
-                                                                value={variant.price}
-                                                                onChange={(e) => updateVariant(index, 'price', e.target.value)}
-                                                                required
-                                                                placeholder="0.00"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-md-3">
-                                                        <div className="form-group">
-                                                            <label>Quantity</label>
-                                                            <input
-                                                                type="number"
-                                                                className="form-control"
-                                                                value={variant.quantity}
-                                                                onChange={(e) => updateVariant(index, 'quantity', e.target.value)}
-                                                                placeholder="0"
-                                                            />
-                                                        </div>
-                                                    </div>
+                                        <div className="form-group">
+                                            <label htmlFor="subcategoryDescription">Description</label>
+                                            <textarea
+                                                className="form-control"
+                                                id="subcategoryDescription"
+                                                rows="3"
+                                                value={subcategoryForm.description}
+                                                onChange={(e) => setSubcategoryForm({...subcategoryForm, description: e.target.value})}
+                                                placeholder="Enter subcategory description (optional)"
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="subcategoryImage">Subcategory Image</label>
+                                            <input
+                                                type="file"
+                                                className="form-control-file"
+                                                id="subcategoryImage"
+                                                accept="image/*"
+                                                onChange={(e) => setSubcategoryForm({...subcategoryForm, image: e.target.files[0]})}
+                                            />
+                                            <small className="form-text text-muted">
+                                                Upload an image for this subcategory (optional)
+                                            </small>
+                                            {editingSubcategory && editingSubcategory.image && (
+                                                <div className="mt-2">
+                                                    <small className="text-muted">Current image:</small>
+                                                    <br />
+                                                    <img
+                                                        src={editingSubcategory.image.startsWith('http') ? editingSubcategory.image : `http://localhost:8000${editingSubcategory.image}`}
+                                                        alt="Current subcategory"
+                                                        style={{width: '100px', height: '100px', objectFit: 'cover'}}
+                                                        className="border rounded"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                        }}
+                                                    />
                                                 </div>
-                                                {productOptions.length > 0 && (
-                                                    <div className="row">
-                                                        {productOptions.map((option, optionIndex) => (
-                                                            <div key={option.id} className="col-md-4">
-                                                                <div className="form-group">
-                                                                    <label>{option.name}</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        className="form-control"
-                                                                        value={variant.dynamic_options && variant.dynamic_options[optionIndex] ? variant.dynamic_options[optionIndex].value : ''}
-                                                                        onChange={(e) => {
-                                                                            const updatedVariants = [...productVariants];
-                                                                            if(!updatedVariants[index].dynamic_options) {
-                                                                                updatedVariants[index].dynamic_options = [];
-                                                                            }
-                                                                            if(!updatedVariants[index].dynamic_options[optionIndex]) {
-                                                                                updatedVariants[index].dynamic_options[optionIndex] = {
-                                                                                    name: option.name,
-                                                                                    value: '',
-                                                                                    position: option.position
-                                                                                };
-                                                                            }
-                                                                            updatedVariants[index].dynamic_options[optionIndex].value = e.target.value;
-
-                                                                            // Also update legacy options for first 3 options
-                                                                            if(optionIndex === 0) {
-                                                                                updatedVariants[index].option1_name = option.name;
-                                                                                updatedVariants[index].option1_value = e.target.value;
-                                                                            } else if(optionIndex === 1) {
-                                                                                updatedVariants[index].option2_name = option.name;
-                                                                                updatedVariants[index].option2_value = e.target.value;
-                                                                            } else if(optionIndex === 2) {
-                                                                                updatedVariants[index].option3_name = option.name;
-                                                                                updatedVariants[index].option3_value = e.target.value;
-                                                                            }
-
-                                                                            setProductVariants(updatedVariants);
-                                                                        }}
-                                                                        placeholder={`e.g., ${option.name === 'Size' ? 'Small' : option.name === 'Color' ? 'Red' : 'Value'}`}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {/* Additional Settings */}
-                                    <div className="row mb-4 mt-4">
-                                        <div className="col-12">
-                                            <h6 className="text-primary border-bottom pb-2">Additional Settings</h6>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div className="row">
-                                        <div className="col-md-3">
-                                            <div className="form-group">
-                                                <label htmlFor="productStatus">Status</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="productStatus"
-                                                    value={productForm.status}
-                                                    onChange={(e) => setProductForm({...productForm, status: e.target.value})}
-                                                >
-                                                    <option value="draft">Draft</option>
-                                                    <option value="active">Active</option>
-                                                    <option value="archived">Archived</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-3">
-                                            <div className="form-group">
-                                                <label htmlFor="productWeight">Weight</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    className="form-control"
-                                                    id="productWeight"
-                                                    value={productForm.weight}
-                                                    onChange={(e) => setProductForm({...productForm, weight: e.target.value})}
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="col-md-3">
-                                            <div className="form-group">
-                                                <label htmlFor="productWeightUnit">Weight Unit</label>
-                                                <select
-                                                    className="form-control"
-                                                    id="productWeightUnit"
-                                                    value={productForm.weight_unit}
-                                                    onChange={(e) => setProductForm({...productForm, weight_unit: e.target.value})}
-                                                >
-                                                    <option value="kg">Kilogram</option>
-                                                    <option value="lb">Pound</option>
-                                                    <option value="g">Gram</option>
-                                                    <option value="oz">Ounce</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-3">
-                                            <div className="form-group">
-                                                <label htmlFor="productTags">Tags</label>
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
-                                                    id="productTags"
-                                                    value={productForm.tags}
-                                                    onChange={(e) => setProductForm({...productForm, tags: e.target.value})}
-                                                    placeholder="tag1, tag2, tag3"
-                                                />
-                                            </div>
-                                        </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={resetSubcategoryForm}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                        >
+                                            {editingSubcategory ? 'Update Subcategory' : 'Create Subcategory'}
+                                        </button>
                                     </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
-                                    <div className="row">
-                                        <div className="col-md-12">
-                                            <div className="form-check form-check-inline">
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    id="productFeatured"
-                                                    checked={productForm.featured}
-                                                    onChange={(e) => setProductForm({...productForm, featured: e.target.checked})}
-                                                />
-                                                <label className="form-check-label" htmlFor="productFeatured">
-                                                    Featured Product
-                                                </label>
-                                            </div>
-                                            <div className="form-check form-check-inline">
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    id="productTrackQuantity"
-                                                    checked={productForm.track_quantity}
-                                                    onChange={(e) => setProductForm({...productForm, track_quantity: e.target.checked})}
-                                                />
-                                                <label className="form-check-label" htmlFor="productTrackQuantity">
-                                                    Track Quantity
-                                                </label>
-                                            </div>
-                                            <div className="form-check form-check-inline">
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    id="productRequiresShipping"
-                                                    checked={productForm.requires_shipping}
-                                                    onChange={(e) => setProductForm({...productForm, requires_shipping: e.target.checked})}
-                                                />
-                                                <label className="form-check-label" htmlFor="productRequiresShipping">
-                                                    Requires Shipping
-                                                </label>
-                                            </div>
-                                            <div className="form-check form-check-inline">
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    id="productTaxable"
-                                                    checked={productForm.taxable}
-                                                    onChange={(e) => setProductForm({...productForm, taxable: e.target.checked})}
-                                                />
-                                                <label className="form-check-label" htmlFor="productTaxable">
-                                                    Taxable
-                                                </label>
-                                            </div>
+            {/* Delete Confirmation Modal */}
+            {
+                showDeleteModal && (
+                    <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                                <div className="modal-header border-0 pb-0">
+                                    <h5 className="modal-title text-danger">
+                                        <i className="fa fa-exclamation-triangle mr-2"></i>
+                                        Confirm Delete
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setDeleteItem(null);
+                                            setDeleteType('');
+                                        }}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body pt-0">
+                                    <div className="text-center">
+                                        <div className="mb-3">
+                                            <i className="fa fa-trash fa-3x text-danger"></i>
                                         </div>
+                                        <h6 className="mb-3">
+                                            Are you sure you want to delete this {deleteType}?
+                                        </h6>
+                                        <div className="alert alert-warning">
+                                            <strong>{deleteItem?.name || deleteItem?.title}</strong>
+                                            {deleteType === 'subcategory' && (
+                                                <div>
+                                                    <small className="text-muted">
+                                                        Category: {deleteItem?.category_name}
+                                                    </small>
+                                                </div>
+                                            )}
+                                            {deleteType === 'product' && (
+                                                <div>
+                                                    <small className="text-muted">
+                                                        Type: {deleteItem?.product_type} | Status: {deleteItem?.status}
+                                                    </small>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-muted mb-0">
+                                            {deleteType === 'product' ?
+                                                'If the product is referenced in orders, it will be archived instead of deleted.' :
+                                                'This action cannot be undone.'
+                                            }
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="modal-footer">
+                                <div className="modal-footer border-0 pt-0">
                                     <button
                                         type="button"
                                         className="btn btn-secondary"
-                                        onClick={resetProductForm}
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setDeleteItem(null);
+                                            setDeleteType('');
+                                        }}
                                     >
                                         Cancel
                                     </button>
                                     <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                    >
-                                        {editingProduct ? 'Update Product' : 'Create Product'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Order Details Modal */}
-            {showOrderModal && selectedOrder && (
-                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    Order Details - #{selectedOrder.order_number}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={() => setShowOrderModal(false)}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <h6>Customer Information</h6>
-                                        <p><strong>Email:</strong> {selectedOrder.user_email || selectedOrder.user?.email || 'N/A'}</p>
-                                        {selectedOrder.delivery_address && (
-                                            <>
-                                                <p><strong>Name:</strong> {selectedOrder.delivery_address.full_name}</p>
-                                                <p><strong>Phone:</strong> {selectedOrder.delivery_address.phone_number}</p>
-                                                <p><strong>Address:</strong> {selectedOrder.delivery_address.address_line_1}</p>
-                                                {selectedOrder.delivery_address.address_line_2 && (
-                                                    <p>{selectedOrder.delivery_address.address_line_2}</p>
-                                                )}
-                                                <p>{selectedOrder.delivery_address.city} {selectedOrder.delivery_address.postal_code}</p>
-                                                <p>{selectedOrder.delivery_address.country}</p>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="col-md-6">
-                                        <h6>Order Information</h6>
-                                        <p><strong>Order Date:</strong> {new Date(selectedOrder.created_at).toLocaleString()}</p>
-                                        <p><strong>Status:</strong> {getStatusBadge(selectedOrder.status)}</p>
-                                        <p><strong>Total Amount:</strong> ৳{parseFloat(selectedOrder.total_amount || 0).toFixed(2)}</p>
-                                        <p><strong>Payment Status:</strong> {selectedOrder.payment_status || 'N/A'}</p>
-                                    </div>
-                                </div>
-
-                                <hr />
-
-                                <h6>Order Items</h6>
-                                <div className="table-responsive">
-                                    <table className="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Product</th>
-                                                <th>Variant</th>
-                                                <th>Quantity</th>
-                                                <th>Price</th>
-                                                <th>Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {selectedOrder.items && selectedOrder.items.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td>
-                                                        <div className="d-flex align-items-center">
-                                                            {item.product?.primary_image && (
-                                                                <img
-                                                                    src={typeof item.product.primary_image === 'string'
-                                                                        ? (item.product.primary_image.startsWith('http') ? item.product.primary_image : `http://localhost:8000${item.product.primary_image}`)
-                                                                        : item.product.primary_image.image
-                                                                            ? (typeof item.product.primary_image.image === 'string' && item.product.primary_image.image.startsWith('http') ? item.product.primary_image.image : `http://localhost:8000${item.product.primary_image.image}`)
-                                                                            : '#'
-                                                                    }
-                                                                    alt={item.product?.title}
-                                                                    className="img-thumbnail mr-2"
-                                                                    style={{width: '40px', height: '40px', objectFit: 'cover'}}
-                                                                />
-                                                            )}
-                                                            <div>
-                                                                <strong>{item.product?.title || 'N/A'}</strong>
-                                                                <br />
-                                                                <small className="text-muted">SKU: {item.variant?.sku || 'N/A'}</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        {item.variant?.title || 'Default'}
-                                                    </td>
-                                                    <td>{item.quantity}</td>
-                                                    <td>৳{parseFloat(item.unit_price || 0).toFixed(2)}</td>
-                                                    <td>৳{parseFloat(item.total_price || 0).toFixed(2)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowOrderModal(false)}
-                                >
-                                    Close
-                                </button>
-                                {selectedOrder.status !== 'delivered' && (
-                                    <button
                                         type="button"
-                                        className="btn btn-success"
+                                        className="btn btn-danger"
                                         onClick={() => {
-                                            updateOrderStatus(selectedOrder.id, 'delivered');
-                                            setShowOrderModal(false);
+                                            if(deleteType === 'category') {
+                                                confirmDeleteCategory();
+                                            } else if(deleteType === 'subcategory') {
+                                                confirmDeleteSubcategory();
+                                            } else if(deleteType === 'product') {
+                                                confirmDeleteProduct();
+                                            }
                                         }}
                                     >
-                                        Mark as Delivered
+                                        <i className="fa fa-trash mr-1"></i>
+                                        Delete {deleteType === 'category' ? 'Category' : deleteType === 'subcategory' ? 'Subcategory' : 'Product'}
                                     </button>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {/* User Details Modal */}
-            {showUserModal && selectedUser && (
-                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    User Details - {selectedUser.email}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={() => setShowUserModal(false)}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <h6>Basic Information</h6>
-                                        <p><strong>User ID:</strong> #{selectedUser.id}</p>
-                                        <p><strong>Email:</strong> {selectedUser.email}</p>
-                                        <p><strong>Username:</strong> {selectedUser.username || 'N/A'}</p>
-                                        <p><strong>Full Name:</strong> {selectedUser.full_name || 'N/A'}</p>
-                                        <p><strong>Role:</strong> <span className={`badge ${getUserRoleBadge(selectedUser)}`}>{getUserRole(selectedUser)}</span></p>
-                                        <p><strong>Status:</strong> <span className={`badge ${selectedUser.is_active ? 'badge-success' : 'badge-danger'}`}>{selectedUser.is_active ? 'Active' : 'Inactive'}</span></p>
-                                    </div>
-                                    <div className="col-md-6">
-                                        <h6>Account Information</h6>
-                                        <p><strong>Date Joined:</strong> {new Date(selectedUser.date_joined).toLocaleString()}</p>
-                                        <p><strong>Last Login:</strong> {selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString() : 'Never'}</p>
-                                        <p><strong>Email Verified:</strong> {selectedUser.is_active ? 'Yes' : 'No'}</p>
-                                        <p><strong>Staff Status:</strong> {selectedUser.is_staff ? 'Yes' : 'No'}</p>
-                                        <p><strong>Superuser:</strong> {selectedUser.is_superuser ? 'Yes' : 'No'}</p>
-                                    </div>
+            {/* Product Modal */}
+            {
+                showProductModal && (
+                    <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-xl">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {editingProduct ? 'Edit Product' : 'Create New Product'}
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={resetProductForm}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
                                 </div>
+                                <form onSubmit={handleProductSubmit}>
+                                    <div className="modal-body" style={{maxHeight: '80vh', overflowY: 'auto'}}>
+                                        {/* Basic Information */}
+                                        <div className="row mb-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary border-bottom pb-2">Basic Information</h6>
+                                            </div>
+                                        </div>
 
-                                <hr />
+                                        <div className="row">
+                                            <div className="col-md-8">
+                                                <div className="form-group">
+                                                    <label htmlFor="productTitle">Product Title *</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        id="productTitle"
+                                                        value={productForm.title}
+                                                        onChange={(e) => setProductForm({...productForm, title: e.target.value})}
+                                                        required
+                                                        placeholder="Enter product title"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <div className="form-group">
+                                                    <label htmlFor="productType">Product Type *</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="productType"
+                                                        value={productForm.product_type}
+                                                        onChange={(e) => setProductForm({...productForm, product_type: e.target.value})}
+                                                        required
+                                                    >
+                                                        <option value="simple">Simple Product</option>
+                                                        <option value="variable">Variable Product</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                <h6>User Addresses</h6>
-                                <div className="row">
-                                    <div className="col-12">
-                                        {selectedUser.addresses && selectedUser.addresses.length > 0 ? (
-                                            <div className="table-responsive">
-                                                <table className="table table-sm">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Type</th>
-                                                            <th>Name</th>
-                                                            <th>Phone</th>
-                                                            <th>Address</th>
-                                                            <th>City</th>
-                                                            <th>Country</th>
-                                                            <th>Default</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {selectedUser.addresses.map((address, index) => (
-                                                            <tr key={index}>
-                                                                <td>
-                                                                    <span className="badge badge-info">
-                                                                        {address.address_type || 'Delivery'}
-                                                                    </span>
-                                                                </td>
-                                                                <td>{address.full_name || 'N/A'}</td>
-                                                                <td>{address.phone_number || 'N/A'}</td>
-                                                                <td>
-                                                                    <div>
-                                                                        {address.address_line_1 || 'N/A'}
-                                                                        {address.address_line_2 && (
-                                                                            <><br /><small className="text-muted">{address.address_line_2}</small></>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                                <td>{address.city || 'N/A'}</td>
-                                                                <td>{address.country || 'N/A'}</td>
-                                                                <td>
-                                                                    {address.is_default ? (
-                                                                        <span className="badge badge-success">Default</span>
-                                                                    ) : (
-                                                                        <span className="badge badge-light">No</span>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="productCategory">Category</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="productCategory"
+                                                        value={productForm.category}
+                                                        onChange={(e) => {
+                                                            const newCategory = e.target.value;
+                                                            setProductForm({
+                                                                ...productForm,
+                                                                category: newCategory,
+                                                                subcategory: '' // Reset subcategory when category changes
+                                                            });
+                                                        }}
+                                                    >
+                                                        <option value="">Select Category</option>
+                                                        {categoriesLoading ? (
+                                                            <option disabled>Loading categories...</option>
+                                                        ) : (
+                                                            categories.map((category) => (
+                                                                <option key={category.id} value={category.id}>
+                                                                    {category.name}
+                                                                </option>
+                                                            ))
+                                                        )}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label htmlFor="productSubcategory">Subcategory</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="productSubcategory"
+                                                        value={productForm.subcategory}
+                                                        onChange={(e) => setProductForm({...productForm, subcategory: e.target.value})}
+                                                    >
+                                                        <option value="">Select Subcategory</option>
+                                                        {subcategoriesLoading ? (
+                                                            <option disabled>Loading subcategories...</option>
+                                                        ) : subcategories.length === 0 ? (
+                                                            <option disabled>No subcategories found</option>
+                                                        ) : (
+                                                            subcategories
+                                                                .filter(sub => sub.category == productForm.category)
+                                                                .map((subcategory) => (
+                                                                    <option key={subcategory.id} value={subcategory.id}>
+                                                                        {subcategory.name}
+                                                                    </option>
+                                                                ))
+                                                        )}
+                                                    </select>
+                                                    <small className="form-text text-muted">
+                                                        Total subcategories: {subcategories.length} |
+                                                        Filtered for category {productForm.category}: {subcategories.filter(sub => sub.category == productForm.category).length}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="productShortDescription">Short Description</label>
+                                            <textarea
+                                                className="form-control"
+                                                id="productShortDescription"
+                                                rows="2"
+                                                value={productForm.short_description}
+                                                onChange={(e) => setProductForm({...productForm, short_description: e.target.value})}
+                                                placeholder="Brief product description"
+                                            />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="productDescription">Description</label>
+                                            <textarea
+                                                className="form-control"
+                                                id="productDescription"
+                                                rows="4"
+                                                value={productForm.description}
+                                                onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                                                placeholder="Detailed product description"
+                                            />
+                                        </div>
+
+                                        {/* Pricing & Inventory */}
+                                        <div className="row mb-4 mt-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary border-bottom pb-2">Pricing & Inventory</h6>
+                                            </div>
+                                        </div>
+
+                                        {productForm.product_type === 'simple' ? (
+                                            <div className="row">
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label htmlFor="productPrice">Price *</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="form-control"
+                                                            id="productPrice"
+                                                            value={productForm.price}
+                                                            onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                                                            required
+                                                            placeholder="0.00"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label htmlFor="productOldPrice">Old Price</label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            className="form-control"
+                                                            id="productOldPrice"
+                                                            value={productForm.old_price}
+                                                            onChange={(e) => setProductForm({...productForm, old_price: e.target.value})}
+                                                            placeholder="0.00"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <div className="form-group">
+                                                        <label htmlFor="productQuantity">Quantity</label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control"
+                                                            id="productQuantity"
+                                                            value={productForm.quantity}
+                                                            onChange={(e) => setProductForm({...productForm, quantity: e.target.value})}
+                                                            placeholder="0"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div className="alert alert-info">
-                                                <i className="fa fa-info-circle mr-2"></i>
-                                                No addresses found for this user.
+                                            <div className="row">
+                                                <div className="col-12">
+                                                    <div className="alert alert-info mb-3">
+                                                        <i className="fa fa-info-circle mr-2"></i>
+                                                        <strong>Variable Product:</strong> Pricing and inventory will be managed through product variants below.
+                                                        The main product will show the default variant's price on the product detail page.
+                                                    </div>
+                                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                                        <h6 className="mb-0">Product Options</h6>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-outline-primary"
+                                                            onClick={addOption}
+                                                        >
+                                                            <i className="fa fa-plus mr-1"></i>Add Option
+                                                        </button>
+                                                    </div>
+
+                                                    {productOptions.length === 0 ? (
+                                                        <div className="text-center py-3 border border-dashed rounded">
+                                                            <i className="fa fa-plus-circle fa-2x text-muted mb-2"></i>
+                                                            <p className="text-muted mb-0">No options defined yet</p>
+                                                            <small className="text-muted">Click "Add Option" to define product options like Size, Color, etc.</small>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="row">
+                                                            {productOptions.map((option, index) => (
+                                                                <div key={option.id} className="col-md-4 mb-3">
+                                                                    <div className="card">
+                                                                        <div className="card-body p-3">
+                                                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                                                                <small className="text-muted">Option {index + 1}</small>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="btn btn-sm btn-outline-danger"
+                                                                                    onClick={() => removeOption(index)}
+                                                                                >
+                                                                                    <i className="fa fa-times"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                            <input
+                                                                                type="text"
+                                                                                className="form-control form-control-sm"
+                                                                                value={option.name}
+                                                                                onChange={(e) => updateOption(index, 'name', e.target.value)}
+                                                                                placeholder={`Option ${index + 1} (e.g., Size)`}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
-                                </div>
 
-                                <hr />
+                                        {/* Product Images */}
+                                        <div className="row mb-4 mt-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary border-bottom pb-2">Product Images</h6>
+                                            </div>
+                                        </div>
 
-                                <h6>User Statistics</h6>
-                                <div className="row">
-                                    <div className="col-md-4">
-                                        <div className="card bg-light">
-                                            <div className="card-body text-center">
-                                                <h5 className="card-title">Orders</h5>
-                                                <p className="card-text">{selectedUser.orders_count || 0}</p>
-                                                <small className="text-muted">Total orders placed</small>
+                                        <div className="form-group">
+                                            <label htmlFor="productImages">Upload Images</label>
+                                            <input
+                                                type="file"
+                                                className="form-control-file"
+                                                id="productImages"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files);
+                                                    if(files.length > 10) {
+                                                        setToast({
+                                                            show: true,
+                                                            message: 'Maximum 10 images allowed',
+                                                            type: 'error'
+                                                        });
+                                                        return;
+                                                    }
+                                                    setProductImages(files);
+                                                }}
+                                            />
+                                            <small className="form-text text-muted">
+                                                Upload multiple images for this product (Max 10 images)
+                                            </small>
+
+                                            {/* Image Preview */}
+                                            {productImages.length > 0 && (
+                                                <div className="mt-3">
+                                                    <h6>Selected Images ({productImages.length}):</h6>
+                                                    <div className="row">
+                                                        {productImages.map((image, index) => (
+                                                            <div key={index} className="col-md-3 mb-2">
+                                                                <div className="position-relative">
+                                                                    <img
+                                                                        src={URL.createObjectURL(image)}
+                                                                        alt={`Preview ${index + 1}`}
+                                                                        className="img-thumbnail"
+                                                                        style={{width: '100%', height: '100px', objectFit: 'cover'}}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-danger position-absolute"
+                                                                        style={{top: '5px', right: '5px'}}
+                                                                        onClick={() => {
+                                                                            const newImages = productImages.filter((_, i) => i !== index);
+                                                                            setProductImages(newImages);
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                                <small className="text-muted d-block text-center">
+                                                                    {image.name}
+                                                                </small>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Variants for Variable Products */}
+                                        {productForm.product_type === 'variable' && (
+                                            <div className="row mb-4 mt-4">
+                                                <div className="col-12">
+                                                    <h6 className="text-primary border-bottom pb-2">Product Variants</h6>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-outline-primary mb-3"
+                                                        onClick={addVariant}
+                                                    >
+                                                        <i className="fa fa-plus mr-1"></i>Add Variant
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {productForm.product_type === 'variable' && productVariants.map((variant, index) => (
+                                            <div key={index} className="card mb-3">
+                                                <div className="card-header d-flex justify-content-between align-items-center">
+                                                    <h6 className="mb-0">Variant {index + 1}</h6>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => removeVariant(index)}
+                                                    >
+                                                        <i className="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                <div className="card-body">
+                                                    <div className="row">
+                                                        <div className="col-md-6">
+                                                            <div className="form-group">
+                                                                <label>Variant Title</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    value={variant.title}
+                                                                    onChange={(e) => updateVariant(index, 'title', e.target.value)}
+                                                                    placeholder="e.g., Small - Red"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-md-3">
+                                                            <div className="form-group">
+                                                                <label>Price *</label>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    className="form-control"
+                                                                    value={variant.price}
+                                                                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                                                                    required
+                                                                    placeholder="0.00"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-md-3">
+                                                            <div className="form-group">
+                                                                <label>Quantity</label>
+                                                                <input
+                                                                    type="number"
+                                                                    className="form-control"
+                                                                    value={variant.quantity}
+                                                                    onChange={(e) => updateVariant(index, 'quantity', e.target.value)}
+                                                                    placeholder="0"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {productOptions.length > 0 && (
+                                                        <div className="row">
+                                                            {productOptions.map((option, optionIndex) => (
+                                                                <div key={option.id} className="col-md-4">
+                                                                    <div className="form-group">
+                                                                        <label>{option.name}</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            className="form-control"
+                                                                            value={variant.dynamic_options && variant.dynamic_options[optionIndex] ? variant.dynamic_options[optionIndex].value : ''}
+                                                                            onChange={(e) => {
+                                                                                const updatedVariants = [...productVariants];
+                                                                                if(!updatedVariants[index].dynamic_options) {
+                                                                                    updatedVariants[index].dynamic_options = [];
+                                                                                }
+                                                                                if(!updatedVariants[index].dynamic_options[optionIndex]) {
+                                                                                    updatedVariants[index].dynamic_options[optionIndex] = {
+                                                                                        name: option.name,
+                                                                                        value: '',
+                                                                                        position: option.position
+                                                                                    };
+                                                                                }
+                                                                                updatedVariants[index].dynamic_options[optionIndex].value = e.target.value;
+
+                                                                                // Also update legacy options for first 3 options
+                                                                                if(optionIndex === 0) {
+                                                                                    updatedVariants[index].option1_name = option.name;
+                                                                                    updatedVariants[index].option1_value = e.target.value;
+                                                                                } else if(optionIndex === 1) {
+                                                                                    updatedVariants[index].option2_name = option.name;
+                                                                                    updatedVariants[index].option2_value = e.target.value;
+                                                                                } else if(optionIndex === 2) {
+                                                                                    updatedVariants[index].option3_name = option.name;
+                                                                                    updatedVariants[index].option3_value = e.target.value;
+                                                                                }
+
+                                                                                setProductVariants(updatedVariants);
+                                                                            }}
+                                                                            placeholder={`e.g., ${option.name === 'Size' ? 'Small' : option.name === 'Color' ? 'Red' : 'Value'}`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Additional Settings */}
+                                        <div className="row mb-4 mt-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary border-bottom pb-2">Additional Settings</h6>
+                                            </div>
+                                        </div>
+
+                                        <div className="row">
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label htmlFor="productStatus">Status</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="productStatus"
+                                                        value={productForm.status}
+                                                        onChange={(e) => setProductForm({...productForm, status: e.target.value})}
+                                                    >
+                                                        <option value="draft">Draft</option>
+                                                        <option value="active">Active</option>
+                                                        <option value="archived">Archived</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label htmlFor="productWeight">Weight</label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        className="form-control"
+                                                        id="productWeight"
+                                                        value={productForm.weight}
+                                                        onChange={(e) => setProductForm({...productForm, weight: e.target.value})}
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label htmlFor="productWeightUnit">Weight Unit</label>
+                                                    <select
+                                                        className="form-control"
+                                                        id="productWeightUnit"
+                                                        value={productForm.weight_unit}
+                                                        onChange={(e) => setProductForm({...productForm, weight_unit: e.target.value})}
+                                                    >
+                                                        <option value="kg">Kilogram</option>
+                                                        <option value="lb">Pound</option>
+                                                        <option value="g">Gram</option>
+                                                        <option value="oz">Ounce</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label htmlFor="productTags">Tags</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        id="productTags"
+                                                        value={productForm.tags}
+                                                        onChange={(e) => setProductForm({...productForm, tags: e.target.value})}
+                                                        placeholder="tag1, tag2, tag3"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="row">
+                                            <div className="col-md-12">
+                                                <div className="form-check form-check-inline">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id="productFeatured"
+                                                        checked={productForm.featured}
+                                                        onChange={(e) => setProductForm({...productForm, featured: e.target.checked})}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="productFeatured">
+                                                        Featured Product
+                                                    </label>
+                                                </div>
+                                                <div className="form-check form-check-inline">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id="productTrackQuantity"
+                                                        checked={productForm.track_quantity}
+                                                        onChange={(e) => setProductForm({...productForm, track_quantity: e.target.checked})}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="productTrackQuantity">
+                                                        Track Quantity
+                                                    </label>
+                                                </div>
+                                                <div className="form-check form-check-inline">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id="productRequiresShipping"
+                                                        checked={productForm.requires_shipping}
+                                                        onChange={(e) => setProductForm({...productForm, requires_shipping: e.target.checked})}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="productRequiresShipping">
+                                                        Requires Shipping
+                                                    </label>
+                                                </div>
+                                                <div className="form-check form-check-inline">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        id="productTaxable"
+                                                        checked={productForm.taxable}
+                                                        onChange={(e) => setProductForm({...productForm, taxable: e.target.checked})}
+                                                    />
+                                                    <label className="form-check-label" htmlFor="productTaxable">
+                                                        Taxable
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="col-md-4">
-                                        <div className="card bg-light">
-                                            <div className="card-body text-center">
-                                                <h5 className="card-title">Total Spent</h5>
-                                                <p className="card-text">${parseFloat(selectedUser.total_spent || 0).toFixed(2)}</p>
-                                                <small className="text-muted">Total amount spent</small>
-                                            </div>
-                                        </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={resetProductForm}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                        >
+                                            {editingProduct ? 'Update Product' : 'Create Product'}
+                                        </button>
                                     </div>
-                                    <div className="col-md-4">
-                                        <div className="card bg-light">
-                                            <div className="card-body text-center">
-                                                <h5 className="card-title">Last Activity</h5>
-                                                <p className="card-text">{selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleDateString() : 'Never'}</p>
-                                                <small className="text-muted">Last login date</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowUserModal(false)}
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`btn ${selectedUser.is_active ? 'btn-danger' : 'btn-success'}`}
-                                    onClick={() => {
-                                        toggleUserStatus(selectedUser.id, selectedUser.is_active);
-                                        setShowUserModal(false);
-                                    }}
-                                >
-                                    {selectedUser.is_active ? 'Deactivate User' : 'Activate User'}
-                                </button>
+                                </form>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {/* User Orders Modal */}
-            {showUserOrdersModal && selectedUser && (
-                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-xl">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">
-                                    <i className="fa fa-shopping-cart mr-2"></i>
-                                    Orders for {selectedUser.full_name || selectedUser.username || selectedUser.email}
-                                    <br />
-                                    <small className="text-muted">User ID: {selectedUser.id} | Email: {selectedUser.email}</small>
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={() => setShowUserOrdersModal(false)}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body">
-                                {userOrdersLoading ? (
-                                    <div className="text-center py-4">
-                                        <div className="spinner-border text-primary" role="status">
-                                            <span className="sr-only">Loading...</span>
+            {/* Order Details Modal */}
+            {
+                showOrderModal && selectedOrder && (
+                    <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        Order Details - #{selectedOrder.order_number}
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowOrderModal(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <h6>Customer Information</h6>
+                                            <p><strong>Email:</strong> {selectedOrder.user_email || selectedOrder.user?.email || 'N/A'}</p>
+                                            {selectedOrder.delivery_address && (
+                                                <>
+                                                    <p><strong>Name:</strong> {selectedOrder.delivery_address.full_name}</p>
+                                                    <p><strong>Phone:</strong> {selectedOrder.delivery_address.phone_number}</p>
+                                                    <p><strong>Address:</strong> {selectedOrder.delivery_address.address_line_1}</p>
+                                                    {selectedOrder.delivery_address.address_line_2 && (
+                                                        <p>{selectedOrder.delivery_address.address_line_2}</p>
+                                                    )}
+                                                    <p>{selectedOrder.delivery_address.city} {selectedOrder.delivery_address.postal_code}</p>
+                                                    <p>{selectedOrder.delivery_address.country}</p>
+                                                </>
+                                            )}
                                         </div>
-                                        <p className="mt-2">Loading orders...</p>
+                                        <div className="col-md-6">
+                                            <h6>Order Information</h6>
+                                            <p><strong>Order Date:</strong> {new Date(selectedOrder.created_at).toLocaleString()}</p>
+                                            <p><strong>Status:</strong> {getStatusBadge(selectedOrder.status)}</p>
+                                            <p><strong>Total Amount:</strong> ৳{parseFloat(selectedOrder.total_amount || 0).toFixed(2)}</p>
+                                            <p><strong>Payment Status:</strong> {selectedOrder.payment_status || 'N/A'}</p>
+                                        </div>
                                     </div>
-                                ) : userOrders.length === 0 ? (
-                                    <div className="text-center py-4">
-                                        <i className="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                        <h5>No Orders Found</h5>
-                                        <p className="text-muted">This user hasn't placed any orders yet.</p>
-                                    </div>
-                                ) : (
+
+                                    <hr />
+
+                                    <h6>Order Items</h6>
                                     <div className="table-responsive">
-                                        <table className="table table-hover">
-                                            <thead className="thead-light">
+                                        <table className="table table-sm">
+                                            <thead>
                                                 <tr>
-                                                    <th>Order #</th>
-                                                    <th>Date</th>
-                                                    <th>Status</th>
-                                                    <th>Items</th>
+                                                    <th>Product</th>
+                                                    <th>Variant</th>
+                                                    <th>Quantity</th>
+                                                    <th>Price</th>
                                                     <th>Total</th>
-                                                    <th>Payment</th>
-                                                    <th>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {userOrders.map((order) => (
-                                                    <tr key={order.id}>
+                                                {selectedOrder.items && selectedOrder.items.map((item, index) => (
+                                                    <tr key={index}>
                                                         <td>
-                                                            <strong>#{order.order_number}</strong>
-                                                        </td>
-                                                        <td>
-                                                            {new Date(order.created_at).toLocaleDateString()}
-                                                            <br />
-                                                            <small className="text-muted">
-                                                                {new Date(order.created_at).toLocaleTimeString()}
-                                                            </small>
-                                                        </td>
-                                                        <td>
-                                                            {getStatusBadge(order.status)}
-                                                        </td>
-                                                        <td>
-                                                            {order.items && order.items.length > 0 ? (
+                                                            <div className="d-flex align-items-center">
+                                                                {item.product?.primary_image && (
+                                                                    <img
+                                                                        src={typeof item.product.primary_image === 'string'
+                                                                            ? (item.product.primary_image.startsWith('http') ? item.product.primary_image : `http://localhost:8000${item.product.primary_image}`)
+                                                                            : item.product.primary_image.image
+                                                                                ? (typeof item.product.primary_image.image === 'string' && item.product.primary_image.image.startsWith('http') ? item.product.primary_image.image : `http://localhost:8000${item.product.primary_image.image}`)
+                                                                                : '#'
+                                                                        }
+                                                                        alt={item.product?.title}
+                                                                        className="img-thumbnail mr-2"
+                                                                        style={{width: '40px', height: '40px', objectFit: 'cover'}}
+                                                                    />
+                                                                )}
                                                                 <div>
-                                                                    <strong>{order.items.length}</strong> item(s)
+                                                                    <strong>{item.product?.title || 'N/A'}</strong>
                                                                     <br />
-                                                                    <small className="text-muted">
-                                                                        {order.items.map((item, index) => (
-                                                                            <span key={index}>
-                                                                                {item.product?.title || 'Unknown Product'}
-                                                                                {index < order.items.length - 1 ? ', ' : ''}
-                                                                            </span>
-                                                                        ))}
-                                                                    </small>
+                                                                    <small className="text-muted">SKU: {item.variant?.sku || 'N/A'}</small>
                                                                 </div>
-                                                            ) : (
-                                                                <span className="text-muted">No items</span>
-                                                            )}
+                                                            </div>
                                                         </td>
                                                         <td>
-                                                            <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                            {item.variant?.title || 'Default'}
                                                         </td>
-                                                        <td>
-                                                            <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' :
-                                                                order.payment_status === 'pending' ? 'badge-warning' :
-                                                                    'badge-danger'
-                                                                }`}>
-                                                                {order.payment_status || 'Unknown'}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <button
-                                                                className="btn btn-sm btn-outline-info"
-                                                                onClick={() => {
-                                                                    setShowUserOrdersModal(false);
-                                                                    viewOrderDetails(order);
-                                                                }}
-                                                                title="View Order Details"
-                                                            >
-                                                                <i className="fa fa-eye"></i>
-                                                            </button>
-                                                        </td>
+                                                        <td>{item.quantity}</td>
+                                                        <td>৳{parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                                        <td>৳{parseFloat(item.total_price || 0).toFixed(2)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
-                                )}
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowUserOrdersModal(false)}
-                                >
-                                    Close
-                                </button>
-                                <div className="ml-auto">
-                                    <small className="text-muted">
-                                        Total Orders: <strong>{userOrders.length}</strong> |
-                                        Total Spent: <strong>${userOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0).toFixed(2)}</strong>
-                                    </small>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowOrderModal(false)}
+                                    >
+                                        Close
+                                    </button>
+                                    {selectedOrder.status !== 'delivered' && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-success"
+                                            onClick={() => {
+                                                updateOrderStatus(selectedOrder.id, 'delivered');
+                                                setShowOrderModal(false);
+                                            }}
+                                        >
+                                            Mark as Delivered
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* User Details Modal */}
+            {
+                showUserModal && selectedUser && (
+                    <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        User Details - {selectedUser.email}
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowUserModal(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <h6>Basic Information</h6>
+                                            <p><strong>User ID:</strong> #{selectedUser.id}</p>
+                                            <p><strong>Email:</strong> {selectedUser.email}</p>
+                                            <p><strong>Username:</strong> {selectedUser.username || 'N/A'}</p>
+                                            <p><strong>Full Name:</strong> {selectedUser.full_name || 'N/A'}</p>
+                                            <p><strong>Role:</strong> <span className={`badge ${getUserRoleBadge(selectedUser)}`}>{getUserRole(selectedUser)}</span></p>
+                                            <p><strong>Status:</strong> <span className={`badge ${selectedUser.is_active ? 'badge-success' : 'badge-danger'}`}>{selectedUser.is_active ? 'Active' : 'Inactive'}</span></p>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <h6>Account Information</h6>
+                                            <p><strong>Date Joined:</strong> {new Date(selectedUser.date_joined).toLocaleString()}</p>
+                                            <p><strong>Last Login:</strong> {selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString() : 'Never'}</p>
+                                            <p><strong>Email Verified:</strong> {selectedUser.is_active ? 'Yes' : 'No'}</p>
+                                            <p><strong>Staff Status:</strong> {selectedUser.is_staff ? 'Yes' : 'No'}</p>
+                                            <p><strong>Superuser:</strong> {selectedUser.is_superuser ? 'Yes' : 'No'}</p>
+                                        </div>
+                                    </div>
+
+                                    <hr />
+
+                                    <h6>User Addresses</h6>
+                                    <div className="row">
+                                        <div className="col-12">
+                                            {selectedUser.addresses && selectedUser.addresses.length > 0 ? (
+                                                <div className="table-responsive">
+                                                    <table className="table table-sm">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Type</th>
+                                                                <th>Name</th>
+                                                                <th>Phone</th>
+                                                                <th>Address</th>
+                                                                <th>City</th>
+                                                                <th>Country</th>
+                                                                <th>Default</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {selectedUser.addresses.map((address, index) => (
+                                                                <tr key={index}>
+                                                                    <td>
+                                                                        <span className="badge badge-info">
+                                                                            {address.address_type || 'Delivery'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>{address.full_name || 'N/A'}</td>
+                                                                    <td>{address.phone_number || 'N/A'}</td>
+                                                                    <td>
+                                                                        <div>
+                                                                            {address.address_line_1 || 'N/A'}
+                                                                            {address.address_line_2 && (
+                                                                                <><br /><small className="text-muted">{address.address_line_2}</small></>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>{address.city || 'N/A'}</td>
+                                                                    <td>{address.country || 'N/A'}</td>
+                                                                    <td>
+                                                                        {address.is_default ? (
+                                                                            <span className="badge badge-success">Default</span>
+                                                                        ) : (
+                                                                            <span className="badge badge-light">No</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <div className="alert alert-info">
+                                                    <i className="fa fa-info-circle mr-2"></i>
+                                                    No addresses found for this user.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <hr />
+
+                                    <h6>User Statistics</h6>
+                                    <div className="row">
+                                        <div className="col-md-4">
+                                            <div className="card bg-light">
+                                                <div className="card-body text-center">
+                                                    <h5 className="card-title">Orders</h5>
+                                                    <p className="card-text">{selectedUser.orders_count || 0}</p>
+                                                    <small className="text-muted">Total orders placed</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4">
+                                            <div className="card bg-light">
+                                                <div className="card-body text-center">
+                                                    <h5 className="card-title">Total Spent</h5>
+                                                    <p className="card-text">${parseFloat(selectedUser.total_spent || 0).toFixed(2)}</p>
+                                                    <small className="text-muted">Total amount spent</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4">
+                                            <div className="card bg-light">
+                                                <div className="card-body text-center">
+                                                    <h5 className="card-title">Last Activity</h5>
+                                                    <p className="card-text">{selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleDateString() : 'Never'}</p>
+                                                    <small className="text-muted">Last login date</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowUserModal(false)}
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${selectedUser.is_active ? 'btn-danger' : 'btn-success'}`}
+                                        onClick={() => {
+                                            toggleUserStatus(selectedUser.id, selectedUser.is_active);
+                                            setShowUserModal(false);
+                                        }}
+                                    >
+                                        {selectedUser.is_active ? 'Deactivate User' : 'Activate User'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* User Orders Modal */}
+            {
+                showUserOrdersModal && selectedUser && (
+                    <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-xl">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        <i className="fa fa-shopping-cart mr-2"></i>
+                                        Orders for {selectedUser.full_name || selectedUser.username || selectedUser.email}
+                                        <br />
+                                        <small className="text-muted">User ID: {selectedUser.id} | Email: {selectedUser.email}</small>
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowUserOrdersModal(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    {userOrdersLoading ? (
+                                        <div className="text-center py-4">
+                                            <div className="spinner-border text-primary" role="status">
+                                                <span className="sr-only">Loading...</span>
+                                            </div>
+                                            <p className="mt-2">Loading orders...</p>
+                                        </div>
+                                    ) : userOrders.length === 0 ? (
+                                        <div className="text-center py-4">
+                                            <i className="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                            <h5>No Orders Found</h5>
+                                            <p className="text-muted">This user hasn't placed any orders yet.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="table-responsive">
+                                            <table className="table table-hover">
+                                                <thead className="thead-light">
+                                                    <tr>
+                                                        <th>Order #</th>
+                                                        <th>Date</th>
+                                                        <th>Status</th>
+                                                        <th>Items</th>
+                                                        <th>Total</th>
+                                                        <th>Payment</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {userOrders.map((order) => (
+                                                        <tr key={order.id}>
+                                                            <td>
+                                                                <strong>#{order.order_number}</strong>
+                                                            </td>
+                                                            <td>
+                                                                {new Date(order.created_at).toLocaleDateString()}
+                                                                <br />
+                                                                <small className="text-muted">
+                                                                    {new Date(order.created_at).toLocaleTimeString()}
+                                                                </small>
+                                                            </td>
+                                                            <td>
+                                                                {getStatusBadge(order.status)}
+                                                            </td>
+                                                            <td>
+                                                                {order.items && order.items.length > 0 ? (
+                                                                    <div>
+                                                                        <strong>{order.items.length}</strong> item(s)
+                                                                        <br />
+                                                                        <small className="text-muted">
+                                                                            {order.items.map((item, index) => (
+                                                                                <span key={index}>
+                                                                                    {item.product?.title || 'Unknown Product'}
+                                                                                    {index < order.items.length - 1 ? ', ' : ''}
+                                                                                </span>
+                                                                            ))}
+                                                                        </small>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-muted">No items</span>
+                                                                )}
+                                                            </td>
+                                                            <td>
+                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                            </td>
+                                                            <td>
+                                                                <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' :
+                                                                    order.payment_status === 'pending' ? 'badge-warning' :
+                                                                        'badge-danger'
+                                                                    }`}>
+                                                                    {order.payment_status || 'Unknown'}
+                                                                </span>
+                                                            </td>
+                                                            <td>
+                                                                <button
+                                                                    className="btn btn-sm btn-outline-info"
+                                                                    onClick={() => {
+                                                                        setShowUserOrdersModal(false);
+                                                                        viewOrderDetails(order);
+                                                                    }}
+                                                                    title="View Order Details"
+                                                                >
+                                                                    <i className="fa fa-eye"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowUserOrdersModal(false)}
+                                    >
+                                        Close
+                                    </button>
+                                    <div className="ml-auto">
+                                        <small className="text-muted">
+                                            Total Orders: <strong>{userOrders.length}</strong> |
+                                            Total Spent: <strong>${userOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0).toFixed(2)}</strong>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* User Status Confirmation Modal */}
-            {showUserStatusModal && selectedUser && userStatusAction && (
-                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header border-0 pb-0">
-                                <h5 className="modal-title d-flex align-items-center">
-                                    <i className={`fa ${userStatusAction === 'activate' ? 'fa-check-circle text-success' : 'fa-ban text-danger'} mr-2`}></i>
-                                    {userStatusAction === 'activate' ? 'Activate User' : 'Deactivate User'}
-                                </h5>
-                                <button
-                                    type="button"
-                                    className="close"
-                                    onClick={() => setShowUserStatusModal(false)}
-                                >
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                            <div className="modal-body pt-0">
-                                <div className="text-center mb-4">
-                                    <div className={`rounded-circle d-inline-flex align-items-center justify-content-center mb-3`}
-                                        style={{
-                                            width: '80px',
-                                            height: '80px',
-                                            backgroundColor: userStatusAction === 'activate' ? '#d4edda' : '#f8d7da'
-                                        }}>
-                                        <i className={`fa ${userStatusAction === 'activate' ? 'fa-user-check text-success' : 'fa-user-slash text-danger'} fa-2x`}></i>
-                                    </div>
-                                    <h6 className="mb-2">
-                                        Are you sure you want to {userStatusAction} this user?
-                                    </h6>
-                                    <p className="text-muted mb-0">
-                                        This action will {userStatusAction === 'activate' ? 'restore access' : 'restrict access'} for the user.
-                                    </p>
+            {
+                showUserStatusModal && selectedUser && userStatusAction && (
+                    <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                                <div className="modal-header border-0 pb-0">
+                                    <h5 className="modal-title d-flex align-items-center">
+                                        <i className={`fa ${userStatusAction === 'activate' ? 'fa-check-circle text-success' : 'fa-ban text-danger'} mr-2`}></i>
+                                        {userStatusAction === 'activate' ? 'Activate User' : 'Deactivate User'}
+                                    </h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowUserStatusModal(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
                                 </div>
+                                <div className="modal-body pt-0">
+                                    <div className="text-center mb-4">
+                                        <div className={`rounded-circle d-inline-flex align-items-center justify-content-center mb-3`}
+                                            style={{
+                                                width: '80px',
+                                                height: '80px',
+                                                backgroundColor: userStatusAction === 'activate' ? '#d4edda' : '#f8d7da'
+                                            }}>
+                                            <i className={`fa ${userStatusAction === 'activate' ? 'fa-user-check text-success' : 'fa-user-slash text-danger'} fa-2x`}></i>
+                                        </div>
+                                        <h6 className="mb-2">
+                                            Are you sure you want to {userStatusAction} this user?
+                                        </h6>
+                                        <p className="text-muted mb-0">
+                                            This action will {userStatusAction === 'activate' ? 'restore access' : 'restrict access'} for the user.
+                                        </p>
+                                    </div>
 
-                                <div className="card bg-light">
-                                    <div className="card-body py-3">
-                                        <div className="row">
-                                            <div className="col-6">
-                                                <small className="text-muted d-block">User ID</small>
-                                                <strong>#{selectedUser.id}</strong>
+                                    <div className="card bg-light">
+                                        <div className="card-body py-3">
+                                            <div className="row">
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block">User ID</small>
+                                                    <strong>#{selectedUser.id}</strong>
+                                                </div>
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block">Email</small>
+                                                    <strong>{selectedUser.email}</strong>
+                                                </div>
                                             </div>
-                                            <div className="col-6">
-                                                <small className="text-muted d-block">Email</small>
-                                                <strong>{selectedUser.email}</strong>
-                                            </div>
-                                        </div>
-                                        <div className="row mt-2">
-                                            <div className="col-6">
-                                                <small className="text-muted d-block">Name</small>
-                                                <strong>{selectedUser.full_name || selectedUser.username || 'N/A'}</strong>
-                                            </div>
-                                            <div className="col-6">
-                                                <small className="text-muted d-block">Current Status</small>
-                                                <span className={`badge ${selectedUser.is_active ? 'badge-success' : 'badge-danger'}`}>
-                                                    {selectedUser.is_active ? 'Active' : 'Inactive'}
-                                                </span>
+                                            <div className="row mt-2">
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block">Name</small>
+                                                    <strong>{selectedUser.full_name || selectedUser.username || 'N/A'}</strong>
+                                                </div>
+                                                <div className="col-6">
+                                                    <small className="text-muted d-block">Current Status</small>
+                                                    <span className={`badge ${selectedUser.is_active ? 'badge-success' : 'badge-danger'}`}>
+                                                        {selectedUser.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-0 pt-0">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowUserStatusModal(false)}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`btn ${userStatusAction === 'activate' ? 'btn-success' : 'btn-danger'}`}
-                                    onClick={() => toggleUserStatus(selectedUser.id, selectedUser.is_active)}
-                                >
-                                    <i className={`fa ${userStatusAction === 'activate' ? 'fa-check' : 'fa-ban'} mr-1`}></i>
-                                    {userStatusAction === 'activate' ? 'Activate User' : 'Deactivate User'}
-                                </button>
+                                <div className="modal-footer border-0 pt-0">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowUserStatusModal(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${userStatusAction === 'activate' ? 'btn-success' : 'btn-danger'}`}
+                                        onClick={() => toggleUserStatus(selectedUser.id, selectedUser.is_active)}
+                                    >
+                                        <i className={`fa ${userStatusAction === 'activate' ? 'fa-check' : 'fa-ban'} mr-1`}></i>
+                                        {userStatusAction === 'activate' ? 'Activate User' : 'Deactivate User'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </section>
+                )
+            }
+        </section >
     );
 };
 
