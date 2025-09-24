@@ -4,7 +4,7 @@ import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 
 const Home = () => {
-    const [priceRange, setPriceRange] = useState({min: 0, max: 2000});
+    const [priceRange, setPriceRange] = useState({min: 0, max: 2000, customMin: '', customMax: ''});
     const [categoriesExpanded, setCategoriesExpanded] = useState(true);
     const [priceExpanded, setPriceExpanded] = useState(true);
     const [products, setProducts] = useState([]);
@@ -15,18 +15,39 @@ const Home = () => {
     const [categoriesLoading, setCategoriesLoading] = useState(false);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pageSize] = useState(12);
+    const [isPaginationPage, setIsPaginationPage] = useState(false);
+
     const {addToCart} = useCart();
 
-    // Fetch products from API
-    const fetchProducts = async () => {
+    // Fetch products from API with pagination and price filter
+    const fetchProducts = async (page = 1, minPrice = null, maxPrice = null) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:8000/api/products/homepage/');
+            let url = `http://localhost:8000/api/products/pagination/products/?page=${page}&page_size=${pageSize}`;
+
+            // If price filter is applied, use price filter API
+            if(minPrice !== null || maxPrice !== null) {
+                url = `http://localhost:8000/api/products/price-filter/products/?page=${page}&page_size=${pageSize}`;
+                if(minPrice !== null) url += `&min_price=${minPrice}`;
+                if(maxPrice !== null) url += `&max_price=${maxPrice}`;
+            }
+
+            const response = await fetch(url);
 
             if(response.ok) {
                 const data = await response.json();
-                setProducts(data.products || []);
+                setProducts(data.results || []);
+                setCurrentPage(data.current_page || 1);
+                setTotalPages(data.total_pages || 1);
+                setTotalCount(data.count || 0);
+                setIsPaginationPage(page > 1);
             } else {
                 const errorData = await response.json();
                 console.error('Failed to fetch products:', errorData);
@@ -95,6 +116,88 @@ const Home = () => {
         setHoveredCategory(null);
     };
 
+    // Apply price filter
+    const applyPriceFilter = () => {
+        let minPrice = null;
+        let maxPrice = null;
+
+        // Use custom values if custom is selected
+        if(priceRange.min === 'custom' && priceRange.customMin) {
+            minPrice = parseInt(priceRange.customMin) || 0;
+        } else if(priceRange.min !== 'custom' && priceRange.min !== 0) {
+            minPrice = parseInt(priceRange.min) || null;
+        }
+
+        if(priceRange.max === 'custom' && priceRange.customMax) {
+            maxPrice = parseInt(priceRange.customMax) || 2000;
+        } else if(priceRange.max !== 'custom' && priceRange.max !== 2000) {
+            maxPrice = parseInt(priceRange.max) || null;
+        }
+
+        setCurrentPage(1); // Reset to first page when applying filter
+        fetchProducts(1, minPrice, maxPrice);
+    };
+
+    // Pagination functions
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        let minPrice = null;
+        let maxPrice = null;
+
+        // Use custom values if custom is selected
+        if(priceRange.min === 'custom' && priceRange.customMin) {
+            minPrice = parseInt(priceRange.customMin) || 0;
+        } else if(priceRange.min !== 'custom' && priceRange.min !== 0) {
+            minPrice = parseInt(priceRange.min) || null;
+        }
+
+        if(priceRange.max === 'custom' && priceRange.customMax) {
+            maxPrice = parseInt(priceRange.customMax) || 2000;
+        } else if(priceRange.max !== 'custom' && priceRange.max !== 2000) {
+            maxPrice = parseInt(priceRange.max) || null;
+        }
+
+        fetchProducts(page, minPrice, maxPrice);
+    };
+
+    const handleNextPage = () => {
+        if(currentPage < totalPages) {
+            handlePageChange(currentPage + 1);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if(currentPage > 1) {
+            handlePageChange(currentPage - 1);
+        }
+    };
+
+    // Generate page numbers for pagination
+    const generatePageNumbers = () => {
+        const pages = [];
+        const maxVisiblePages = 7; // Increased from 5 to 7
+
+        if(totalPages <= maxVisiblePages) {
+            for(let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            let startPage = Math.max(1, currentPage - 3);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            // Adjust start page if we're near the end
+            if(endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for(let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+        }
+
+        return pages;
+    };
+
     // Fetch products and categories when component mounts
     useEffect(() => {
         fetchProducts();
@@ -139,14 +242,16 @@ const Home = () => {
     return (
         <>
             <div>
-                {/* Banner Section from index.html */}
-                <section className="section-intro padding-y-sm">
-                    <div className="container">
-                        <div className="intro-banner-wrap">
-                            <img src="/images/banners/1.jpg" className="img-fluid rounded" alt="Banner" />
+                {/* Banner Section from index.html - Only show on first page */}
+                {!isPaginationPage && (
+                    <section className="section-intro padding-y-sm">
+                        <div className="container">
+                            <div className="intro-banner-wrap">
+                                <img src="/images/banners/1.jpg" className="img-fluid rounded" alt="Banner" />
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                )}
 
                 <section className="section-content padding-y">
                     <div className="container">
@@ -349,15 +454,16 @@ const Home = () => {
                                                             <select
                                                                 className="mr-2 form-control"
                                                                 value={priceRange.min}
-                                                                onChange={(e) => setPriceRange(prev => ({...prev, min: parseInt(e.target.value)}))}
+                                                                onChange={(e) => setPriceRange(prev => ({...prev, min: e.target.value}))}
                                                             >
-                                                                <option value="0">$0</option>
-                                                                <option value="50">$50</option>
-                                                                <option value="100">$100</option>
-                                                                <option value="150">$150</option>
-                                                                <option value="200">$200</option>
-                                                                <option value="500">$500</option>
-                                                                <option value="1000">$1000</option>
+                                                                <option value="0">৳0</option>
+                                                                <option value="50">৳50</option>
+                                                                <option value="100">৳100</option>
+                                                                <option value="150">৳150</option>
+                                                                <option value="200">৳200</option>
+                                                                <option value="500">৳500</option>
+                                                                <option value="1000">৳1000</option>
+                                                                <option value="custom">Custom</option>
                                                             </select>
                                                         </div>
                                                         <div className="form-group text-right col-md-6">
@@ -365,19 +471,74 @@ const Home = () => {
                                                             <select
                                                                 className="mr-2 form-control"
                                                                 value={priceRange.max}
-                                                                onChange={(e) => setPriceRange(prev => ({...prev, max: parseInt(e.target.value)}))}
+                                                                onChange={(e) => setPriceRange(prev => ({...prev, max: e.target.value}))}
                                                             >
-                                                                <option value="50">$50</option>
-                                                                <option value="100">$100</option>
-                                                                <option value="150">$150</option>
-                                                                <option value="200">$200</option>
-                                                                <option value="500">$500</option>
-                                                                <option value="1000">$1000</option>
-                                                                <option value="2000">$2000+</option>
+                                                                <option value="50">৳50</option>
+                                                                <option value="100">৳100</option>
+                                                                <option value="150">৳150</option>
+                                                                <option value="200">৳200</option>
+                                                                <option value="500">৳500</option>
+                                                                <option value="1000">৳1000</option>
+                                                                <option value="2000">৳2000+</option>
+                                                                <option value="custom">Custom</option>
                                                             </select>
                                                         </div>
                                                     </div>
-                                                    <button className="btn btn-block btn-primary">Apply</button>
+
+                                                    {/* Custom Input Fields - Show when Custom is selected */}
+                                                    {(priceRange.min === 'custom' || priceRange.max === 'custom') && (
+                                                        <div className="form-row mt-3">
+                                                            <div className="form-group col-md-6">
+                                                                <label>Min</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="mr-2 form-control"
+                                                                    placeholder="৳0"
+                                                                    value={priceRange.customMin ? `৳${priceRange.customMin}` : ''}
+                                                                    onChange={(e) => {
+                                                                        const value = e.target.value.replace(/[^\d]/g, '');
+                                                                        setPriceRange(prev => ({...prev, customMin: value}));
+                                                                    }}
+                                                                    onFocus={(e) => {
+                                                                        if(e.target.value === '') {
+                                                                            e.target.value = '৳';
+                                                                        }
+                                                                    }}
+                                                                    onBlur={(e) => {
+                                                                        if(e.target.value === '৳' || e.target.value === '') {
+                                                                            e.target.value = '';
+                                                                            setPriceRange(prev => ({...prev, customMin: ''}));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="form-group text-right col-md-6">
+                                                                <label>Max</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="mr-2 form-control"
+                                                                    placeholder="৳2000"
+                                                                    value={priceRange.customMax ? `৳${priceRange.customMax}` : ''}
+                                                                    onChange={(e) => {
+                                                                        const value = e.target.value.replace(/[^\d]/g, '');
+                                                                        setPriceRange(prev => ({...prev, customMax: value}));
+                                                                    }}
+                                                                    onFocus={(e) => {
+                                                                        if(e.target.value === '') {
+                                                                            e.target.value = '৳';
+                                                                        }
+                                                                    }}
+                                                                    onBlur={(e) => {
+                                                                        if(e.target.value === '৳' || e.target.value === '') {
+                                                                            e.target.value = '';
+                                                                            setPriceRange(prev => ({...prev, customMax: ''}));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <button className="btn btn-block btn-primary" onClick={applyPriceFilter}>Apply</button>
                                                 </div>
                                             </div>
                                         )}
@@ -390,11 +551,29 @@ const Home = () => {
                                 <header className="border-bottom mb-4 pb-3">
                                     <div className="form-inline">
                                         <span className="mr-md-auto">
-                                            {loading ? 'Loading...' : `${products.length} Items found`}
+                                            {loading ? 'Loading...' : ''}
                                         </span>
                                         <button
                                             className="btn btn-sm btn-outline-primary"
-                                            onClick={fetchProducts}
+                                            onClick={() => {
+                                                let minPrice = null;
+                                                let maxPrice = null;
+
+                                                // Use custom values if custom is selected
+                                                if(priceRange.min === 'custom' && priceRange.customMin) {
+                                                    minPrice = parseInt(priceRange.customMin) || 0;
+                                                } else if(priceRange.min !== 'custom' && priceRange.min !== 0) {
+                                                    minPrice = parseInt(priceRange.min) || null;
+                                                }
+
+                                                if(priceRange.max === 'custom' && priceRange.customMax) {
+                                                    maxPrice = parseInt(priceRange.customMax) || 2000;
+                                                } else if(priceRange.max !== 'custom' && priceRange.max !== 2000) {
+                                                    maxPrice = parseInt(priceRange.max) || null;
+                                                }
+
+                                                fetchProducts(currentPage, minPrice, maxPrice);
+                                            }}
                                             disabled={loading}
                                         >
                                             {loading ? 'Refreshing...' : 'Refresh'}
@@ -430,23 +609,25 @@ const Home = () => {
                                             <div key={product.id} className="col-md-4 mb-4">
                                                 <figure className="card card-product-grid">
                                                     <div className="img-wrap">
-                                                        {product.image_url ? (
-                                                            <img
-                                                                src={product.image_url}
-                                                                alt={product.image_alt || product.title}
-                                                                style={{width: '100%', height: '200px', objectFit: 'cover'}}
-                                                            />
-                                                        ) : (
-                                                            <img
-                                                                src="/images/items/1.jpg"
-                                                                alt="Default Product"
-                                                                style={{width: '100%', height: '200px', objectFit: 'cover'}}
-                                                            />
-                                                        )}
+                                                        <Link to={`/product-detail/${product.slug}`}>
+                                                            {(product.image_url || product.primary_image?.image_url) ? (
+                                                                <img
+                                                                    src={product.image_url || product.primary_image?.image_url}
+                                                                    alt={product.image_alt || product.primary_image?.alt_text || product.title}
+                                                                    style={{width: '100%', height: '200px', objectFit: 'cover'}}
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src="/images/items/1.jpg"
+                                                                    alt={product.title}
+                                                                    style={{width: '100%', height: '200px', objectFit: 'cover'}}
+                                                                />
+                                                            )}
+                                                        </Link>
                                                     </div>
                                                     <figcaption className="info-wrap">
                                                         <div className="fix-height">
-                                                            <Link to={`/product/${product.slug}`} className="title">
+                                                            <Link to={`/product-detail/${product.slug}`} className="title">
                                                                 {product.title}
                                                             </Link>
                                                             {product.slug === 'test-variable-product' && (
@@ -479,7 +660,7 @@ const Home = () => {
                                                                     id: product.id,
                                                                     name: product.title,
                                                                     price: product.price,
-                                                                    image: product.image_url || "/images/items/1.jpg",
+                                                                    image: product.image_url || product.primary_image?.image_url || "/images/items/1.jpg",
                                                                     category: product.category_name || "General",
                                                                     quantity: 1,
                                                                     selectedVariant: variantId ? {id: variantId} : null
@@ -510,25 +691,72 @@ const Home = () => {
                                 )}
 
                                 {/* Pagination */}
-                                <nav className="mt-4" aria-label="Page navigation">
-                                    <ul className="pagination">
-                                        <li className="page-item disabled">
-                                            <span className="page-link">Previous</span>
-                                        </li>
-                                        <li className="page-item active">
-                                            <span className="page-link">1</span>
-                                        </li>
-                                        <li className="page-item">
-                                            <span className="page-link">2</span>
-                                        </li>
-                                        <li className="page-item">
-                                            <span className="page-link">3</span>
-                                        </li>
-                                        <li className="page-item">
-                                            <span className="page-link">Next</span>
-                                        </li>
-                                    </ul>
-                                </nav>
+                                {totalPages > 1 && (
+                                    <nav className="mt-4" aria-label="Page navigation">
+                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                            <div className="text-muted">
+                                                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} products
+                                            </div>
+                                        </div>
+                                        <ul className="pagination justify-content-center">
+                                            {/* Previous Button */}
+                                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={handlePrevPage}
+                                                    disabled={currentPage === 1}
+                                                >
+                                                    <i className="fa fa-chevron-left"></i> Previous
+                                                </button>
+                                            </li>
+
+                                            {/* Page Numbers */}
+                                            {generatePageNumbers().map((pageNum) => (
+                                                <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                                                    <button
+                                                        className="page-link"
+                                                        onClick={() => handlePageChange(pageNum)}
+                                                    >
+                                                        {pageNum}
+                                                    </button>
+                                                </li>
+                                            ))}
+
+                                            {/* Next Button */}
+                                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={handleNextPage}
+                                                    disabled={currentPage === totalPages}
+                                                >
+                                                    Next <i className="fa fa-chevron-right"></i>
+                                                </button>
+                                            </li>
+                                        </ul>
+
+                                        {/* Page Jump */}
+                                        <div className="text-center mt-3">
+                                            <div className="btn-group" role="group">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-secondary btn-sm"
+                                                    onClick={() => handlePageChange(1)}
+                                                    disabled={currentPage === 1}
+                                                >
+                                                    First
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-secondary btn-sm"
+                                                    onClick={() => handlePageChange(totalPages)}
+                                                    disabled={currentPage === totalPages}
+                                                >
+                                                    Last
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </nav>
+                                )}
                             </main>
                         </div>
                     </div>
