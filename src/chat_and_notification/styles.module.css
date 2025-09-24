@@ -1,0 +1,70 @@
+:root {
+    --chat-offset-y: 112px;
+    --chat-offset-x: 96px;
+    --chat-width: 360px;
+    --chat-z: 1060;
+}
+
+.fab {
+    position: fixed;
+    right: var(--chat-offset-x);
+    bottom: var(--chat-offset-y);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    z-index: var(--chat-z);
+}
+
+@media (max-width: 576px) {
+    :root {
+        --chat-offset-y: 88px;
+        --chat-offset-x: 48px;
+    }
+
+    .fab {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+.panel {
+    position: fixed;
+    right: var(--chat-offset-x);
+    bottom: calc(var(--chat-offset-y) + 64px);
+    width: var(--chat-width);
+    max-width: 92vw;
+    z-index: var(--chat-z);
+}
+
+.messagesArea {
+    max-height: 55vh;
+    overflow: auto;
+    background: #f8f9fa;
+}
+
+@media (max-width: 576px) {
+    .messagesArea {
+        max-height: 70vh;
+    }
+}
+
+.bubble {
+    max-width: 80%;
+}
+
+.userBubble {
+    background: var(--bs-primary, #0d6efd);
+    color: #fff;
+}
+
+.adminBubble {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.badgeNew {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(40%, -40%);
+}

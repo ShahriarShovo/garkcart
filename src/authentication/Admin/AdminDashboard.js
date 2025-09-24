@@ -1464,6 +1464,17 @@ const AdminDashboard = () => {
                                 Manage Subcategories
                             </a>
                             <a
+                                className={`list-group-item ${activeTab === 'inbox' ? 'active' : ''}`}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveTab('inbox');
+                                }}
+                            >
+                                <i className="fa fa-inbox mr-2"></i>
+                                Inbox
+                            </a>
+                            <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
@@ -2612,6 +2623,119 @@ const AdminDashboard = () => {
                                             </button>
                                         </div>
                                     )}
+                                </div>
+                            </article>
+                        )}
+
+                        {activeTab === 'inbox' && (
+                            <article className="card">
+                                <header className="card-header">
+                                    <strong className="d-inline-block mr-3">Chat Inbox</strong>
+                                    <div className="float-right">
+                                        <div className="input-group" style={{maxWidth: '300px'}}>
+                                            <input className="form-control form-control-sm" placeholder="Search conversations..." />
+                                            <div className="input-group-append">
+                                                <button className="btn btn-sm btn-outline-secondary" type="button">
+                                                    <i className="fa fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </header>
+                                <div className="card-body">
+                                    <div className="row">
+                                        <div className="col-md-4">
+                                            <div className="list-group">
+                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
+                                                    <div className="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>A</div>
+                                                    <div className="flex-grow-1">
+                                                        <div className="d-flex justify-content-between">
+                                                            <strong>Alice Johnson</strong>
+                                                            <small className="text-muted">2m</small>
+                                                        </div>
+                                                        <div className="text-muted small">Hi, I need help with my order...</div>
+                                                    </div>
+                                                    <span className="badge bg-danger">2</span>
+                                                </a>
+                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
+                                                    <div className="avatar rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>B</div>
+                                                    <div className="flex-grow-1">
+                                                        <div className="d-flex justify-content-between">
+                                                            <strong>Bob Smith</strong>
+                                                            <small className="text-muted">10m</small>
+                                                        </div>
+                                                        <div className="text-muted small">Thank you for your help!</div>
+                                                    </div>
+                                                </a>
+                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
+                                                    <div className="avatar rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>C</div>
+                                                    <div className="flex-grow-1">
+                                                        <div className="d-flex justify-content-between">
+                                                            <strong>Carol Davis</strong>
+                                                            <small className="text-muted">1h</small>
+                                                        </div>
+                                                        <div className="text-muted small">Can you check my refund status?</div>
+                                                    </div>
+                                                    <span className="badge bg-warning">1</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-8">
+                                            <div className="card shadow-sm">
+                                                <div className="card-header d-flex align-items-center justify-content-between">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <div className="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}}>A</div>
+                                                        <div>
+                                                            <div className="fw-semibold">Alice Johnson</div>
+                                                            <div className="small text-muted">Open · Unassigned</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="d-flex gap-2 align-items-center">
+                                                        <div className="dropdown">
+                                                            <button className="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">Assign</button>
+                                                            <ul className="dropdown-menu">
+                                                                <li><a className="dropdown-item" href="#">Me</a></li>
+                                                                <li><a className="dropdown-item" href="#">Staff 1</a></li>
+                                                            </ul>
+                                                        </div>
+                                                        <div className="form-check form-switch">
+                                                            <input className="form-check-input" type="checkbox" id="statusSwitch" checked />
+                                                            <label className="form-check-label" htmlFor="statusSwitch">Open</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="card-body p-0 d-flex flex-column" style={{minHeight: '50vh'}}>
+                                                    <div className="p-3 bg-light flex-grow-1" style={{overflow: 'auto'}}>
+                                                        <div className="text-center text-muted small mb-2">Today</div>
+                                                        <div className="d-flex justify-content-start mb-2">
+                                                            <div className="bg-white border rounded-3 px-3 py-2">
+                                                                Hello! I need help with my order.
+                                                                <div className="small text-muted mt-1">10:15</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="d-flex justify-content-end mb-2">
+                                                            <div className="bg-primary text-white rounded-3 px-3 py-2">
+                                                                Sure, could you share your order ID?
+                                                                <div className="small text-light mt-1">10:16</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="d-flex justify-content-start mb-2">
+                                                            <div className="bg-white border rounded-3 px-3 py-2">
+                                                                My order number is #12345
+                                                                <div className="small text-muted mt-1">10:17</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="border-top p-2">
+                                                        <div className="input-group">
+                                                            <textarea className="form-control" rows="1" placeholder="Type a reply..."></textarea>
+                                                            <button className="btn btn-primary" type="button"><i className="fa fa-paper-plane"></i></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </article>
                         )}
