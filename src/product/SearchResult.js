@@ -1,10 +1,11 @@
 import React, {useState, useEffect} from 'react';
 import {useSearchParams, Link} from 'react-router-dom';
+import FilterSidebar from '../components/FilterSidebar';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 
 const SearchResult = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [searchResults, setSearchResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -13,8 +14,31 @@ const SearchResult = () => {
 
     const query = searchParams.get('q') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
+    const minPriceParam = searchParams.get('min_price');
+    const maxPriceParam = searchParams.get('max_price');
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+
+    // Price range from URL or defaults for sidebar
+    const initialMin = parseInt(searchParams.get('min_price') || '0', 10);
+    const initialMax = parseInt(searchParams.get('max_price') || '2000', 10);
+
+    const handlePriceFilter = (minPrice, maxPrice) => {
+        const next = new URLSearchParams(searchParams.toString());
+        if(minPrice === null) {
+            next.delete('min_price');
+        } else {
+            next.set('min_price', String(minPrice));
+        }
+        if(maxPrice === null) {
+            next.delete('max_price');
+        } else {
+            next.set('max_price', String(maxPrice));
+        }
+        next.set('page', '1');
+        // Update the URL and trigger state changes
+        setSearchParams(next);
+    };
 
     // Fetch search results from API
     const fetchSearchResults = async () => {
@@ -27,11 +51,9 @@ const SearchResult = () => {
         setError(null);
 
         try {
-            const params = new URLSearchParams({
-                q: query,
-                page: page,
-                page_size: 12
-            });
+            const params = new URLSearchParams({ q: query, page: page, page_size: 12 });
+            if(minPriceParam !== null && minPriceParam !== '') params.set('min_price', minPriceParam);
+            if(maxPriceParam !== null && maxPriceParam !== '') params.set('max_price', maxPriceParam);
 
             const response = await fetch(`http://localhost:8000/api/products/search/products/?${params.toString()}`);
 
@@ -54,7 +76,7 @@ const SearchResult = () => {
 
     useEffect(() => {
         fetchSearchResults();
-    }, [query, page]);
+    }, [query, page, minPriceParam, maxPriceParam]);
 
     // Star rating renderer
     const renderStars = (rating, reviewCount = 0) => {
@@ -111,8 +133,12 @@ const SearchResult = () => {
             <section className="section-content padding-y">
                 <div className="container">
                     <div className="row">
-                        {/* Empty sidebar to match Home page layout */}
-                        <aside className="col-md-3"></aside>
+                        {/* Sidebar with reusable filters */}
+                        <FilterSidebar
+                            onPriceFilter={handlePriceFilter}
+                            initialMinPrice={initialMin}
+                            initialMaxPrice={initialMax}
+                        />
 
                         {/* Main Content - Same layout as Home page */}
                         <main className="col-md-9">
@@ -223,7 +249,7 @@ const SearchResult = () => {
                                             <li className="page-item">
                                                 <Link
                                                     className="page-link"
-                                                    to={`/search?q=${encodeURIComponent(query)}&page=${page - 1}`}
+                                                    to={`/search?q=${encodeURIComponent(query)}&page=${page - 1}${minPriceParam ? `&min_price=${minPriceParam}` : ''}${maxPriceParam ? `&max_price=${maxPriceParam}` : ''}`}
                                                 >
                                                     Previous
                                                 </Link>
@@ -236,7 +262,7 @@ const SearchResult = () => {
                                                 <li key={pageNum} className={`page-item ${pageNum === page ? 'active' : ''}`}>
                                                     <Link
                                                         className="page-link"
-                                                        to={`/search?q=${encodeURIComponent(query)}&page=${pageNum}`}
+                                                        to={`/search?q=${encodeURIComponent(query)}&page=${pageNum}${minPriceParam ? `&min_price=${minPriceParam}` : ''}${maxPriceParam ? `&max_price=${maxPriceParam}` : ''}`}
                                                     >
                                                         {pageNum}
                                                     </Link>
@@ -248,7 +274,7 @@ const SearchResult = () => {
                                             <li className="page-item">
                                                 <Link
                                                     className="page-link"
-                                                    to={`/search?q=${encodeURIComponent(query)}&page=${page + 1}`}
+                                                    to={`/search?q=${encodeURIComponent(query)}&page=${page + 1}${minPriceParam ? `&min_price=${minPriceParam}` : ''}${maxPriceParam ? `&max_price=${maxPriceParam}` : ''}`}
                                                 >
                                                     Next
                                                 </Link>

@@ -5,7 +5,7 @@ import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
 
 const ProductDetail = () => {
-    const {id} = useParams();
+    const {slug} = useParams();
     const {addToCart} = useCart();
     const {user} = useAuth();
     const [selectedColor, setSelectedColor] = useState('Gold');
@@ -32,7 +32,7 @@ const ProductDetail = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`http://localhost:8000/api/products/product-detail/${id}/`);
+            const response = await fetch(`http://localhost:8000/api/products/product-detail/${slug}/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -54,7 +54,7 @@ const ProductDetail = () => {
     const fetchReviews = async () => {
         setReviewsLoading(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${id}/`);
+            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${slug}/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -81,7 +81,7 @@ const ProductDetail = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${id}/create/`, {
+            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${slug}/create/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -108,7 +108,7 @@ const ProductDetail = () => {
     useEffect(() => {
         fetchProduct();
         fetchReviews();
-    }, [id]);
+    }, [slug]);
 
     if(loading) {
         return (
