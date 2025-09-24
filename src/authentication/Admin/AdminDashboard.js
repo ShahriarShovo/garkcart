@@ -1,4 +1,5 @@
 import React, {useState, useEffect} from 'react';
+import Pagination from '../../components/Pagination';
 import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState(null);
+    const [ordersPage, setOrdersPage] = useState(1);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [orderStatusFilter, setOrderStatusFilter] = useState('all');
@@ -19,6 +21,7 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [usersLoading, setUsersLoading] = useState(false);
     const [usersError, setUsersError] = useState(null);
+    const [usersPage, setUsersPage] = useState(1);
     const [selectedUser, setSelectedUser] = useState(null);
     const [showUserModal, setShowUserModal] = useState(false);
     const [userStatusFilter, setUserStatusFilter] = useState('active');
@@ -96,6 +99,7 @@ const AdminDashboard = () => {
     const [products, setProducts] = useState([]);
     const [productsLoading, setProductsLoading] = useState(false);
     const [productsError, setProductsError] = useState(null);
+    const [productsPage, setProductsPage] = useState(1);
     const [archivedProducts, setArchivedProducts] = useState([]);
     const [archivedProductsLoading, setArchivedProductsLoading] = useState(false);
     const [archivedProductsError, setArchivedProductsError] = useState(null);
@@ -218,7 +222,10 @@ const AdminDashboard = () => {
     // Get filtered orders
     const getFilteredOrders = () => {
         if(orderStatusFilter === 'all') {
-            return orders;
+            // Show only active orders (pending, processing, confirmed, shipped)
+            return orders.filter(order =>
+                ['pending', 'processing', 'confirmed', 'shipped'].includes(order.status)
+            );
         }
         return orders.filter(order => order.status === orderStatusFilter);
     };
@@ -1342,16 +1349,6 @@ const AdminDashboard = () => {
                                 Archived Products
                             </a>
                             <a
-                                className={`list-group-item ${activeTab === 'orders' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('orders');
-                                }}
-                            >
-                                Manage Orders
-                            </a>
-                            <a
                                 className={`list-group-item ${activeTab === 'users' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
@@ -1650,119 +1647,127 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {products.map((product) => (
-                                                        <tr key={product.id}>
-                                                            <td>
-                                                                {product.primary_image && (
-                                                                    <img
-                                                                        src={typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `http://localhost:8000${product.primary_image.image}`}
-                                                                        className="img-xs border"
-                                                                        alt={product.title}
-                                                                        style={{width: '50px', height: '50px', objectFit: 'cover'}}
-                                                                    />
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <strong>{product.title}</strong>
-                                                                <br />
-                                                                <small className="text-muted">/{product.slug}</small>
-                                                                {product.short_description && (
-                                                                    <>
-                                                                        <br />
-                                                                        <small className="text-muted">
-                                                                            {product.short_description.length > 50 ?
-                                                                                `${product.short_description.substring(0, 50)}...` :
-                                                                                product.short_description
-                                                                            }
-                                                                        </small>
-                                                                    </>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <div>
-                                                                    {product.category_name && (
-                                                                        <span className="badge badge-light">{product.category_name}</span>
+                                                    {products
+                                                        .slice((productsPage - 1) * 10, (productsPage - 1) * 10 + 10)
+                                                        .map((product) => (
+                                                            <tr key={product.id}>
+                                                                <td>
+                                                                    {product.primary_image && (
+                                                                        <img
+                                                                            src={typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `http://localhost:8000${product.primary_image.image}`}
+                                                                            className="img-xs border"
+                                                                            alt={product.title}
+                                                                            style={{width: '50px', height: '50px', objectFit: 'cover'}}
+                                                                        />
                                                                     )}
-                                                                    {product.subcategory_name && (
+                                                                </td>
+                                                                <td>
+                                                                    <strong>{product.title}</strong>
+                                                                    <br />
+                                                                    <small className="text-muted">/{product.slug}</small>
+                                                                    {product.short_description && (
                                                                         <>
                                                                             <br />
-                                                                            <small className="text-muted">{product.subcategory_name}</small>
+                                                                            <small className="text-muted">
+                                                                                {product.short_description.length > 50 ?
+                                                                                    `${product.short_description.substring(0, 50)}...` :
+                                                                                    product.short_description
+                                                                                }
+                                                                            </small>
                                                                         </>
                                                                     )}
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${product.product_type === 'variable' ? 'badge-info' : 'badge-secondary'}`}>
-                                                                    {product.product_type}
-                                                                </span>
-                                                                {product.is_variable && (
-                                                                    <>
-                                                                        <br />
-                                                                        <small className="text-muted">{product.variant_count} variants</small>
-                                                                    </>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                {product.is_variable ? (
+                                                                </td>
+                                                                <td>
                                                                     <div>
-                                                                        <strong>${product.min_price} - ${product.max_price}</strong>
-                                                                        <br />
-                                                                        <small className="text-muted">Variable pricing</small>
+                                                                        {product.category_name && (
+                                                                            <span className="badge badge-light">{product.category_name}</span>
+                                                                        )}
+                                                                        {product.subcategory_name && (
+                                                                            <>
+                                                                                <br />
+                                                                                <small className="text-muted">{product.subcategory_name}</small>
+                                                                            </>
+                                                                        )}
                                                                     </div>
-                                                                ) : (
-                                                                    <strong>${product.price}</strong>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                {product.is_variable ? (
-                                                                    <span className="badge badge-light">{product.total_inventory} total</span>
-                                                                ) : (
-                                                                    <span className={`badge ${product.quantity > 0 ? 'badge-success' : 'badge-danger'}`}>
-                                                                        {product.quantity}
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${product.product_type === 'variable' ? 'badge-info' : 'badge-secondary'}`}>
+                                                                        {product.product_type}
                                                                     </span>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${product.status === 'active' ? 'badge-success' :
-                                                                    product.status === 'draft' ? 'badge-warning' :
-                                                                        'badge-secondary'
-                                                                    }`}>
-                                                                    {product.status}
-                                                                </span>
-                                                                {product.featured && (
-                                                                    <>
-                                                                        <br />
-                                                                        <small className="badge badge-primary">Featured</small>
-                                                                    </>
-                                                                )}
-                                                            </td>
-                                                            <td>
-                                                                <small className="text-muted">
-                                                                    {new Date(product.created_at).toLocaleDateString()}
-                                                                </small>
-                                                            </td>
-                                                            <td>
-                                                                <div className="btn-group" role="group">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-primary"
-                                                                        onClick={() => handleEditProduct(product)}
-                                                                        title="Edit Product"
-                                                                    >
-                                                                        <i className="fa fa-edit"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-danger"
-                                                                        onClick={() => handleDeleteProduct(product)}
-                                                                        title="Delete Product"
-                                                                    >
-                                                                        <i className="fa fa-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                    {product.is_variable && (
+                                                                        <>
+                                                                            <br />
+                                                                            <small className="text-muted">{product.variant_count} variants</small>
+                                                                        </>
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {product.is_variable ? (
+                                                                        <div>
+                                                                            <strong>${product.min_price} - ${product.max_price}</strong>
+                                                                            <br />
+                                                                            <small className="text-muted">Variable pricing</small>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <strong>${product.price}</strong>
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {product.is_variable ? (
+                                                                        <span className="badge badge-light">{product.total_inventory} total</span>
+                                                                    ) : (
+                                                                        <span className={`badge ${product.quantity > 0 ? 'badge-success' : 'badge-danger'}`}>
+                                                                            {product.quantity}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${product.status === 'active' ? 'badge-success' :
+                                                                        product.status === 'draft' ? 'badge-warning' :
+                                                                            'badge-secondary'
+                                                                        }`}>
+                                                                        {product.status}
+                                                                    </span>
+                                                                    {product.featured && (
+                                                                        <>
+                                                                            <br />
+                                                                            <small className="badge badge-primary">Featured</small>
+                                                                        </>
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    <small className="text-muted">
+                                                                        {new Date(product.created_at).toLocaleDateString()}
+                                                                    </small>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="btn-group" role="group">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            onClick={() => handleEditProduct(product)}
+                                                                            title="Edit Product"
+                                                                        >
+                                                                            <i className="fa fa-edit"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            onClick={() => handleDeleteProduct(product)}
+                                                                            title="Delete Product"
+                                                                        >
+                                                                            <i className="fa fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
+                                            <Pagination
+                                                totalItems={products.length}
+                                                currentPage={productsPage}
+                                                pageSize={10}
+                                                onPageChange={(p) => setProductsPage(p)}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="text-center py-5">
@@ -2003,100 +2008,108 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {getFilteredOrders().map((order) => (
-                                                        <tr key={order.id}>
-                                                            <td>
-                                                                <strong>#{order.order_number}</strong>
-                                                            </td>
-                                                            <td>
-                                                                <div>
-                                                                    <strong>{order.user?.email || 'N/A'}</strong>
-                                                                    {order.delivery_address && (
-                                                                        <>
-                                                                            <br />
-                                                                            <small className="text-muted">
-                                                                                {order.delivery_address.full_name}
-                                                                            </small>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                {new Date(order.created_at).toLocaleDateString()}
-                                                            </td>
-                                                            <td>
-                                                                <span
-                                                                    className={`badge ${order.status === 'delivered' ? 'badge-success' :
-                                                                        order.status === 'pending' ? 'badge-warning' :
-                                                                            order.status === 'confirmed' ? 'badge-info' :
-                                                                                order.status === 'processing' ? 'badge-primary' :
-                                                                                    order.status === 'shipped' ? 'badge-secondary' :
-                                                                                        order.status === 'cancelled' ? 'badge-danger' :
-                                                                                            'badge-light'
-                                                                        }`}
-                                                                >
-                                                                    {order.status_display || order.status}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
-                                                            </td>
-                                                            <td>
-                                                                <span className="badge badge-light">
-                                                                    {order.items ? order.items.length : 0} items
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div className="btn-group" role="group">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-info"
-                                                                        onClick={() => viewOrderDetails(order)}
-                                                                        title="View Details"
+                                                    {getFilteredOrders()
+                                                        .slice((ordersPage - 1) * 10, (ordersPage - 1) * 10 + 10)
+                                                        .map((order) => (
+                                                            <tr key={order.id}>
+                                                                <td>
+                                                                    <strong>#{order.order_number}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    <div>
+                                                                        <strong>{order.user?.email || 'N/A'}</strong>
+                                                                        {order.delivery_address && (
+                                                                            <>
+                                                                                <br />
+                                                                                <small className="text-muted">
+                                                                                    {order.delivery_address.full_name}
+                                                                                </small>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    {new Date(order.created_at).toLocaleDateString()}
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        className={`badge ${order.status === 'delivered' ? 'badge-success' :
+                                                                            order.status === 'pending' ? 'badge-warning' :
+                                                                                order.status === 'confirmed' ? 'badge-info' :
+                                                                                    order.status === 'processing' ? 'badge-primary' :
+                                                                                        order.status === 'shipped' ? 'badge-secondary' :
+                                                                                            order.status === 'cancelled' ? 'badge-danger' :
+                                                                                                'badge-light'
+                                                                            }`}
                                                                     >
-                                                                        <i className="fa fa-eye"></i>
-                                                                    </button>
-                                                                    {order.status !== 'delivered' && (
+                                                                        {order.status_display || order.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="badge badge-light">
+                                                                        {order.items ? order.items.length : 0} items
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="btn-group" role="group">
                                                                         <button
-                                                                            className="btn btn-sm btn-success"
-                                                                            onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                                                            title="Mark as Delivered"
+                                                                            className="btn btn-sm btn-outline-info"
+                                                                            onClick={() => viewOrderDetails(order)}
+                                                                            title="View Details"
                                                                         >
-                                                                            <i className="fa fa-check mr-1"></i>Delivered
+                                                                            <i className="fa fa-eye"></i>
                                                                         </button>
-                                                                    )}
-                                                                    {order.status !== 'processing' && order.status !== 'delivered' && (
-                                                                        <button
-                                                                            className="btn btn-sm btn-primary"
-                                                                            onClick={() => updateOrderStatus(order.id, 'processing')}
-                                                                            title="Mark as Processing"
-                                                                        >
-                                                                            <i className="fa fa-cog mr-1"></i>Processing
-                                                                        </button>
-                                                                    )}
-                                                                    {order.status !== 'shipped' && order.status !== 'delivered' && (
-                                                                        <button
-                                                                            className="btn btn-sm btn-secondary"
-                                                                            onClick={() => updateOrderStatus(order.id, 'shipped')}
-                                                                            title="Mark as Shipped"
-                                                                        >
-                                                                            <i className="fa fa-truck mr-1"></i>Shipped
-                                                                        </button>
-                                                                    )}
-                                                                    {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                                                        <button
-                                                                            className="btn btn-sm btn-danger"
-                                                                            onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                                                                            title="Cancel Order"
-                                                                        >
-                                                                            <i className="fa fa-times mr-1"></i>Cancel
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                        {order.status !== 'delivered' && (
+                                                                            <button
+                                                                                className="btn btn-sm btn-success"
+                                                                                onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                                                title="Mark as Delivered"
+                                                                            >
+                                                                                <i className="fa fa-check mr-1"></i>Delivered
+                                                                            </button>
+                                                                        )}
+                                                                        {order.status !== 'processing' && order.status !== 'delivered' && (
+                                                                            <button
+                                                                                className="btn btn-sm btn-primary"
+                                                                                onClick={() => updateOrderStatus(order.id, 'processing')}
+                                                                                title="Mark as Processing"
+                                                                            >
+                                                                                <i className="fa fa-cog mr-1"></i>Processing
+                                                                            </button>
+                                                                        )}
+                                                                        {order.status !== 'shipped' && order.status !== 'delivered' && (
+                                                                            <button
+                                                                                className="btn btn-sm btn-secondary"
+                                                                                onClick={() => updateOrderStatus(order.id, 'shipped')}
+                                                                                title="Mark as Shipped"
+                                                                            >
+                                                                                <i className="fa fa-truck mr-1"></i>Shipped
+                                                                            </button>
+                                                                        )}
+                                                                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                                                                            <button
+                                                                                className="btn btn-sm btn-danger"
+                                                                                onClick={() => updateOrderStatus(order.id, 'cancelled')}
+                                                                                title="Cancel Order"
+                                                                            >
+                                                                                <i className="fa fa-times mr-1"></i>Cancel
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
+                                            <Pagination
+                                                totalItems={getFilteredOrders().length}
+                                                currentPage={ordersPage}
+                                                pageSize={10}
+                                                onPageChange={(p) => setOrdersPage(p)}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="text-center py-5">
@@ -2159,81 +2172,89 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {(showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active)).map((user) => (
-                                                        <tr key={user.id} className={showInactiveUsers ? 'table-secondary' : ''}>
-                                                            <td>
-                                                                <strong>#{user.id}</strong>
-                                                            </td>
-                                                            <td>
-                                                                <div>
-                                                                    <strong className={showInactiveUsers ? 'text-muted' : ''}>{user.email}</strong>
-                                                                    {user.profile?.phone && (
-                                                                        <>
-                                                                            <br />
-                                                                            <small className="text-muted">
-                                                                                {user.profile.phone}
-                                                                            </small>
-                                                                        </>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <span className={showInactiveUsers ? 'text-muted' : ''}>
-                                                                    {user.profile?.full_name || 'N/A'}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${getUserRoleBadge(user)}`}>
-                                                                    {getUserRole(user)}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={`badge ${user.is_active ? 'badge-success' : 'badge-danger'}`}>
-                                                                    {user.is_active ? 'Active' : 'Inactive'}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={showInactiveUsers ? 'text-muted' : ''}>
-                                                                    {new Date(user.date_joined).toLocaleDateString()}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <span className={showInactiveUsers ? 'text-muted' : ''}>
-                                                                    {user.last_login ?
-                                                                        new Date(user.last_login).toLocaleDateString() :
-                                                                        'Never'
-                                                                    }
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div className="btn-group" role="group">
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-info"
-                                                                        onClick={() => viewUserDetails(user)}
-                                                                        title="View Details"
-                                                                    >
-                                                                        <i className="fa fa-eye"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className="btn btn-sm btn-outline-warning"
-                                                                        onClick={() => viewUserOrders(user)}
-                                                                        title="View Orders"
-                                                                    >
-                                                                        <i className="fa fa-shopping-cart"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        className={`btn btn-sm ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
-                                                                        onClick={() => showUserStatusConfirmation(user, user.is_active ? 'deactivate' : 'activate')}
-                                                                        title={user.is_active ? 'Deactivate User' : 'Activate User'}
-                                                                    >
-                                                                        <i className={`fa ${user.is_active ? 'fa-ban' : 'fa-check'}`}></i>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {(showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active))
+                                                        .slice((usersPage - 1) * 10, (usersPage - 1) * 10 + 10)
+                                                        .map((user) => (
+                                                            <tr key={user.id} className={showInactiveUsers ? 'table-secondary' : ''}>
+                                                                <td>
+                                                                    <strong>#{user.id}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    <div>
+                                                                        <strong className={showInactiveUsers ? 'text-muted' : ''}>{user.email}</strong>
+                                                                        {user.profile?.phone && (
+                                                                            <>
+                                                                                <br />
+                                                                                <small className="text-muted">
+                                                                                    {user.profile.phone}
+                                                                                </small>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={showInactiveUsers ? 'text-muted' : ''}>
+                                                                        {user.profile?.full_name || 'N/A'}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${getUserRoleBadge(user)}`}>
+                                                                        {getUserRole(user)}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={`badge ${user.is_active ? 'badge-success' : 'badge-danger'}`}>
+                                                                        {user.is_active ? 'Active' : 'Inactive'}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={showInactiveUsers ? 'text-muted' : ''}>
+                                                                        {new Date(user.date_joined).toLocaleDateString()}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <span className={showInactiveUsers ? 'text-muted' : ''}>
+                                                                        {user.last_login ?
+                                                                            new Date(user.last_login).toLocaleDateString() :
+                                                                            'Never'
+                                                                        }
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="btn-group" role="group">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-info"
+                                                                            onClick={() => viewUserDetails(user)}
+                                                                            title="View Details"
+                                                                        >
+                                                                            <i className="fa fa-eye"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-warning"
+                                                                            onClick={() => viewUserOrders(user)}
+                                                                            title="View Orders"
+                                                                        >
+                                                                            <i className="fa fa-shopping-cart"></i>
+                                                                        </button>
+                                                                        <button
+                                                                            className={`btn btn-sm ${user.is_active ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                                                                            onClick={() => showUserStatusConfirmation(user, user.is_active ? 'deactivate' : 'activate')}
+                                                                            title={user.is_active ? 'Deactivate User' : 'Activate User'}
+                                                                        >
+                                                                            <i className={`fa ${user.is_active ? 'fa-ban' : 'fa-check'}`}></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
+                                            <Pagination
+                                                totalItems={(showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active)).length}
+                                                currentPage={usersPage}
+                                                pageSize={10}
+                                                onPageChange={(p) => setUsersPage(p)}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="text-center py-5">
@@ -3553,16 +3574,16 @@ const AdminDashboard = () => {
                                 <div className="row">
                                     <div className="col-md-6">
                                         <h6>Customer Information</h6>
-                                        <p><strong>Email:</strong> {selectedOrder.user?.email || 'N/A'}</p>
+                                        <p><strong>Email:</strong> {selectedOrder.user_email || selectedOrder.user?.email || 'N/A'}</p>
                                         {selectedOrder.delivery_address && (
                                             <>
                                                 <p><strong>Name:</strong> {selectedOrder.delivery_address.full_name}</p>
-                                                <p><strong>Phone:</strong> {selectedOrder.delivery_address.phone}</p>
+                                                <p><strong>Phone:</strong> {selectedOrder.delivery_address.phone_number}</p>
                                                 <p><strong>Address:</strong> {selectedOrder.delivery_address.address_line_1}</p>
                                                 {selectedOrder.delivery_address.address_line_2 && (
                                                     <p>{selectedOrder.delivery_address.address_line_2}</p>
                                                 )}
-                                                <p>{selectedOrder.delivery_address.city}, {selectedOrder.delivery_address.state} {selectedOrder.delivery_address.postal_code}</p>
+                                                <p>{selectedOrder.delivery_address.city} {selectedOrder.delivery_address.postal_code}</p>
                                                 <p>{selectedOrder.delivery_address.country}</p>
                                             </>
                                         )}
@@ -3571,7 +3592,7 @@ const AdminDashboard = () => {
                                         <h6>Order Information</h6>
                                         <p><strong>Order Date:</strong> {new Date(selectedOrder.created_at).toLocaleString()}</p>
                                         <p><strong>Status:</strong> {getStatusBadge(selectedOrder.status)}</p>
-                                        <p><strong>Total Amount:</strong> ${parseFloat(selectedOrder.total_amount || 0).toFixed(2)}</p>
+                                        <p><strong>Total Amount:</strong> ৳{parseFloat(selectedOrder.total_amount || 0).toFixed(2)}</p>
                                         <p><strong>Payment Status:</strong> {selectedOrder.payment_status || 'N/A'}</p>
                                     </div>
                                 </div>
@@ -3619,8 +3640,8 @@ const AdminDashboard = () => {
                                                         {item.variant?.title || 'Default'}
                                                     </td>
                                                     <td>{item.quantity}</td>
-                                                    <td>${parseFloat(item.price || 0).toFixed(2)}</td>
-                                                    <td>${parseFloat((item.price || 0) * (item.quantity || 0)).toFixed(2)}</td>
+                                                    <td>৳{parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                                    <td>৳{parseFloat(item.total_price || 0).toFixed(2)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
