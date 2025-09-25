@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import chatApi from './api/chatApi';
 import websocketService from './api/websocketService';
 import adminWebsocketService from './api/adminWebsocketService';
@@ -11,6 +11,14 @@ const AdminChatInbox = () => {
     const [newMessage, setNewMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const messagesContainerRef = useRef(null);
+
+    const scrollToBottom = () => {
+        const el = messagesContainerRef.current;
+        if(el) {
+            el.scrollTop = el.scrollHeight;
+        }
+    };
 
     useEffect(() => {
         fetchConversations();
@@ -114,24 +122,53 @@ const AdminChatInbox = () => {
             const messagesData = await chatApi.getMessages(conversation.id);
             setMessages(messagesData);
 
-            // Mark messages as read when conversation is selected
-            if(conversation.unread_count > 0) {
-                console.log('Marking messages as read for conversation:', conversation.id, 'unread_count:', conversation.unread_count);
-                await chatApi.markMessagesAsRead(conversation.id);
-                // Update conversation list to remove unread count
-                setConversations(prev =>
-                    prev.map(conv =>
-                        conv.id === conversation.id
-                            ? {...conv, unread_count: 0}
-                            : conv
-                    )
-                );
-                console.log('Unread count updated to 0 for conversation:', conversation.id);
+            // Always mark customer messages as read when conversation is selected
+            console.log('Marking messages as read for conversation:', conversation.id);
+            // Ensure WS is connecting now so we can wait for 'connected'
+            try { websocketService.disconnect(); } catch(_) {}
+            websocketService.connect(conversation.id);
+            const msgIds = (messagesData || []).filter(m => !m.is_sender_staff).map(m => Number(m.id)).filter(Number.isFinite);
+            if(msgIds.length) {
+                // Wait briefly for WS to connect; otherwise fallback to REST
+                const waitForConnected = () => new Promise(resolve => {
+                    if(websocketService.isConnected()) return resolve(true);
+                    const timeout = setTimeout(() => {
+                        websocketService.off('connected', onConnected);
+                        resolve(false);
+                    }, 800);
+                    const onConnected = () => {
+                        clearTimeout(timeout);
+                        websocketService.off('connected', onConnected);
+                        resolve(true);
+                    };
+                    websocketService.on('connected', onConnected);
+                });
+
+                const connected = await waitForConnected();
+                if(connected) {
+                    websocketService.markMessagesRead(msgIds);
+                } else {
+                    await chatApi.markMessagesAsRead(conversation.id);
+                }
             }
+            // Update conversation list to remove unread count
+            setConversations(prev =>
+                prev.map(conv =>
+                    conv.id === conversation.id
+                        ? {...conv, unread_count: 0}
+                        : conv
+                )
+            );
+            console.log('Unread count updated to 0 for conversation:', conversation.id);
         } catch(error) {
             console.error('Error loading messages:', error);
         }
     };
+
+    // Scroll to bottom when messages change or when switching conversations
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages.length, selectedConversation?.id]);
 
     // Maintain conversation WebSocket subscription based on selectedConversation
     useEffect(() => {
@@ -150,6 +187,14 @@ const AdminChatInbox = () => {
                     if(exists) return prev;
                     return [...prev, payload.message];
                 });
+                // If message is from customer while this conversation is open, instantly mark as read
+                if(!payload.message.is_sender_staff) {
+                    if(websocketService.isConnected()) {
+                        websocketService.markMessagesRead([payload.message.id]);
+                    }
+                    // Ensure left list unread stays at 0 for selected conversation
+                    setConversations(prev => prev.map(c => c.id === selectedConversation.id ? {...c, unread_count: 0} : c));
+                }
             }
         };
 
@@ -216,7 +261,7 @@ const AdminChatInbox = () => {
             <div className="card-body">
                 <div className="row">
                     <div className="col-md-4">
-                        <div className="list-group">
+                        <div className="list-group" style={{maxHeight: '50vh', overflowY: 'auto'}}>
                             {isLoading ? (
                                 <div className="text-center py-4">
                                     <i className="fa fa-spinner fa-spin"></i>
@@ -310,8 +355,8 @@ const AdminChatInbox = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="card-body p-0 d-flex flex-column" style={{minHeight: '50vh'}}>
-                                <div className="p-3 bg-light flex-grow-1" style={{overflow: 'auto'}}>
+                            <div className="card-body p-0 d-flex flex-column" style={{height: '50vh'}}>
+                                <div ref={messagesContainerRef} className="p-3 bg-light flex-grow-1" style={{overflowY: 'auto'}}>
                                     {!selectedConversation ? (
                                         <div className="text-center text-muted py-5">
                                             <i className="fa fa-comments fa-3x mb-3"></i>
