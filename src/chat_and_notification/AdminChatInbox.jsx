@@ -36,14 +36,14 @@ const AdminChatInbox = () => {
                             return {
                                 ...c,
                                 unread_count: unread,
-                                last_message_preview: { content: data.message.content },
+                                last_message_preview: {content: data.message.content},
                                 last_message_at: data.message.created_at
                             };
                         }
                         return c;
                     }));
                 }
-            } catch(e) { console.error('Admin WS handle new_message error', e); }
+            } catch(e) {console.error('Admin WS handle new_message error', e);}
         };
 
         const handleAdminConversationUpdated = (data) => {
@@ -54,7 +54,7 @@ const AdminChatInbox = () => {
                         ...data.conversation
                     } : c));
                 }
-            } catch(e) { console.error('Admin WS handle conversation_updated error', e); }
+            } catch(e) {console.error('Admin WS handle conversation_updated error', e);}
         };
 
         // Defer admin WS connection until after conversations load (see below)
@@ -91,7 +91,7 @@ const AdminChatInbox = () => {
                             return {
                                 ...c,
                                 unread_count: unread,
-                                last_message_preview: { content: payload.message.content },
+                                last_message_preview: {content: payload.message.content},
                                 last_message_at: payload.message.created_at
                             };
                         }
@@ -125,7 +125,7 @@ const AdminChatInbox = () => {
             // Always mark customer messages as read when conversation is selected
             console.log('Marking messages as read for conversation:', conversation.id);
             // Ensure WS is connecting now so we can wait for 'connected'
-            try { websocketService.disconnect(); } catch(_) {}
+            try {websocketService.disconnect();} catch(_) {}
             websocketService.connect(conversation.id);
             const msgIds = (messagesData || []).filter(m => !m.is_sender_staff).map(m => Number(m.id)).filter(Number.isFinite);
             if(msgIds.length) {
@@ -160,6 +160,9 @@ const AdminChatInbox = () => {
                 )
             );
             console.log('Unread count updated to 0 for conversation:', conversation.id);
+
+            // Notify parent component to update inbox counter
+            window.dispatchEvent(new CustomEvent('admin_inbox_updated'));
         } catch(error) {
             console.error('Error loading messages:', error);
         }
@@ -215,7 +218,7 @@ const AdminChatInbox = () => {
                 // wait for connection or timeout
                 await new Promise(resolve => {
                     const timeout = setTimeout(resolve, 800);
-                    const onConnected = () => { clearTimeout(timeout); websocketService.off('connected', onConnected); resolve(); };
+                    const onConnected = () => {clearTimeout(timeout); websocketService.off('connected', onConnected); resolve();};
                     websocketService.on('connected', onConnected);
                 });
             }

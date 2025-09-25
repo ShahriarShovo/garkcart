@@ -63,6 +63,17 @@ export const AuthProvider = ({children}) => {
                 // schedule token refresh ~5 minutes before expiry
                 scheduleTokenRefresh();
 
+                // If admin/staff is logging in, notify chat panels
+                if(userInfo.is_staff || userInfo.is_superuser || userInfo.is_admin) {
+                    console.log('AuthContext: Admin/Staff login detected, notifying chat panels');
+                    console.log('AuthContext: Dispatching admin_status_changed event with online status');
+                    window.dispatchEvent(new CustomEvent('admin_status_changed', {
+                        detail: {status: 'online'}
+                    }));
+                } else {
+                    console.log('AuthContext: User is not admin/staff, no status change notification needed');
+                }
+
                 return {success: true, message: data.message, user: userInfo};
             } else {
                 const errorData = await response.json();
@@ -76,6 +87,12 @@ export const AuthProvider = ({children}) => {
     };
 
     const logout = () => {
+        console.log('AuthContext: Logout called');
+
+        // Check if user is admin/staff before logout
+        const currentUser = user;
+        const isAdmin = currentUser && (currentUser.is_staff || currentUser.is_superuser || currentUser.is_admin);
+
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem('user');
@@ -84,6 +101,17 @@ export const AuthProvider = ({children}) => {
         if(refreshTimer) {
             clearTimeout(refreshTimer);
             setRefreshTimer(null);
+        }
+
+        // If admin/staff is logging out, notify chat panels
+        if(isAdmin) {
+            console.log('AuthContext: Admin/Staff logout detected, notifying chat panels');
+            console.log('AuthContext: Dispatching admin_status_changed event with offline status');
+            window.dispatchEvent(new CustomEvent('admin_status_changed', {
+                detail: {status: 'offline'}
+            }));
+        } else {
+            console.log('AuthContext: User is not admin/staff, no status change notification needed');
         }
     };
 

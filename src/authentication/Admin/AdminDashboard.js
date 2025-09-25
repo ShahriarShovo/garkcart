@@ -3,6 +3,7 @@ import Pagination from '../../components/Pagination';
 import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 import AdminChatInbox from '../../chat_and_notification/AdminChatInbox';
+import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService';
 
 const AdminDashboard = () => {
     const {user, logout, isAuthenticated, isAuthReady} = useAuth();
@@ -92,6 +93,29 @@ const AdminDashboard = () => {
     const [newMessage, setNewMessage] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+    const [wsConnected, setWsConnected] = useState(false);
+
+    // Fetch inbox unread count
+    const fetchInboxUnreadCount = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/chat/inbox/unread_count/', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                setInboxUnreadCount(data.unread_count || 0);
+                console.log('AdminDashboard: Inbox unread count:', data.unread_count);
+            }
+        } catch(error) {
+            console.error('Error fetching inbox unread count:', error);
+        }
+    };
 
     // Dashboard statistics states
     const [statistics, setStatistics] = useState({
@@ -102,6 +126,77 @@ const AdminDashboard = () => {
         recent_orders: 0,
         active_users: 0
     });
+
+    // Fetch inbox unread count on component mount
+    useEffect(() => {
+        if(isAuthenticated && user) {
+            fetchInboxUnreadCount();
+        }
+    }, [isAuthenticated, user]);
+
+    // Listen for inbox updates
+    useEffect(() => {
+        const handleInboxUpdate = () => {
+            console.log('AdminDashboard: Inbox updated, refreshing counter');
+            fetchInboxUnreadCount();
+        };
+
+        window.addEventListener('admin_inbox_updated', handleInboxUpdate);
+
+        return () => {
+            window.removeEventListener('admin_inbox_updated', handleInboxUpdate);
+        };
+    }, []);
+
+    // Connect to admin WebSocket for real-time updates
+    useEffect(() => {
+        if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
+            console.log('AdminDashboard: Connecting to admin WebSocket for real-time updates');
+
+            if(!adminWebsocketService.isConnected()) {
+                adminWebsocketService.connect();
+            }
+
+            const handleNewMessage = (payload) => {
+                console.log('AdminDashboard: New message received via WebSocket:', payload);
+                if(payload?.type === 'new_message' && payload.message?.conversation_id) {
+                    console.log('AdminDashboard: Updating inbox counter due to new message');
+                    fetchInboxUnreadCount();
+                }
+            };
+
+            const handleConversationUpdated = (payload) => {
+                console.log('AdminDashboard: Conversation updated via WebSocket:', payload);
+                if(payload?.type === 'conversation_updated' && payload.conversation?.id) {
+                    console.log('AdminDashboard: Updating inbox counter due to conversation update');
+                    fetchInboxUnreadCount();
+                }
+            };
+
+            // Add connection status listener
+            const handleConnected = () => {
+                console.log('AdminDashboard: Admin WebSocket connected');
+                setWsConnected(true);
+            };
+
+            const handleDisconnected = () => {
+                console.log('AdminDashboard: Admin WebSocket disconnected');
+                setWsConnected(false);
+            };
+
+            adminWebsocketService.on('new_message', handleNewMessage);
+            adminWebsocketService.on('conversation_updated', handleConversationUpdated);
+            adminWebsocketService.on('connected', handleConnected);
+            adminWebsocketService.on('disconnected', handleDisconnected);
+
+            return () => {
+                adminWebsocketService.off('new_message', handleNewMessage);
+                adminWebsocketService.off('conversation_updated', handleConversationUpdated);
+                adminWebsocketService.off('connected', handleConnected);
+                adminWebsocketService.off('disconnected', handleDisconnected);
+            };
+        }
+    }, [isAuthenticated, user]);
     const [statisticsLoading, setStatisticsLoading] = useState(false);
 
     // Sales analytics states
@@ -1511,7 +1606,7 @@ const AdminDashboard = () => {
                                 Manage Subcategories
                             </a>
                             <a
-                                className={`list-group-item ${activeTab === 'inbox' ? 'active' : ''}`}
+                                className={`list-group-item d-flex justify-content-between align-items-center ${activeTab === 'inbox' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -1519,8 +1614,19 @@ const AdminDashboard = () => {
                                     setActiveTab('inbox');
                                 }}
                             >
-                                <i className="fa fa-inbox mr-2"></i>
-                                Inbox
+                                <div className="d-flex align-items-center">
+                                    <i className="fa fa-inbox mr-2"></i>
+                                    Inbox
+                                </div>
+                                <div className="d-flex align-items-center">
+                                    {inboxUnreadCount > 0 && (
+                                        <span className="badge bg-danger mr-2">{inboxUnreadCount}</span>
+                                    )}
+                                    <small className={`${wsConnected ? 'text-success' : 'text-warning'}`}>
+                                        <i className={`fa fa-circle ${wsConnected ? 'text-success' : 'text-warning'}`}></i>
+                                        {wsConnected ? 'Live' : 'Offline'}
+                                    </small>
+                                </div>
                             </a>
                             <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}

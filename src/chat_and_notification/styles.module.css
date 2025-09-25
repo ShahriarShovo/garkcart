@@ -37,14 +37,14 @@
 }
 
 .messagesArea {
-    max-height: 55vh;
+    max-height: 30vh;
     overflow: auto;
     background: #f8f9fa;
 }
 
 @media (max-width: 576px) {
     .messagesArea {
-        max-height: 70vh;
+        max-height: 40vh;
     }
 }
 

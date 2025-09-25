@@ -15,7 +15,7 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
         try {
             // Close any previous
             if(wsRef.current) {
-                try { wsRef.current.close(1000, 'Cleanup'); } catch(_) {}
+                try {wsRef.current.close(1000, 'Cleanup');} catch(_) {}
             }
             const token = localStorage.getItem('token');
             const url = `ws://127.0.0.1:8000/ws/chat/${conversationId}/?token=${token}`;
@@ -54,18 +54,26 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
     };
 
     React.useEffect(() => {
+        // Set initial grace period to prevent stale data on first load
+        lastClearedAtRef.current = Date.now();
+
         // Fetch unread count when component mounts
         fetchUnreadCount();
 
+        // Also fetch after short delays to catch any messages that arrived while user was logged out
+        setTimeout(fetchUnreadCount, 1000);  // First check after 1 second
+        setTimeout(fetchUnreadCount, 3000); // Second check after 3 seconds
+        setTimeout(fetchUnreadCount, 5000); // Third check after 5 seconds
+
         // Set up interval to check for new messages
-        const interval = setInterval(fetchUnreadCount, 30000); // Check every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 3000); // Check every 3 seconds for very fast updates
 
         // Listen for global events from ChatPanel
         const onCleared = () => {
             setActualUnreadCount(0);
             // Re-fetch from server to ensure backend state agrees
             lastClearedAtRef.current = Date.now();
-            setTimeout(fetchUnreadCount, 200);
+            setTimeout(fetchUnreadCount, 500);
         };
         const onOpened = () => {
             isPanelOpenRef.current = true;
@@ -77,7 +85,7 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
             isPanelOpenRef.current = false;
             // After closing, re-fetch to avoid stale badge from races
             lastClearedAtRef.current = Date.now();
-            setTimeout(fetchUnreadCount, 800);
+            setTimeout(fetchUnreadCount, 1000);
         };
         window.addEventListener('chat_unread_cleared', onCleared);
         window.addEventListener('chat_panel_opened', onOpened);
@@ -112,23 +120,28 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
             window.removeEventListener('chat_panel_closed', onClosed);
             window.removeEventListener('chat_conversation_changed', onConvChanged);
             if(wsRef.current) {
-                try { wsRef.current.close(1000, 'Unmount'); } catch(_) {}
+                try {wsRef.current.close(1000, 'Unmount');} catch(_) {}
             }
         };
     }, []);
 
     const fetchUnreadCount = async () => {
         try {
-            // If WS is connected, trust WS-driven updates and suppress polling-based overrides
-            if(wsConnectedRef.current) return;
+            console.log('FloatingChatButton: Fetching unread count from API...');
             const response = await chatApi.getUnreadCount();
+            console.log('FloatingChatButton: API response:', response);
+
             // Suppress stale server values immediately after we cleared reads
             const now = Date.now();
-            if(now - lastClearedAtRef.current < 3000) {
+            console.log('FloatingChatButton: Time check - now:', now, 'lastCleared:', lastClearedAtRef.current, 'diff:', now - lastClearedAtRef.current);
+            if(now - lastClearedAtRef.current < 5000) {
                 // Within grace period, trust local cleared state
+                console.log('FloatingChatButton: Within grace period, setting count to 0');
                 setActualUnreadCount(0);
                 return;
             }
+
+            console.log('FloatingChatButton: Setting unread count to:', response.unread_count || 0);
             setActualUnreadCount(response.unread_count || 0);
         } catch(error) {
             console.error('Error fetching unread count:', error);

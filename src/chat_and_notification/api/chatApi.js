@@ -201,6 +201,27 @@ class ChatApiService {
             throw error;
         }
     }
+
+    /**
+     * Check admin/staff online status
+     */
+    async getAdminStatus() {
+        try {
+            const response = await fetch(`${this.baseURL}/inbox/admin_status/`, {
+                method: 'GET',
+                headers: this.getAuthHeaders()
+            });
+
+            if(!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch(error) {
+            console.error('Error fetching admin status:', error);
+            throw error;
+        }
+    }
 }
 
 export default new ChatApiService();
