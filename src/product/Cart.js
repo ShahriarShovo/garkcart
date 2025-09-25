@@ -1,13 +1,17 @@
 import React, {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
+import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import DiscountCalculator from '../chat_and_notification/DiscountCalculator';
 
 const Cart = () => {
     const {items, removeFromCart, increaseQuantity, decreaseQuantity, clearCart, getTotalPrice, loading} = useCart();
+    const {user} = useAuth();
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
     const [confirmDialog, setConfirmDialog] = useState({show: false, title: '', message: '', onConfirm: null, itemId: null});
+    const [appliedDiscount, setAppliedDiscount] = useState(null);
 
     const handleIncreaseQuantity = async (itemId) => {
         const result = await increaseQuantity(itemId);
@@ -110,8 +114,11 @@ const Cart = () => {
         return '/images/items/1.jpg'; // Default fallback image
     };
 
-    const tax = getTotalPrice() * 0.1; // 10% tax
-    const total = getTotalPrice() + tax;
+    const subtotal = getTotalPrice();
+    const discountAmount = appliedDiscount ? appliedDiscount.discount_amount : 0;
+    const discountedSubtotal = subtotal - discountAmount;
+    const tax = discountedSubtotal * 0.1; // 10% tax
+    const total = discountedSubtotal + tax;
 
     if(items.length === 0) {
         return (
@@ -228,9 +235,23 @@ const Cart = () => {
                             <div className="card">
                                 <div className="card-body">
                                     <dl className="dlist-align">
-                                        <dt>Total price:</dt>
-                                        <dd className="text-right">${getTotalPrice().toFixed(2)}</dd>
+                                        <dt>Subtotal:</dt>
+                                        <dd className="text-right">${subtotal.toFixed(2)}</dd>
                                     </dl>
+
+                                    {/* Discount Section */}
+                                    {appliedDiscount && (
+                                        <dl className="dlist-align">
+                                            <dt className="text-success">
+                                                <i className="fa fa-tag mr-1"></i>
+                                                Discount ({appliedDiscount.discount.name}):
+                                            </dt>
+                                            <dd className="text-right text-success">
+                                                -${discountAmount.toFixed(2)}
+                                            </dd>
+                                        </dl>
+                                    )}
+
                                     <dl className="dlist-align">
                                         <dt>Tax:</dt>
                                         <dd className="text-right">${tax.toFixed(2)}</dd>
@@ -241,6 +262,14 @@ const Cart = () => {
                                             <strong>${total.toFixed(2)}</strong>
                                         </dd>
                                     </dl>
+
+                                    {/* Discount Calculator */}
+                                    <DiscountCalculator
+                                        cartItems={items}
+                                        userId={user?.id}
+                                        onDiscountCalculated={setAppliedDiscount}
+                                    />
+
                                     <hr />
                                     <p className="text-center mb-3">
                                         <img src="/images/misc/payments.png" height="26" alt="Payment methods" />

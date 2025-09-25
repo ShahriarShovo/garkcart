@@ -4,6 +4,8 @@ import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 import AdminChatInbox from '../../chat_and_notification/AdminChatInbox';
 import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService';
+import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
+import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
 
 const AdminDashboard = () => {
     const {user, logout, isAuthenticated, isAuthReady} = useAuth();
@@ -1542,6 +1544,7 @@ const AdminDashboard = () => {
                                     setActiveTab('dashboard');
                                 }}
                             >
+                                <i className="fa fa-tachometer mr-2"></i>
                                 Dashboard
                             </a>
                             <a
@@ -1552,6 +1555,7 @@ const AdminDashboard = () => {
                                     setActiveTab('products');
                                 }}
                             >
+                                <i className="fa fa-box mr-2"></i>
                                 Manage Products
                             </a>
                             <a
@@ -1562,6 +1566,7 @@ const AdminDashboard = () => {
                                     setActiveTab('orders');
                                 }}
                             >
+                                <i className="fa fa-shopping-cart mr-2"></i>
                                 Manage Orders
                             </a>
                             <a
@@ -1583,6 +1588,7 @@ const AdminDashboard = () => {
                                     setActiveTab('users');
                                 }}
                             >
+                                <i className="fa fa-users mr-2"></i>
                                 Manage Users
                             </a>
                             <a
@@ -1593,6 +1599,7 @@ const AdminDashboard = () => {
                                     setActiveTab('categories');
                                 }}
                             >
+                                <i className="fa fa-tags mr-2"></i>
                                 Manage Categories
                             </a>
                             <a
@@ -1603,6 +1610,7 @@ const AdminDashboard = () => {
                                     setActiveTab('subcategories');
                                 }}
                             >
+                                <i className="fa fa-list mr-2"></i>
                                 Manage Subcategories
                             </a>
                             <a
@@ -1629,6 +1637,28 @@ const AdminDashboard = () => {
                                 </div>
                             </a>
                             <a
+                                className={`list-group-item ${activeTab === 'notifications' ? 'active' : ''}`}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveTab('notifications');
+                                }}
+                            >
+                                <i className="fa fa-bell mr-2"></i>
+                                Notifications
+                            </a>
+                            <a
+                                className={`list-group-item ${activeTab === 'discounts' ? 'active' : ''}`}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveTab('discounts');
+                                }}
+                            >
+                                <i className="fa fa-tag mr-2"></i>
+                                Discounts
+                            </a>
+                            <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
@@ -1636,6 +1666,7 @@ const AdminDashboard = () => {
                                     setActiveTab('reports');
                                 }}
                             >
+                                <i className="fa fa-chart-bar mr-2"></i>
                                 Reports
                             </a>
                             <a
@@ -1646,6 +1677,7 @@ const AdminDashboard = () => {
                                     setActiveTab('settings');
                                 }}
                             >
+                                <i className="fa fa-cog mr-2"></i>
                                 Settings
                             </a>
                         </ul>
@@ -2784,6 +2816,14 @@ const AdminDashboard = () => {
 
                         {activeTab === 'inbox' && (
                             <AdminChatInbox />
+                        )}
+
+                        {activeTab === 'notifications' && (
+                            <AdminNotificationManager />
+                        )}
+
+                        {activeTab === 'discounts' && (
+                            <AdminDiscountManager />
                         )}
 
                         {activeTab === 'reports' && (

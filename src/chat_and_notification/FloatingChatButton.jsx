@@ -127,21 +127,16 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
 
     const fetchUnreadCount = async () => {
         try {
-            console.log('FloatingChatButton: Fetching unread count from API...');
             const response = await chatApi.getUnreadCount();
-            console.log('FloatingChatButton: API response:', response);
 
             // Suppress stale server values immediately after we cleared reads
             const now = Date.now();
-            console.log('FloatingChatButton: Time check - now:', now, 'lastCleared:', lastClearedAtRef.current, 'diff:', now - lastClearedAtRef.current);
             if(now - lastClearedAtRef.current < 5000) {
                 // Within grace period, trust local cleared state
-                console.log('FloatingChatButton: Within grace period, setting count to 0');
                 setActualUnreadCount(0);
                 return;
             }
 
-            console.log('FloatingChatButton: Setting unread count to:', response.unread_count || 0);
             setActualUnreadCount(response.unread_count || 0);
         } catch(error) {
             console.error('Error fetching unread count:', error);

@@ -19,6 +19,7 @@ import Dashboard from './authentication/User/Dashboard';
 import AdminDashboard from './authentication/Admin/AdminDashboard';
 import {useAuth} from './context/AuthContext';
 import {FloatingChatWidget} from './chat_and_notification';
+import NotificationModal from './chat_and_notification/NotificationModal';
 
 function AppShell() {
     const {isAuthenticated, user} = useAuth();
@@ -45,6 +46,7 @@ function AppShell() {
             </main>
             <Footer />
             {isAuthenticated && !user?.is_admin && !user?.is_staff && <FloatingChatWidget />}
+            <NotificationModal />
         </div>
     );
 }
