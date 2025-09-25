@@ -2,11 +2,64 @@ import React, {useState, useEffect} from 'react';
 import Pagination from '../../components/Pagination';
 import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
+import AdminChatInbox from '../../chat_and_notification/AdminChatInbox';
 
 const AdminDashboard = () => {
-    const {user, logout, isAuthenticated} = useAuth();
+    const {user, logout, isAuthenticated, isAuthReady} = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard'); // Default active tab
+
+    // Check authentication on component mount
+    useEffect(() => {
+        console.log('AdminDashboard: Component mounted');
+        console.log('AdminDashboard: Current auth state - isAuthenticated:', isAuthenticated, 'user:', user);
+        console.log('AdminDashboard: localStorage check:', {
+            user: localStorage.getItem('user'),
+            token: localStorage.getItem('token'),
+            refresh: localStorage.getItem('refresh_token')
+        });
+
+        // Wait until AuthContext finishes initializing from localStorage
+        if(!isAuthReady) {
+            console.log('AdminDashboard: Waiting for auth initialization (isAuthReady=false)');
+            return;
+        }
+
+        const checkAuth = () => {
+            console.log('AdminDashboard: Checking authentication...');
+            console.log('AdminDashboard: Current auth state - isAuthenticated:', isAuthenticated, 'user:', user);
+
+            if(!isAuthenticated || !user) {
+                console.log('AdminDashboard: User not authenticated, redirecting to login');
+                navigate('/signin');
+                return;
+            }
+
+            // Check if user is admin/staff
+            const isAdmin = user.is_superuser || user.is_staff || user.is_admin;
+            console.log('AdminDashboard: Admin check - isAdmin:', isAdmin, 'user flags:', {
+                is_superuser: user.is_superuser,
+                is_staff: user.is_staff,
+                is_admin: user.is_admin
+            });
+
+            if(!isAdmin) {
+                console.log('AdminDashboard: User is not admin, redirecting to home');
+                navigate('/');
+                return;
+            }
+
+            console.log('AdminDashboard: Admin authentication successful');
+        };
+
+        // Check immediately
+        checkAuth();
+
+        // Also check after delay to handle state updates
+        const timeoutId = setTimeout(checkAuth, 1000);
+
+        return () => clearTimeout(timeoutId);
+    }, [isAuthenticated, user, navigate, isAuthReady]);
 
     // Order management states
     const [orders, setOrders] = useState([]);
@@ -31,6 +84,14 @@ const AdminDashboard = () => {
     const [userOrdersLoading, setUserOrdersLoading] = useState(false);
     const [showUserStatusModal, setShowUserStatusModal] = useState(false);
     const [userStatusAction, setUserStatusAction] = useState(null);
+
+    // Chat system states
+    const [conversations, setConversations] = useState([]);
+    const [selectedConversation, setSelectedConversation] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [chatLoading, setChatLoading] = useState(false);
+    const [isConnected, setIsConnected] = useState(false);
 
     // Dashboard statistics states
     const [statistics, setStatistics] = useState({
@@ -1225,41 +1286,21 @@ const AdminDashboard = () => {
         }
     };
 
-    // Authentication check and auto redirect
+    // Mark auth checking done once context is ready (no clearing or redirect here)
     useEffect(() => {
-        setAuthChecking(true);
-
-        // Check localStorage for token as well
-        const token = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
-
-        if(!isAuthenticated || !user || !token || !savedUser) {
-            // Clear any stale data
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/');
-            return;
-        }
-
-        // Check if user is not admin, redirect to user dashboard
-        const parsed = typeof user === 'string' ? JSON.parse(user) : user;
-        const isAdmin = !!(parsed?.is_superuser || parsed?.is_staff || parsed?.is_admin || parsed?.user_type === 'admin');
-        if(!isAdmin) {
-            navigate('/dashboard');
-            return;
-        }
-
+        if(!isAuthReady) return;
         setAuthChecking(false);
-    }, [isAuthenticated, user, navigate]);
+    }, [isAuthReady]);
 
     // Additional check for localStorage changes (logout from other tabs)
     useEffect(() => {
+        if(!isAuthReady) return;
         const handleStorageChange = () => {
             const token = localStorage.getItem('token');
             const savedUser = localStorage.getItem('user');
 
             if(!token || !savedUser) {
-                navigate('/');
+                navigate('/signin');
             }
         };
 
@@ -1271,7 +1312,7 @@ const AdminDashboard = () => {
             const savedUser = localStorage.getItem('user');
 
             if(!token || !savedUser) {
-                navigate('/');
+                navigate('/signin');
             }
         }, 1000); // Check every second
 
@@ -1279,7 +1320,7 @@ const AdminDashboard = () => {
             window.removeEventListener('storage', handleStorageChange);
             clearInterval(interval);
         };
-    }, [navigate]);
+    }, [navigate, isAuthReady]);
 
     // Fetch data when tabs are active
     useEffect(() => {
@@ -1343,6 +1384,12 @@ const AdminDashboard = () => {
             loadProfile();
         } else if(activeTab === 'archived-products') {
             fetchArchivedProducts();
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        if(activeTab === 'inbox') {
+            console.debug('[AdminDashboard] activeTab switched to inbox');
         }
     }, [activeTab]);
 
@@ -1468,6 +1515,7 @@ const AdminDashboard = () => {
                                 href="#"
                                 onClick={(e) => {
                                     e.preventDefault();
+                                    console.debug('[AdminDashboard] Inbox sidebar item clicked');
                                     setActiveTab('inbox');
                                 }}
                             >
@@ -1713,6 +1761,7 @@ const AdminDashboard = () => {
                                 </div>
                             </article>
                         )}
+
 
                         {activeTab === 'products' && (
                             <article className="card" style={{overflow: 'hidden'}}>
@@ -2628,116 +2677,7 @@ const AdminDashboard = () => {
                         )}
 
                         {activeTab === 'inbox' && (
-                            <article className="card">
-                                <header className="card-header">
-                                    <strong className="d-inline-block mr-3">Chat Inbox</strong>
-                                    <div className="float-right">
-                                        <div className="input-group" style={{maxWidth: '300px'}}>
-                                            <input className="form-control form-control-sm" placeholder="Search conversations..." />
-                                            <div className="input-group-append">
-                                                <button className="btn btn-sm btn-outline-secondary" type="button">
-                                                    <i className="fa fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </header>
-                                <div className="card-body">
-                                    <div className="row">
-                                        <div className="col-md-4">
-                                            <div className="list-group">
-                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
-                                                    <div className="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>A</div>
-                                                    <div className="flex-grow-1">
-                                                        <div className="d-flex justify-content-between">
-                                                            <strong>Alice Johnson</strong>
-                                                            <small className="text-muted">2m</small>
-                                                        </div>
-                                                        <div className="text-muted small">Hi, I need help with my order...</div>
-                                                    </div>
-                                                    <span className="badge bg-danger">2</span>
-                                                </a>
-                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
-                                                    <div className="avatar rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>B</div>
-                                                    <div className="flex-grow-1">
-                                                        <div className="d-flex justify-content-between">
-                                                            <strong>Bob Smith</strong>
-                                                            <small className="text-muted">10m</small>
-                                                        </div>
-                                                        <div className="text-muted small">Thank you for your help!</div>
-                                                    </div>
-                                                </a>
-                                                <a href="#" className="list-group-item list-group-item-action d-flex gap-2 align-items-start">
-                                                    <div className="avatar rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style={{width: '36px', height: '36px'}}>C</div>
-                                                    <div className="flex-grow-1">
-                                                        <div className="d-flex justify-content-between">
-                                                            <strong>Carol Davis</strong>
-                                                            <small className="text-muted">1h</small>
-                                                        </div>
-                                                        <div className="text-muted small">Can you check my refund status?</div>
-                                                    </div>
-                                                    <span className="badge bg-warning">1</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-8">
-                                            <div className="card shadow-sm">
-                                                <div className="card-header d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <div className="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style={{width: '32px', height: '32px'}}>A</div>
-                                                        <div>
-                                                            <div className="fw-semibold">Alice Johnson</div>
-                                                            <div className="small text-muted">Open · Unassigned</div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="d-flex gap-2 align-items-center">
-                                                        <div className="dropdown">
-                                                            <button className="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">Assign</button>
-                                                            <ul className="dropdown-menu">
-                                                                <li><a className="dropdown-item" href="#">Me</a></li>
-                                                                <li><a className="dropdown-item" href="#">Staff 1</a></li>
-                                                            </ul>
-                                                        </div>
-                                                        <div className="form-check form-switch">
-                                                            <input className="form-check-input" type="checkbox" id="statusSwitch" checked />
-                                                            <label className="form-check-label" htmlFor="statusSwitch">Open</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="card-body p-0 d-flex flex-column" style={{minHeight: '50vh'}}>
-                                                    <div className="p-3 bg-light flex-grow-1" style={{overflow: 'auto'}}>
-                                                        <div className="text-center text-muted small mb-2">Today</div>
-                                                        <div className="d-flex justify-content-start mb-2">
-                                                            <div className="bg-white border rounded-3 px-3 py-2">
-                                                                Hello! I need help with my order.
-                                                                <div className="small text-muted mt-1">10:15</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="d-flex justify-content-end mb-2">
-                                                            <div className="bg-primary text-white rounded-3 px-3 py-2">
-                                                                Sure, could you share your order ID?
-                                                                <div className="small text-light mt-1">10:16</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="d-flex justify-content-start mb-2">
-                                                            <div className="bg-white border rounded-3 px-3 py-2">
-                                                                My order number is #12345
-                                                                <div className="small text-muted mt-1">10:17</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="border-top p-2">
-                                                        <div className="input-group">
-                                                            <textarea className="form-control" rows="1" placeholder="Type a reply..."></textarea>
-                                                            <button className="btn btn-primary" type="button"><i className="fa fa-paper-plane"></i></button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </article>
+                            <AdminChatInbox />
                         )}
 
                         {activeTab === 'reports' && (
