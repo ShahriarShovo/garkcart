@@ -1,10 +1,40 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom';
+import logoApi from '../settings/api/logoApi';
 
 const OrderComplete = () => {
     const location = useLocation();
     const orderData = location.state?.order;
     const orderNumber = location.state?.orderNumber;
+    const [logoUrl, setLogoUrl] = useState('/images/logo.png'); // Default logo
+
+    // Fetch active logo
+    const fetchActiveLogo = async () => {
+        try {
+            console.log('Invoice: Fetching active logo...');
+            const logoData = await logoApi.getActiveLogo();
+            console.log('Invoice: Logo data received:', logoData);
+            if(logoData && logoData.logo_url) {
+                // Convert relative URL to full URL if needed
+                let finalUrl = logoData.logo_url;
+                if(finalUrl.startsWith('/media/')) {
+                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    console.log('Invoice: Converted to full URL:', finalUrl);
+                }
+                console.log('Invoice: Setting logo URL:', finalUrl);
+                setLogoUrl(finalUrl);
+            } else {
+                console.log('Invoice: No logo URL found, keeping default');
+            }
+        } catch(error) {
+            console.error('Invoice: Error fetching active logo:', error);
+            // Keep default logo if API fails
+        }
+    };
+
+    useEffect(() => {
+        fetchActiveLogo();
+    }, []);
     return (
         <div>
             <div className="container" style={{marginTop: '50px'}}>
@@ -26,7 +56,7 @@ const OrderComplete = () => {
                                 <div className="row">
                                     <div className="col-lg-6">
                                         <div className="invoice-logo">
-                                            <img src="/images/logo.png" alt="Invoice logo" style={{maxHeight: '40px'}} />
+                                            <img src={logoUrl} alt="Invoice logo" style={{maxHeight: '40px'}} />
                                         </div>
                                     </div>
                                     <div className="col-lg-6">

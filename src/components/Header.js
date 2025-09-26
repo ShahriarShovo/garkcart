@@ -2,10 +2,12 @@ import React, {useState, useEffect} from 'react';
 import {Link, useNavigate, useLocation} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
+import logoApi from '../settings/api/logoApi';
 
 const Header = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [profile, setProfile] = useState(null);
+    const [logoUrl, setLogoUrl] = useState('/images/logo.png'); // Default logo
     const {getTotalItems} = useCart();
     const {user, isAuthenticated, logout} = useAuth();
     const navigate = useNavigate();
@@ -47,6 +49,30 @@ const Header = () => {
         }
     };
 
+    // Fetch active logo
+    const fetchActiveLogo = async () => {
+        try {
+            console.log('Header: Fetching active logo...');
+            const logoData = await logoApi.getActiveLogo();
+            console.log('Header: Logo data received:', logoData);
+            if(logoData && logoData.logo_url) {
+                // Convert relative URL to full URL if needed
+                let finalUrl = logoData.logo_url;
+                if(finalUrl.startsWith('/media/')) {
+                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    console.log('Header: Converted to full URL:', finalUrl);
+                }
+                console.log('Header: Setting logo URL:', finalUrl);
+                setLogoUrl(finalUrl);
+            } else {
+                console.log('Header: No logo URL found, keeping default');
+            }
+        } catch(error) {
+            console.error('Header: Error fetching active logo:', error);
+            // Keep default logo if API fails
+        }
+    };
+
     // Fetch profile when user is authenticated
     useEffect(() => {
         if(isAuthenticated && user) {
@@ -56,6 +82,11 @@ const Header = () => {
         }
     }, [isAuthenticated, user]);
 
+    // Fetch active logo on component mount
+    useEffect(() => {
+        fetchActiveLogo();
+    }, []);
+
     return (
         <header className="section-header">
             <section className="header-main border-bottom">
@@ -63,7 +94,13 @@ const Header = () => {
                     <div className="row align-items-center">
                         <div className="col-lg-2 col-md-3 col-6">
                             <Link to="/" className="brand-wrap">
-                                <img className="logo" src="/images/logo.png" alt="GreatKart" />
+                                <img
+                                    className="logo"
+                                    src={logoUrl}
+                                    alt="GreatKart"
+                                    onLoad={() => console.log('Header: Image loaded successfully:', logoUrl)}
+                                    onError={(e) => console.error('Header: Image failed to load:', logoUrl, e)}
+                                />
                             </Link>
                         </div>
                         {!isAdminView && (

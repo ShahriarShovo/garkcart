@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 import PriceRangeFilter from '../components/PriceRangeFilter';
+import BannerSlider from '../components/BannerSlider';
 
 const Home = () => {
     const [categoriesExpanded, setCategoriesExpanded] = useState(true);
@@ -207,15 +208,9 @@ const Home = () => {
     return (
         <>
             <div>
-                {/* Banner Section from index.html - Only show on first page */}
+                {/* Dynamic Banner Slider - Only show on first page */}
                 {!isPaginationPage && (
-                    <section className="section-intro padding-y-sm">
-                        <div className="container">
-                            <div className="intro-banner-wrap">
-                                <img src="/images/banners/1.jpg" className="img-fluid rounded" alt="Banner" />
-                            </div>
-                        </div>
-                    </section>
+                    <BannerSlider />
                 )}
 
                 <section className="section-content padding-y">

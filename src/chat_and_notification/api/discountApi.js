@@ -54,19 +54,50 @@ class DiscountApi {
     // Create a new discount (admin only)
     async createDiscount(discountData) {
         try {
-            const response = await fetch(`${this.baseURL}/discounts/`, {
-                method: 'POST',
-                headers: this.getAuthHeaders(),
-                body: JSON.stringify(discountData)
-            });
+            console.log('DiscountApi: Creating discount with data:', discountData);
+            console.log('DiscountApi: API URL:', `${this.baseURL}/discounts/`);
 
-            if(!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Check if it's FormData (file upload) or regular JSON
+            const isFormData = discountData instanceof FormData;
+            console.log('DiscountApi: Is FormData:', isFormData);
+
+            let headers = {};
+            let body;
+
+            if(isFormData) {
+                // For FormData, don't set Content-Type header (browser will set it with boundary)
+                headers = {
+                    'Authorization': this.getAuthHeaders().Authorization
+                };
+                body = discountData;
+            } else {
+                // For JSON data
+                headers = this.getAuthHeaders();
+                body = JSON.stringify(discountData);
             }
 
-            return await response.json();
+            console.log('DiscountApi: Headers:', headers);
+
+            const response = await fetch(`${this.baseURL}/discounts/`, {
+                method: 'POST',
+                headers: headers,
+                body: body
+            });
+
+            console.log('DiscountApi: Response status:', response.status);
+            console.log('DiscountApi: Response ok:', response.ok);
+
+            if(!response.ok) {
+                const errorText = await response.text();
+                console.error('DiscountApi: Error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('DiscountApi: Success response:', result);
+            return result;
         } catch(error) {
-            console.error('Error creating discount:', error);
+            console.error('DiscountApi: Error creating discount:', error);
             throw error;
         }
     }

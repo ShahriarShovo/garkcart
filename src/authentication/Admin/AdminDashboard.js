@@ -4,8 +4,11 @@ import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 import AdminChatInbox from '../../chat_and_notification/AdminChatInbox';
 import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService';
-import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
-import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
+import AdminLogoManager from '../../settings/AdminLogoManager';
+import AdminBannerManager from '../../settings/AdminBannerManager';
+// TODO: Future implementation - Notification and Discount management
+// import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
+// import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
 
 const AdminDashboard = () => {
     const {user, logout, isAuthenticated, isAuthReady} = useAuth();
@@ -1636,6 +1639,7 @@ const AdminDashboard = () => {
                                     </small>
                                 </div>
                             </a>
+                            {/* TODO: Future implementation - Notification and Discount management
                             <a
                                 className={`list-group-item ${activeTab === 'notifications' ? 'active' : ''}`}
                                 href="#"
@@ -1658,6 +1662,7 @@ const AdminDashboard = () => {
                                 <i className="fa fa-tag mr-2"></i>
                                 Discounts
                             </a>
+                            */}
                             <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
                                 href="#"
@@ -2818,6 +2823,7 @@ const AdminDashboard = () => {
                             <AdminChatInbox />
                         )}
 
+                        {/* TODO: Future implementation - Notification and Discount management
                         {activeTab === 'notifications' && (
                             <AdminNotificationManager />
                         )}
@@ -2825,6 +2831,7 @@ const AdminDashboard = () => {
                         {activeTab === 'discounts' && (
                             <AdminDiscountManager />
                         )}
+                        */}
 
                         {activeTab === 'reports' && (
                             <article className="card">
@@ -2954,6 +2961,7 @@ const AdminDashboard = () => {
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'profile' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('profile')}}>Admin Profile</a>
                                         </li>
+                                        {/* TODO: Future implementation - Settings tabs
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'general' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('general')}}>General</a>
                                         </li>
@@ -2968,6 +2976,13 @@ const AdminDashboard = () => {
                                         </li>
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'integrations' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('integrations')}}>Integrations</a>
+                                        </li>
+                                        */}
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'logo' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('logo')}}>Logo Management</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'banner' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('banner')}}>Banner Management</a>
                                         </li>
                                     </ul>
 
@@ -3099,6 +3114,7 @@ const AdminDashboard = () => {
                                                 </div>
                                             </form>
                                         ))}
+                                    {/* TODO: Future implementation - General Settings
                                     {settingsTab === 'general' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Saved (placeholder)'})}}>
                                             <div className="row">
@@ -3124,6 +3140,8 @@ const AdminDashboard = () => {
                                             <button className="btn btn-primary">Save</button>
                                         </form>
                                     )}
+                                    */}
+                                    {/* TODO: Future implementation - Staff Users
                                     {settingsTab === 'staff' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Staff created (placeholder)'})}}>
                                             <div className="row">
@@ -3155,6 +3173,8 @@ const AdminDashboard = () => {
                                             <button className="btn btn-primary">Create Staff (UI only)</button>
                                         </form>
                                     )}
+                                    */}
+                                    {/* TODO: Future implementation - Roles & Permissions
                                     {settingsTab === 'roles' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Role updated (placeholder)'})}}>
                                             <div className="row">
@@ -3178,6 +3198,8 @@ const AdminDashboard = () => {
                                             <button className="btn btn-primary">Assign Role (UI only)</button>
                                         </form>
                                     )}
+                                    */}
+                                    {/* TODO: Future implementation - Features
                                     {settingsTab === 'features' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Features saved (placeholder)'})}}>
                                             <div className="row">
@@ -3203,6 +3225,8 @@ const AdminDashboard = () => {
                                             <button className="btn btn-primary">Save (UI only)</button>
                                         </form>
                                     )}
+                                    */}
+                                    {/* TODO: Future implementation - Integrations
                                     {settingsTab === 'integrations' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Integrations saved (placeholder)'})}}>
                                             <div className="row">
@@ -3235,6 +3259,13 @@ const AdminDashboard = () => {
                                             </div>
                                             <button className="btn btn-primary">Save (UI only)</button>
                                         </form>
+                                    )}
+                                    */}
+                                    {settingsTab === 'logo' && (
+                                        <AdminLogoManager />
+                                    )}
+                                    {settingsTab === 'banner' && (
+                                        <AdminBannerManager />
                                     )}
                                 </div>
                             </article>

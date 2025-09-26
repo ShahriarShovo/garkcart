@@ -1,6 +1,37 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
+import logoApi from '../settings/api/logoApi';
 
 const Footer = () => {
+    const [logoUrl, setLogoUrl] = useState('/images/logo.png'); // Default logo
+
+    // Fetch active logo
+    const fetchActiveLogo = async () => {
+        try {
+            console.log('Footer: Fetching active logo...');
+            const logoData = await logoApi.getActiveLogo();
+            console.log('Footer: Logo data received:', logoData);
+            if(logoData && logoData.logo_url) {
+                // Convert relative URL to full URL if needed
+                let finalUrl = logoData.logo_url;
+                if(finalUrl.startsWith('/media/')) {
+                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    console.log('Footer: Converted to full URL:', finalUrl);
+                }
+                console.log('Footer: Setting logo URL:', finalUrl);
+                setLogoUrl(finalUrl);
+            } else {
+                console.log('Footer: No logo URL found, keeping default');
+            }
+        } catch(error) {
+            console.error('Footer: Error fetching active logo:', error);
+            // Keep default logo if API fails
+        }
+    };
+
+    useEffect(() => {
+        fetchActiveLogo();
+    }, []);
+
     return (
         <footer className="section-footer border-top bg-light" style={{marginTop: 'auto'}}>
             <div className="container">
@@ -8,7 +39,14 @@ const Footer = () => {
                     <div className="row">
                         <aside className="col-md-6">
                             <article className="mr-3">
-                                <img src="/images/logo.png" className="logo-footer" alt="GreatKart" style={{height: '30px'}} />
+                                <img
+                                    src={logoUrl}
+                                    className="logo-footer"
+                                    alt="GreatKart"
+                                    style={{height: '30px'}}
+                                    onLoad={() => console.log('Footer: Image loaded successfully:', logoUrl)}
+                                    onError={(e) => console.error('Footer: Image failed to load:', logoUrl, e)}
+                                />
                                 <p className="mt-2 mb-2" style={{fontSize: '14px'}}>One of the biggest online shopping platform in Bangladesh.</p>
                                 <div>
                                     <a className="btn btn-icon btn-light" title="Facebook" target="_blank" href="#"><i className="fab fa-facebook-f"></i></a>

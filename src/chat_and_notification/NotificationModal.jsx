@@ -26,6 +26,16 @@ const NotificationModal = () => {
             console.log('NotificationModal: Discount notifications:', discountNotifications);
             console.log('NotificationModal: Discount notifications length:', discountNotifications.length);
 
+            // Debug: Check each discount notification
+            discountNotifications.forEach((notif, index) => {
+                console.log(`NotificationModal: Discount ${index}:`, {
+                    id: notif.id,
+                    title: notif.title,
+                    display_type: notif.display_type,
+                    show_in_notifications: notif.show_in_notifications
+                });
+            });
+
             // Combine both types of notifications
             const allNotifications = [...activeNotifications, ...discountNotifications];
             console.log('NotificationModal: All notifications:', allNotifications);
@@ -92,6 +102,10 @@ const NotificationModal = () => {
     if(!currentNotification) {
         return null;
     }
+
+    // Check if this is a discount notification
+    const isDiscountNotification = currentNotification.discount_id;
+    const displayType = currentNotification.display_type || 'modal';
 
     return (
         <div
@@ -162,6 +176,22 @@ const NotificationModal = () => {
 
                 {/* Notification content */}
                 <div style={{paddingRight: '40px'}}>
+                    {/* Discount Image */}
+                    {isDiscountNotification && displayType === 'image' && currentNotification.discount_image && (
+                        <div style={{marginBottom: '20px', textAlign: 'center'}}>
+                            <img
+                                src={currentNotification.discount_image}
+                                alt={currentNotification.image_alt_text || currentNotification.title}
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '300px',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                                }}
+                            />
+                        </div>
+                    )}
+
                     {/* Notification type badge */}
                     {currentNotification.notification_type && (
                         <div style={{marginBottom: '15px'}}>
@@ -189,7 +219,10 @@ const NotificationModal = () => {
                         fontWeight: 'bold',
                         lineHeight: '1.3'
                     }}>
-                        {currentNotification.title}
+                        {isDiscountNotification && currentNotification.modal_title ?
+                            currentNotification.modal_title :
+                            currentNotification.title
+                        }
                     </h3>
 
                     {/* Message */}
@@ -229,7 +262,10 @@ const NotificationModal = () => {
                                 e.target.style.backgroundColor = '#007bff';
                             }}
                         >
-                            Got it!
+                            {isDiscountNotification && currentNotification.modal_button_text ?
+                                currentNotification.modal_button_text :
+                                'Got it!'
+                            }
                         </button>
                     </div>
 

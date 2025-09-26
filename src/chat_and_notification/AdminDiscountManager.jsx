@@ -24,7 +24,12 @@ const AdminDiscountManager = () => {
         usage_limit: '',
         show_in_notifications: true,
         notification_message: '',
-        status: 'active'
+        status: 'active',
+        display_type: 'modal',
+        discount_image: null,
+        image_alt_text: '',
+        modal_title: '',
+        modal_button_text: 'Shop Now'
     });
 
     useEffect(() => {
@@ -57,21 +62,57 @@ const AdminDiscountManager = () => {
     const handleCreateDiscount = async (e) => {
         e.preventDefault();
         try {
-            const discountData = {
-                ...formData,
-                maximum_discount_amount: formData.maximum_discount_amount || null,
-                usage_limit: formData.usage_limit || null,
-                valid_until: formData.valid_until || null
-            };
+            console.log('AdminDiscountManager: Creating discount with data:', formData);
 
-            await discountApi.createDiscount(discountData);
+            // Prepare form data for file upload
+            const formDataToSend = new FormData();
+
+            // Add all text fields
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('discount_type', formData.discount_type);
+            formDataToSend.append('percentage', formData.percentage);
+            formDataToSend.append('minimum_amount', formData.minimum_amount);
+            formDataToSend.append('minimum_quantity', formData.minimum_quantity);
+            formDataToSend.append('valid_from', formData.valid_from);
+            formDataToSend.append('status', formData.status);
+            formDataToSend.append('show_in_notifications', formData.show_in_notifications);
+            formDataToSend.append('display_type', formData.display_type);
+            formDataToSend.append('image_alt_text', formData.image_alt_text);
+            formDataToSend.append('modal_title', formData.modal_title);
+            formDataToSend.append('modal_button_text', formData.modal_button_text);
+            formDataToSend.append('notification_message', formData.notification_message);
+
+            // Add optional fields
+            if(formData.maximum_discount_amount) {
+                formDataToSend.append('maximum_discount_amount', formData.maximum_discount_amount);
+            }
+            if(formData.usage_limit) {
+                formDataToSend.append('usage_limit', formData.usage_limit);
+            }
+            if(formData.valid_until) {
+                formDataToSend.append('valid_until', formData.valid_until);
+            }
+
+            // Add image file if exists
+            if(formData.discount_image && formData.discount_image instanceof File) {
+                formDataToSend.append('discount_image', formData.discount_image);
+                console.log('AdminDiscountManager: Added image file:', formData.discount_image.name);
+            } else {
+                console.log('AdminDiscountManager: No image file to upload');
+            }
+
+            console.log('AdminDiscountManager: Prepared form data for upload');
+
+            const result = await discountApi.createDiscount(formDataToSend);
+            console.log('AdminDiscountManager: Discount created successfully:', result);
+
             setShowCreateForm(false);
             resetForm();
             loadDiscounts();
             loadStats();
         } catch(error) {
-            console.error('Error creating discount:', error);
-            setError('Failed to create discount');
+            console.error('AdminDiscountManager: Error creating discount:', error);
+            setError('Failed to create discount: ' + (error.message || 'Unknown error'));
         }
     };
 
@@ -113,7 +154,12 @@ const AdminDiscountManager = () => {
             usage_limit: '',
             show_in_notifications: true,
             notification_message: '',
-            status: 'active'
+            status: 'active',
+            display_type: 'modal',
+            discount_image: null,
+            image_alt_text: '',
+            modal_title: '',
+            modal_button_text: 'Shop Now'
         });
     };
 
@@ -272,8 +318,8 @@ const AdminDiscountManager = () => {
                                                     min="0"
                                                     max="100"
                                                     step="0.01"
-                                                    value={formData.percentage}
-                                                    onChange={(e) => setFormData({...formData, percentage: parseFloat(e.target.value)})}
+                                                    value={formData.percentage || ''}
+                                                    onChange={(e) => setFormData({...formData, percentage: parseFloat(e.target.value) || 0})}
                                                     required
                                                 />
                                             </div>
@@ -286,8 +332,8 @@ const AdminDiscountManager = () => {
                                                     className="form-control"
                                                     min="0"
                                                     step="0.01"
-                                                    value={formData.minimum_amount}
-                                                    onChange={(e) => setFormData({...formData, minimum_amount: parseFloat(e.target.value)})}
+                                                    value={formData.minimum_amount || ''}
+                                                    onChange={(e) => setFormData({...formData, minimum_amount: parseFloat(e.target.value) || 0})}
                                                 />
                                             </div>
                                         </div>
@@ -365,6 +411,71 @@ const AdminDiscountManager = () => {
                                             placeholder="Custom message to show in notifications"
                                         />
                                     </div>
+
+                                    {/* Display Options */}
+                                    <div className="form-group">
+                                        <label>Display Type</label>
+                                        <select
+                                            className="form-control"
+                                            value={formData.display_type}
+                                            onChange={(e) => setFormData({...formData, display_type: e.target.value})}
+                                        >
+                                            <option value="modal">Modal Popup</option>
+                                            <option value="image">Image Banner</option>
+                                            <option value="both">Both Modal and Image</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Image Settings */}
+                                    {(formData.display_type === 'image' || formData.display_type === 'both') && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>Discount Image</label>
+                                                <input
+                                                    type="file"
+                                                    className="form-control"
+                                                    accept="image/*"
+                                                    onChange={(e) => setFormData({...formData, discount_image: e.target.files[0]})}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Image Alt Text</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.image_alt_text}
+                                                    onChange={(e) => setFormData({...formData, image_alt_text: e.target.value})}
+                                                    placeholder="Alt text for the image"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Modal Settings */}
+                                    {(formData.display_type === 'modal' || formData.display_type === 'both') && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>Modal Title</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.modal_title}
+                                                    onChange={(e) => setFormData({...formData, modal_title: e.target.value})}
+                                                    placeholder="Modal title (optional)"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Modal Button Text</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.modal_button_text}
+                                                    onChange={(e) => setFormData({...formData, modal_button_text: e.target.value})}
+                                                    placeholder="Button text in modal"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
 
                                     <div className="form-check">
                                         <input
