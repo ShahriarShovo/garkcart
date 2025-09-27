@@ -719,6 +719,7 @@ const Dashboard = () => {
                                     setActiveTab('dashboard');
                                 }}
                             >
+                                <i className="fa fa-tachometer mr-2"></i>
                                 Dashboard
                             </a>
                             <a
@@ -729,6 +730,7 @@ const Dashboard = () => {
                                     setActiveTab('order-history');
                                 }}
                             >
+                                <i className="fa fa-history mr-2"></i>
                                 My order history
                             </a>
                             <a
@@ -739,6 +741,7 @@ const Dashboard = () => {
                                     setActiveTab('received-orders');
                                 }}
                             >
+                                <i className="fa fa-check-circle mr-2"></i>
                                 Received orders
                             </a>
                             {/* <a
@@ -759,6 +762,7 @@ const Dashboard = () => {
                                     setActiveTab('returns');
                                 }}
                             >
+                                <i className="fa fa-undo mr-2"></i>
                                 Return and refunds
                             </a>
                             <a
@@ -769,6 +773,7 @@ const Dashboard = () => {
                                     setActiveTab('settings');
                                 }}
                             >
+                                <i className="fa fa-cog mr-2"></i>
                                 Settings
                             </a>
                             {/* <a

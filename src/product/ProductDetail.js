@@ -25,6 +25,13 @@ const ProductDetail = () => {
         title: '',
         comment: ''
     });
+    const [purchaseEligibility, setPurchaseEligibility] = useState({
+        has_purchased: false,
+        has_reviewed: false,
+        can_review: false,
+        purchase_info: null,
+        review_info: null
+    });
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
 
     // Fetch product details
@@ -73,6 +80,34 @@ const ProductDetail = () => {
         }
     };
 
+    // Check purchase eligibility
+    const checkPurchaseEligibility = async () => {
+        if(!user) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/products/purchase-verification/${slug}/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if(response.ok) {
+                const data = await response.json();
+                setPurchaseEligibility({
+                    has_purchased: data.has_purchased || false,
+                    has_reviewed: data.has_reviewed || false,
+                    can_review: data.can_review || false,
+                    purchase_info: data.purchase_info,
+                    review_info: data.review_info
+                });
+            }
+        } catch(error) {
+            console.error('Error checking purchase eligibility:', error);
+        }
+    };
+
     // Submit review
     const submitReview = async (e) => {
         e.preventDefault();
@@ -111,8 +146,16 @@ const ProductDetail = () => {
         if(slug || id) {
             fetchProduct();
             fetchReviews();
+            checkPurchaseEligibility();
         }
     }, [slug, id]);
+
+    // Check purchase eligibility when user changes
+    useEffect(() => {
+        if(user && (slug || id)) {
+            checkPurchaseEligibility();
+        }
+    }, [user, slug, id]);
 
     if(loading) {
         return (
@@ -500,19 +543,44 @@ const ProductDetail = () => {
                             <header className="section-heading">
                                 <h3>Customer Reviews ({ratingData.total_reviews})</h3>
                                 {user && (
-                                    <button
-                                        className="btn btn-primary btn-sm float-right"
-                                        onClick={() => setShowReviewForm(!showReviewForm)}
-                                    >
-                                        {showReviewForm ? 'Cancel' : 'Write Review'}
-                                    </button>
+                                    <div className="float-right">
+                                        {purchaseEligibility.can_review ? (
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() => setShowReviewForm(!showReviewForm)}
+                                            >
+                                                {showReviewForm ? 'Cancel' : 'Write Review'}
+                                            </button>
+                                        ) : purchaseEligibility.has_reviewed ? (
+                                            <span className="btn btn-success btn-sm disabled">
+                                                <i className="fa fa-check"></i> Review Submitted
+                                            </span>
+                                        ) : (
+                                            <span className="btn btn-secondary btn-sm disabled">
+                                                <i className="fa fa-shopping-cart"></i> Purchase Required
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
                             </header>
 
                             {/* Review Form */}
-                            {showReviewForm && user && (
+                            {showReviewForm && user && purchaseEligibility.can_review && (
                                 <article className="box mb-3">
                                     <h5>Write a Review</h5>
+                                    
+                                    {/* Purchase Verification Info */}
+                                    {purchaseEligibility.purchase_info && (
+                                        <div className="alert alert-info">
+                                            <i className="fa fa-check-circle"></i>
+                                            <strong> Verified Purchase: </strong>
+                                            You purchased this product on {new Date(purchaseEligibility.purchase_info.purchase_date).toLocaleDateString()}
+                                            {purchaseEligibility.purchase_info.variant_title && (
+                                                <span> - {purchaseEligibility.purchase_info.variant_title}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                    
                                     <form onSubmit={submitReview}>
                                         <div className="form-group">
                                             <label>Rating</label>
@@ -553,6 +621,18 @@ const ProductDetail = () => {
                                 </article>
                             )}
 
+                            {/* Purchase Required Message */}
+                            {user && !purchaseEligibility.has_purchased && (
+                                <div className="alert alert-warning">
+                                    <i className="fa fa-shopping-cart"></i>
+                                    <strong> Purchase Required: </strong>
+                                    You need to purchase this product before you can write a review. 
+                                    <a href="#product-details" className="ml-2">
+                                        <i className="fa fa-arrow-up"></i> Add to Cart
+                                    </a>
+                                </div>
+                            )}
+
                             {/* Reviews List */}
                             {reviewsLoading ? (
                                 <div className="text-center py-3">
@@ -563,11 +643,6 @@ const ProductDetail = () => {
                                 reviews.map(review => (
                                     <article key={review.id} className="box mb-3">
                                         <div className="icontext w-100">
-                                            <img
-                                                src="/images/avatars/avatar1.jpg"
-                                                className="img-xs icon rounded-circle"
-                                                alt="User"
-                                            />
                                             <div className="text">
                                                 <span className="date text-muted float-md-right">
                                                     {new Date(review.created_at).toLocaleDateString()}
