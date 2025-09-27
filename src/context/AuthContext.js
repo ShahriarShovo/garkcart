@@ -216,9 +216,7 @@ export const AuthProvider = ({children}) => {
                     console.log('AuthContext: Setting user state from localStorage...');
                     setUser(userData);
                     setIsAuthenticated(true);
-                    console.log('AuthContext: User state set, scheduling token refresh...');
                     scheduleTokenRefresh();
-                    console.log('AuthContext: Authentication restored from localStorage');
                 } catch(error) {
                     console.error('AuthContext: Error parsing saved user data:', error);
                     console.log('AuthContext: Clearing invalid localStorage data...');
@@ -234,7 +232,6 @@ export const AuthProvider = ({children}) => {
             // Mark auth as initialized after the first check
             if(!isAuthReady) {
                 setIsAuthReady(true);
-                console.log('AuthContext: Initialization complete (isAuthReady = true)');
             }
         };
 

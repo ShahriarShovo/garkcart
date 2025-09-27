@@ -484,9 +484,15 @@ const Home = () => {
                                                             <div className="price-wrap mt-2">
                                                                 <div className="d-flex align-items-center justify-content-between">
                                                                     <div>
-                                                                        <span className="price">৳{product.price}</span>
-                                                                        {product.old_price && (
-                                                                            <del className="price-old">৳{product.old_price}</del>
+                                                                        <span className="price">৳{product.display_price || product.price}</span>
+                                                                        {(product.display_old_price || product.old_price) && (
+                                                                            <del className="price-old">৳{product.display_old_price || product.old_price}</del>
+                                                                        )}
+                                                                        {/* Show out of stock for variable products */}
+                                                                        {product.product_type === 'variable' && !product.default_variant_in_stock && (
+                                                                            <div className="text-danger mt-1">
+                                                                                <small>Out of Stock</small>
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -499,20 +505,49 @@ const Home = () => {
                                                             className="btn btn-block btn-primary"
                                                             onClick={async () => {
                                                                 // Determine variant ID - use default variant if product has variants
+                                                                console.log('🏠 Home - Add to Cart clicked for product:', product);
+                                                                console.log('🏠 Home - Product ID:', product.id);
+                                                                console.log('🏠 Home - Product Type:', product.product_type);
+                                                                console.log('🏠 Home - Has Variants:', product.has_variants);
+                                                                console.log('🏠 Home - Default Variant ID:', product.default_variant_id);
+                                                                console.log('🏠 Home - Default Variant:', product.default_variant);
+                                                                console.log('🏠 Home - Variants:', product.variants);
+                                                                
                                                                 let variantId = null;
-                                                                if(product.has_variants && product.default_variant_id) {
-                                                                    variantId = product.default_variant_id;
+                                                                let selectedVariant = null;
+                                                                
+                                                                // For variable products, try to get default variant or first variant
+                                                                if(product.product_type === 'variable') {
+                                                                    if(product.default_variant) {
+                                                                        selectedVariant = product.default_variant;
+                                                                        variantId = product.default_variant.id;
+                                                                        console.log('🏠 Home - Using default variant:', product.default_variant);
+                                                                    } else if(product.variants && product.variants.length > 0) {
+                                                                        selectedVariant = product.variants[0];
+                                                                        variantId = product.variants[0].id;
+                                                                        console.log('🏠 Home - Using first variant as default:', product.variants[0]);
+                                                                    } else {
+                                                                        console.log('🏠 Home - No variants available for variable product');
+                                                                    }
+                                                                } else {
+                                                                    console.log('🏠 Home - Simple product, no variant needed');
                                                                 }
 
-                                                                const result = await addToCart({
+                                                                const productToAdd = {
                                                                     id: product.id,
                                                                     name: product.title,
-                                                                    price: product.price,
+                                                                    price: selectedVariant ? selectedVariant.price : (product.display_price || product.price),
                                                                     image: product.image_url || product.primary_image?.image_url || "/images/items/1.jpg",
                                                                     category: product.category_name || "General",
                                                                     quantity: 1,
-                                                                    selectedVariant: variantId ? {id: variantId} : null
-                                                                });
+                                                                    selectedVariant: selectedVariant
+                                                                };
+                                                                
+                                                                console.log('🏠 Home - Product to Add:', productToAdd);
+                                                                console.log('🏠 Home - Calling addToCart API...');
+                                                                
+                                                                const result = await addToCart(productToAdd);
+                                                                console.log('🏠 Home - API Result:', result);
 
                                                                 if(result && result.success) {
                                                                     setToast({

@@ -52,20 +52,15 @@ const Header = () => {
     // Fetch active logo
     const fetchActiveLogo = async () => {
         try {
-            console.log('Header: Fetching active logo...');
             const logoData = await logoApi.getActiveLogo();
-            console.log('Header: Logo data received:', logoData);
             if(logoData && logoData.logo_url) {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
                     finalUrl = `http://localhost:8000${finalUrl}`;
-                    console.log('Header: Converted to full URL:', finalUrl);
                 }
-                console.log('Header: Setting logo URL:', finalUrl);
                 setLogoUrl(finalUrl);
             } else {
-                console.log('Header: No logo URL found, keeping default');
             }
         } catch(error) {
             console.error('Header: Error fetching active logo:', error);
@@ -98,7 +93,7 @@ const Header = () => {
                                     className="logo"
                                     src={logoUrl}
                                     alt="GreatKart"
-                                    onLoad={() => console.log('Header: Image loaded successfully:', logoUrl)}
+                                    onLoad={() => {}}
                                     onError={(e) => console.error('Header: Image failed to load:', logoUrl, e)}
                                 />
                             </Link>

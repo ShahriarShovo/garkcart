@@ -35,7 +35,6 @@ class LogoApi {
                 },
             });
 
-            console.log('LogoApi: Response status:', response.status);
             if(!response.ok) {
                 const errorText = await response.text();
                 console.error('LogoApi: Error response:', errorText);
@@ -43,12 +42,10 @@ class LogoApi {
             }
 
             const data = await response.json();
-            console.log('LogoApi: Active logo data:', data);
 
             // Convert relative URL to full URL
             if(data.logo_url && data.logo_url.startsWith('/media/')) {
                 data.logo_url = `http://localhost:8000${data.logo_url}`;
-                console.log('LogoApi: Converted to full URL:', data.logo_url);
             }
 
             return data;

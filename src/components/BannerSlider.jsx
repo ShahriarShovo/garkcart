@@ -12,8 +12,6 @@ const BannerSlider = () => {
         try {
             setLoading(true);
             const activeBanners = await bannerApi.getActiveBanners();
-            console.log('BannerSlider: Loaded banners:', activeBanners);
-            console.log('BannerSlider: Number of banners:', activeBanners.length);
             setBanners(activeBanners);
 
             // If no banners, use default banner

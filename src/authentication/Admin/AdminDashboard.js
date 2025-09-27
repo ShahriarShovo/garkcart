@@ -1068,6 +1068,7 @@ const AdminDashboard = () => {
 
     const handleProductSubmit = async (e) => {
         e.preventDefault();
+        
         try {
             // Validate variants for variable products
             if(productForm.product_type === 'variable') {
@@ -1093,6 +1094,14 @@ const AdminDashboard = () => {
                     formData.append(key, productForm[key]);
                 }
             });
+
+            // Add product options
+            if(productOptions.length > 0) {
+                productOptions.forEach((option, index) => {
+                    formData.append(`options[${index}][name]`, option.name);
+                    formData.append(`options[${index}][position]`, option.position);
+                });
+            }
 
             // Add images
             productImages.forEach((image, index) => {
@@ -1125,6 +1134,7 @@ const AdminDashboard = () => {
 
             const method = editingProduct ? 'PUT' : 'POST';
 
+            
             const response = await fetch(url, {
                 method: method,
                 headers: {
@@ -1235,7 +1245,9 @@ const AdminDashboard = () => {
             name: '',
             position: productOptions.length + 1
         };
-        setProductOptions([...productOptions, newOption]);
+        
+        const updatedOptions = [...productOptions, newOption];
+        setProductOptions(updatedOptions);
     };
 
     const removeOption = (index) => {
@@ -2824,13 +2836,14 @@ const AdminDashboard = () => {
                         )}
 
                         {/* TODO: Future implementation - Notification and Discount management
-                        {activeTab === 'notifications' && (
+                        {/* TODO: Notification and discount features will be developed in future */}
+                        {/* {activeTab === 'notifications' && (
                             <AdminNotificationManager />
                         )}
 
                         {activeTab === 'discounts' && (
                             <AdminDiscountManager />
-                        )}
+                        )} */}
                         */}
 
                         {activeTab === 'reports' && (
@@ -3951,73 +3964,6 @@ const AdminDashboard = () => {
                                             </div>
                                         )}
 
-                                        {/* Product Images */}
-                                        <div className="row mb-4 mt-4">
-                                            <div className="col-12">
-                                                <h6 className="text-primary border-bottom pb-2">Product Images</h6>
-                                            </div>
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label htmlFor="productImages">Upload Images</label>
-                                            <input
-                                                type="file"
-                                                className="form-control-file"
-                                                id="productImages"
-                                                accept="image/*"
-                                                multiple
-                                                onChange={(e) => {
-                                                    const files = Array.from(e.target.files);
-                                                    if(files.length > 10) {
-                                                        setToast({
-                                                            show: true,
-                                                            message: 'Maximum 10 images allowed',
-                                                            type: 'error'
-                                                        });
-                                                        return;
-                                                    }
-                                                    setProductImages(files);
-                                                }}
-                                            />
-                                            <small className="form-text text-muted">
-                                                Upload multiple images for this product (Max 10 images)
-                                            </small>
-
-                                            {/* Image Preview */}
-                                            {productImages.length > 0 && (
-                                                <div className="mt-3">
-                                                    <h6>Selected Images ({productImages.length}):</h6>
-                                                    <div className="row">
-                                                        {productImages.map((image, index) => (
-                                                            <div key={index} className="col-md-3 mb-2">
-                                                                <div className="position-relative">
-                                                                    <img
-                                                                        src={URL.createObjectURL(image)}
-                                                                        alt={`Preview ${index + 1}`}
-                                                                        className="img-thumbnail"
-                                                                        style={{width: '100%', height: '100px', objectFit: 'cover'}}
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-sm btn-danger position-absolute"
-                                                                        style={{top: '5px', right: '5px'}}
-                                                                        onClick={() => {
-                                                                            const newImages = productImages.filter((_, i) => i !== index);
-                                                                            setProductImages(newImages);
-                                                                        }}
-                                                                    >
-                                                                        <i className="fa fa-times"></i>
-                                                                    </button>
-                                                                </div>
-                                                                <small className="text-muted d-block text-center">
-                                                                    {image.name}
-                                                                </small>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
 
                                         {/* Variants for Variable Products */}
                                         {productForm.product_type === 'variable' && (
@@ -4256,6 +4202,76 @@ const AdminDashboard = () => {
                                                     </label>
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        {/* Upload Images */}
+                                        <div className="row mb-4 mt-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary border-bottom pb-2">Upload Images</h6>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label htmlFor="productImages">Upload Images</label>
+                                            <input
+                                                type="file"
+                                                className="form-control-file"
+                                                id="productImages"
+                                                accept="image/*"
+                                                multiple
+            onChange={(e) => {
+                const files = Array.from(e.target.files);
+                
+                if(files.length > 10) {
+                    setToast({
+                        show: true,
+                        message: 'Maximum 10 images allowed',
+                        type: 'error'
+                    });
+                    return;
+                }
+                
+                setProductImages(files);
+            }}
+                                            />
+                                            <small className="form-text text-muted">
+                                                Upload multiple images for this product (Max 10 images)
+                                            </small>
+
+                                            {/* Image Preview */}
+                                            {productImages.length > 0 && (
+                                                <div className="mt-3">
+                                                    <h6>Selected Images ({productImages.length}):</h6>
+                                                    <div className="row">
+                                                        {productImages.map((image, index) => (
+                                                            <div key={index} className="col-md-3 mb-2">
+                                                                <div className="position-relative">
+                                                                    <img
+                                                                        src={URL.createObjectURL(image)}
+                                                                        alt={`Preview ${index + 1}`}
+                                                                        className="img-thumbnail"
+                                                                        style={{width: '100%', height: '100px', objectFit: 'cover'}}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-danger position-absolute"
+                                                                        style={{top: '5px', right: '5px'}}
+                                                                        onClick={() => {
+                                                                            const newImages = productImages.filter((_, i) => i !== index);
+                                                                            setProductImages(newImages);
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-times"></i>
+                                                                    </button>
+                                                                </div>
+                                                                <small className="text-muted d-block text-center">
+                                                                    {image.name}
+                                                                </small>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="modal-footer">

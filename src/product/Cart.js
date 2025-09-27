@@ -4,7 +4,8 @@ import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
-import DiscountCalculator from '../chat_and_notification/DiscountCalculator';
+// TODO: Discount features will be developed in future
+// import DiscountCalculator from '../chat_and_notification/DiscountCalculator';
 
 const Cart = () => {
     const {items, removeFromCart, increaseQuantity, decreaseQuantity, clearCart, getTotalPrice, loading} = useCart();
@@ -263,12 +264,12 @@ const Cart = () => {
                                         </dd>
                                     </dl>
 
-                                    {/* Discount Calculator */}
-                                    <DiscountCalculator
+                                    {/* TODO: Discount features will be developed in future */}
+                                    {/* <DiscountCalculator
                                         cartItems={items}
                                         userId={user?.id}
                                         onDiscountCalculated={setAppliedDiscount}
-                                    />
+                                    /> */}
 
                                     <hr />
                                     <p className="text-center mb-3">

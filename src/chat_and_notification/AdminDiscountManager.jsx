@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import discountApi from './api/discountApi';
+// TODO: Discount features will be developed in future
+// import discountApi from './api/discountApi';
 
 const AdminDiscountManager = () => {
     const [discounts, setDiscounts] = useState([]);
@@ -40,7 +41,8 @@ const AdminDiscountManager = () => {
     const loadDiscounts = async () => {
         try {
             setLoading(true);
-            const data = await discountApi.getDiscounts();
+            // TODO: Discount features will be developed in future
+            // const data = await discountApi.getDiscounts();
             setDiscounts(data);
         } catch(error) {
             console.error('AdminDiscountManager: Error loading discounts:', error);
@@ -52,7 +54,8 @@ const AdminDiscountManager = () => {
 
     const loadStats = async () => {
         try {
-            const data = await discountApi.getDiscountStats();
+            // TODO: Discount features will be developed in future
+            // const data = await discountApi.getDiscountStats();
             setStats(data);
         } catch(error) {
             console.error('Error loading stats:', error);
@@ -103,7 +106,8 @@ const AdminDiscountManager = () => {
 
             console.log('AdminDiscountManager: Prepared form data for upload');
 
-            const result = await discountApi.createDiscount(formDataToSend);
+            // TODO: Discount features will be developed in future
+            // const result = await discountApi.createDiscount(formDataToSend);
             console.log('AdminDiscountManager: Discount created successfully:', result);
 
             setShowCreateForm(false);
@@ -118,7 +122,8 @@ const AdminDiscountManager = () => {
 
     const handleToggleStatus = async (id) => {
         try {
-            await discountApi.toggleDiscountStatus(id);
+            // TODO: Discount features will be developed in future
+            // await discountApi.toggleDiscountStatus(id);
             loadDiscounts();
             loadStats();
         } catch(error) {
@@ -129,7 +134,8 @@ const AdminDiscountManager = () => {
     const handleDelete = async (id) => {
         if(window.confirm('Are you sure you want to delete this discount?')) {
             try {
-                await discountApi.deleteDiscount(id);
+                // TODO: Discount features will be developed in future
+                // await discountApi.deleteDiscount(id);
                 loadDiscounts();
                 loadStats();
             } catch(error) {

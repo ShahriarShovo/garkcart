@@ -5,7 +5,7 @@ import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
 
 const ProductDetail = () => {
-    const {slug} = useParams();
+    const {slug, id} = useParams();
     const {addToCart} = useCart();
     const {user} = useAuth();
     const [selectedColor, setSelectedColor] = useState('Gold');
@@ -32,7 +32,9 @@ const ProductDetail = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`http://localhost:8000/api/products/product-detail/${slug}/`);
+            // Use slug if available, otherwise use id
+            const identifier = slug || id;
+            const response = await fetch(`http://localhost:8000/api/products/product-detail/${identifier}/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -106,9 +108,11 @@ const ProductDetail = () => {
 
     // Fetch data when component mounts
     useEffect(() => {
-        fetchProduct();
-        fetchReviews();
-    }, [slug]);
+        if(slug || id) {
+            fetchProduct();
+            fetchReviews();
+        }
+    }, [slug, id]);
 
     if(loading) {
         return (
@@ -132,7 +136,17 @@ const ProductDetail = () => {
 
     const handleAddToCart = async () => {
         // Check stock availability
-        const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
+        let availableStock;
+        if (selectedVariant) {
+            availableStock = selectedVariant.quantity;
+        } else if (product.product_type === 'variable' && product.default_variant) {
+            availableStock = product.default_variant.quantity;
+        } else if (product.product_type === 'variable' && product.variants && product.variants.length > 0) {
+            availableStock = product.variants[0].quantity;
+        } else {
+            availableStock = product?.quantity || 0;
+        }
+        
         if(quantity > availableStock) {
             setToast({
                 show: true,
@@ -142,16 +156,27 @@ const ProductDetail = () => {
             return;
         }
 
+        // For variable products without selected variant, use default variant or first variant
+        let finalSelectedVariant = selectedVariant;
+        
+        if (product.product_type === 'variable' && !selectedVariant) {
+            if (product.default_variant) {
+                finalSelectedVariant = product.default_variant;
+            } else if (product.variants && product.variants.length > 0) {
+                finalSelectedVariant = product.variants[0];
+            }
+        }
+
         const productToAdd = {
             ...product,
             selectedColor,
             selectedSize,
             quantity,
-            selectedVariant,
-            // Use variant price if variant is selected, otherwise use product price
-            price: selectedVariant ? selectedVariant.price : product.price,
+            selectedVariant: finalSelectedVariant,
+            // Use variant price if variant is selected, otherwise use display price for variable products
+            price: finalSelectedVariant ? finalSelectedVariant.price : (product.display_price || product.price),
             // Use variant SKU if variant is selected
-            sku: selectedVariant ? selectedVariant.sku : product.sku
+            sku: finalSelectedVariant ? finalSelectedVariant.sku : product.sku
         };
 
         const result = await addToCart(productToAdd);
@@ -174,8 +199,9 @@ const ProductDetail = () => {
     // Function to render star rating
     const renderStars = (rating) => {
         const stars = [];
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 !== 0;
+        const numRating = parseFloat(rating) || 0;
+        const fullStars = Math.floor(numRating);
+        const hasHalfStar = numRating % 1 !== 0;
 
         for(let i = 0; i < fullStars; i++) {
             stars.push(<i key={i} className="fa fa-star text-warning"></i>);
@@ -246,20 +272,79 @@ const ProductDetail = () => {
 
                                     <div className="mb-3">
                                         <var className="price h4">
-                                            ৳{selectedVariant ? selectedVariant.price : product.price}
+                                            ৳{(() => {
+                                                const unitPrice = selectedVariant ? selectedVariant.price : (product.display_price || product.price);
+                                                const numUnitPrice = parseFloat(unitPrice) || 0;
+                                                const numQuantity = parseInt(quantity) || 1;
+                                                const totalPrice = numUnitPrice * numQuantity;
+                                                return totalPrice.toFixed(2);
+                                            })()}
                                         </var>
-                                        {(selectedVariant ? selectedVariant.old_price : product.old_price) && (
+                                        {(() => {
+                                            const unitOldPrice = selectedVariant ? selectedVariant.old_price : (product.display_old_price || product.old_price);
+                                            return unitOldPrice && unitOldPrice > 0;
+                                        })() && (
                                             <del className="price-old ml-2">
-                                                ৳{selectedVariant ? selectedVariant.old_price : product.old_price}
+                                                ৳{(() => {
+                                                    const unitOldPrice = selectedVariant ? selectedVariant.old_price : (product.display_old_price || product.old_price);
+                                                    const numUnitOldPrice = parseFloat(unitOldPrice) || 0;
+                                                    const numQuantity = parseInt(quantity) || 1;
+                                                    const totalOldPrice = numUnitOldPrice * numQuantity;
+                                                    return totalOldPrice.toFixed(2);
+                                                })()}
                                             </del>
                                         )}
+                                        {/* Show out of stock message for variable products */}
+                                        {product.product_type === 'variable' && !selectedVariant && !product.default_variant_in_stock && (
+                                            <div className="text-danger mt-2">
+                                                <small>Out of Stock</small>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Show unit price when quantity > 1 */}
+                                        {quantity > 1 && (
+                                            <div className="mt-1">
+                                                <small className="text-muted">
+                                                    Unit price: ৳{(() => {
+                                                        const unitPrice = selectedVariant ? selectedVariant.price : (product.display_price || product.price);
+                                                        const numUnitPrice = parseFloat(unitPrice) || 0;
+                                                        return numUnitPrice.toFixed(2);
+                                                    })()}
+                                                </small>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Stock Availability Display - Below Price */}
+                                        <div className="mt-2">
+                                            <small className="text-muted">
+                                                {selectedVariant ? (
+                                                    `${selectedVariant.quantity} items available`
+                                                ) : product.product_type === 'variable' ? (
+                                                    // For variable products, show default variant stock
+                                                    product.default_variant ? (
+                                                        `${product.default_variant.quantity} items available`
+                                                    ) : (
+                                                        // Fallback to first variant if no default set
+                                                        product.variants && product.variants.length > 0 ? (
+                                                            `${product.variants[0].quantity} items available`
+                                                        ) : (
+                                                            "Out of Stock"
+                                                        )
+                                                    )
+                                                ) : (
+                                                    // For simple products, show product stock
+                                                    `${product?.quantity || 0} items available`
+                                                )}
+                                            </small>
+                                        </div>
                                     </div>
+
 
                                     <div className="mb-3">
                                         <div className="rating">
                                             {renderStars(ratingData.average_rating || 0)}
                                             <small className="text-muted ml-2">
-                                                ({ratingData.average_rating || 0}) ({ratingData.total_reviews || 0} reviews)
+                                                ({(parseFloat(ratingData.average_rating) || 0).toFixed(1)}) ({ratingData.total_reviews || 0} reviews)
                                             </small>
                                         </div>
                                     </div>
@@ -277,7 +362,14 @@ const ProductDetail = () => {
                                                     <div key={variant.id} className="col-md-6 mb-3">
                                                         <div
                                                             className={`card variant-card ${selectedVariant && selectedVariant.id === variant.id ? 'variant-selected' : ''}`}
-                                                            onClick={() => setSelectedVariant(variant)}
+                                                            onClick={() => {
+                                                                console.log('Variant selected:', variant);
+                                                                console.log('Current quantity before selection:', quantity);
+                                                                setSelectedVariant(variant);
+                                                                // Reset quantity to 1 when variant is selected
+                                                                setQuantity(1);
+                                                                console.log('Quantity reset to 1');
+                                                            }}
                                                             style={{cursor: 'pointer'}}
                                                         >
                                                             <div className="card-body">
@@ -286,9 +378,9 @@ const ProductDetail = () => {
                                                                     <strong>SKU:</strong> {variant.sku}
                                                                 </p>
                                                                 <p className="card-text">
-                                                                    <strong>Price:</strong> ৳{variant.price}
+                                                                    <strong>Price:</strong> ৳{(parseFloat(variant.price) || 0).toFixed(2)}
                                                                     {variant.old_price && (
-                                                                        <del className="ml-2 text-muted">৳{variant.old_price}</del>
+                                                                        <del className="ml-2 text-muted">৳{(parseFloat(variant.old_price) || 0).toFixed(2)}</del>
                                                                     )}
                                                                 </p>
                                                                 <p className="card-text">
@@ -309,7 +401,6 @@ const ProductDetail = () => {
                                                                 {selectedVariant && selectedVariant.id === variant.id && (
                                                                     <div className="variant-selected-indicator">
                                                                         <i className="fa fa-check-circle text-success"></i>
-                                                                        <span className="ml-1 small text-success">Selected</span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -331,7 +422,12 @@ const ProductDetail = () => {
                                                     <button
                                                         className="btn btn-light"
                                                         type="button"
-                                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                        onClick={() => {
+                                                            console.log('Quantity decrease clicked. Current quantity:', quantity);
+                                                            const newQuantity = Math.max(1, quantity - 1);
+                                                            console.log('New quantity:', newQuantity);
+                                                            setQuantity(newQuantity);
+                                                        }}
                                                     >
                                                         <i className="fa fa-minus"></i>
                                                     </button>
@@ -341,9 +437,18 @@ const ProductDetail = () => {
                                                     className="form-control"
                                                     value={quantity}
                                                     onChange={(e) => {
+                                                        console.log('Quantity input changed. Value:', e.target.value);
                                                         const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
-                                                        const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
-                                                        setQuantity(Math.min(newQuantity, availableStock));
+                                                        const availableStock = selectedVariant ? selectedVariant.quantity : (
+                                                            product.product_type === 'variable' ? (
+                                                                product.default_variant ? product.default_variant.quantity : 
+                                                                (product.variants && product.variants.length > 0 ? product.variants[0].quantity : 0)
+                                                            ) : (product?.quantity || 0)
+                                                        );
+                                                        console.log('Available stock:', availableStock);
+                                                        const finalQuantity = Math.min(newQuantity, availableStock);
+                                                        console.log('Final quantity:', finalQuantity);
+                                                        setQuantity(finalQuantity);
                                                     }}
                                                 />
                                                 <div className="input-group-append">
@@ -351,22 +456,26 @@ const ProductDetail = () => {
                                                         className="btn btn-light"
                                                         type="button"
                                                         onClick={() => {
-                                                            const availableStock = selectedVariant ? selectedVariant.quantity : (product?.quantity || 0);
-                                                            setQuantity(Math.min(quantity + 1, availableStock));
+                                                            console.log('Quantity increase clicked. Current quantity:', quantity);
+                                                            console.log('Product type:', product.product_type);
+                                                            console.log('Selected variant:', selectedVariant);
+                                                            console.log('Default variant:', product.default_variant);
+                                                            const availableStock = selectedVariant ? selectedVariant.quantity : (
+                                                                product.product_type === 'variable' ? (
+                                                                    product.default_variant ? product.default_variant.quantity : 
+                                                                    (product.variants && product.variants.length > 0 ? product.variants[0].quantity : 0)
+                                                                ) : (product?.quantity || 0)
+                                                            );
+                                                            console.log('Available stock:', availableStock);
+                                                            const newQuantity = Math.min(quantity + 1, availableStock);
+                                                            console.log('New quantity:', newQuantity);
+                                                            setQuantity(newQuantity);
                                                         }}
                                                     >
                                                         <i className="fa fa-plus"></i>
                                                     </button>
                                                 </div>
                                             </div>
-                                            {/* Stock information */}
-                                            <small className="text-muted">
-                                                {selectedVariant ? (
-                                                    `${selectedVariant.quantity} items available`
-                                                ) : (
-                                                    `${product?.quantity || 0} items available`
-                                                )}
-                                            </small>
                                         </div>
                                         <div className="col-md-4">
                                             {/* Extra space for better layout */}
@@ -470,7 +579,7 @@ const ProductDetail = () => {
                                                     )}
                                                 </h6>
                                                 <div className="rating mb-1">
-                                                    {renderStars(review.rating)}
+                                                    {renderStars(review.rating || 0)}
                                                 </div>
                                                 {review.title && (
                                                     <h6 className="mb-1">{review.title}</h6>

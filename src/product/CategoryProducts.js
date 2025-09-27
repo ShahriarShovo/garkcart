@@ -430,21 +430,30 @@ const CategoryProducts = () => {
                                                         </div>
                                                     </div>
                                                     <button
-                                                        className="btn btn-block btn-success"
+                                                        className="btn btn-block btn-primary"
                                                         onClick={async () => {
+                                                            // For variable products, try to get default variant or first variant
                                                             let variantId = null;
-                                                            if(product.has_variants && product.default_variant_id) {
-                                                                variantId = product.default_variant_id;
+                                                            let selectedVariant = null;
+                                                            
+                                                            if(product.product_type === 'variable') {
+                                                                if(product.default_variant) {
+                                                                    selectedVariant = product.default_variant;
+                                                                    variantId = product.default_variant.id;
+                                                                } else if(product.variants && product.variants.length > 0) {
+                                                                    selectedVariant = product.variants[0];
+                                                                    variantId = product.variants[0].id;
+                                                                }
                                                             }
 
                                                             const result = await addToCart({
                                                                 id: product.id,
                                                                 name: product.title,
-                                                                price: product.price,
+                                                                price: selectedVariant ? selectedVariant.price : (product.display_price || product.price),
                                                                 image: product.primary_image?.image_url || "/images/items/1.jpg",
                                                                 category: product.category_name || "General",
                                                                 quantity: 1,
-                                                                selectedVariant: variantId ? {id: variantId} : null
+                                                                selectedVariant: selectedVariant
                                                             });
 
                                                             if(result && result.success) {
@@ -462,6 +471,7 @@ const CategoryProducts = () => {
                                                             }
                                                         }}
                                                     >
+                                                        <i className="fa fa-shopping-cart mr-1"></i>
                                                         Add to cart
                                                     </button>
                                                 </figcaption>

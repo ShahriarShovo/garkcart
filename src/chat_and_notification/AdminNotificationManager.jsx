@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import notificationApi from './api/notificationApi';
+// TODO: Notification features will be developed in future
+// import notificationApi from './api/notificationApi';
 
 const AdminNotificationManager = () => {
     const [notifications, setNotifications] = useState([]);
@@ -27,62 +28,30 @@ const AdminNotificationManager = () => {
     }, []);
 
     const loadNotifications = async () => {
-        try {
-            setLoading(true);
-            const data = await notificationApi.getNotifications();
-            setNotifications(data);
-        } catch(error) {
-            console.error('Error loading notifications:', error);
-            setError('Failed to load notifications');
-        } finally {
-            setLoading(false);
-        }
+        // TODO: Notification features will be developed in future
+        // All notification API calls commented out
+        setLoading(false);
     };
 
     const loadStats = async () => {
-        try {
-            const data = await notificationApi.getNotificationStats();
-            setStats(data);
-        } catch(error) {
-            console.error('Error loading stats:', error);
-        }
+        // TODO: Notification features will be developed in future
+        // All notification API calls commented out
     };
 
     const handleCreateNotification = async (e) => {
+        // TODO: Notification features will be developed in future
+        // All notification API calls commented out
         e.preventDefault();
-        try {
-            await notificationApi.createNotification(formData);
-            setShowCreateForm(false);
-            resetForm();
-            loadNotifications();
-            loadStats();
-        } catch(error) {
-            console.error('Error creating notification:', error);
-            setError('Failed to create notification');
-        }
     };
 
     const handleToggleActive = async (id) => {
-        try {
-            await notificationApi.toggleNotificationActive(id);
-            loadNotifications();
-            loadStats();
-        } catch(error) {
-            console.error('Error toggling notification:', error);
-        }
+        // TODO: Notification features will be developed in future
+        // All notification API calls commented out
     };
 
     const handleDelete = async (id) => {
-        if(window.confirm('Are you sure you want to delete this notification?')) {
-            try {
-                await notificationApi.deleteNotification(id);
-                loadNotifications();
-                loadStats();
-            } catch(error) {
-                console.error('Error deleting notification:', error);
-                setError('Failed to delete notification');
-            }
-        }
+        // TODO: Notification features will be developed in future
+        // All notification API calls commented out
     };
 
     const resetForm = () => {

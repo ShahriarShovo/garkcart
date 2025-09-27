@@ -7,20 +7,15 @@ const Footer = () => {
     // Fetch active logo
     const fetchActiveLogo = async () => {
         try {
-            console.log('Footer: Fetching active logo...');
             const logoData = await logoApi.getActiveLogo();
-            console.log('Footer: Logo data received:', logoData);
             if(logoData && logoData.logo_url) {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
                     finalUrl = `http://localhost:8000${finalUrl}`;
-                    console.log('Footer: Converted to full URL:', finalUrl);
                 }
-                console.log('Footer: Setting logo URL:', finalUrl);
                 setLogoUrl(finalUrl);
             } else {
-                console.log('Footer: No logo URL found, keeping default');
             }
         } catch(error) {
             console.error('Footer: Error fetching active logo:', error);
@@ -44,7 +39,7 @@ const Footer = () => {
                                     className="logo-footer"
                                     alt="GreatKart"
                                     style={{height: '30px'}}
-                                    onLoad={() => console.log('Footer: Image loaded successfully:', logoUrl)}
+                                    onLoad={() => {}}
                                     onError={(e) => console.error('Footer: Image failed to load:', logoUrl, e)}
                                 />
                                 <p className="mt-2 mb-2" style={{fontSize: '14px'}}>One of the biggest online shopping platform in Bangladesh.</p>

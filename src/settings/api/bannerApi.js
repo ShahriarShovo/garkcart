@@ -35,7 +35,6 @@ class BannerApi {
                 },
             });
 
-            console.log('BannerApi: Response status:', response.status);
             if(!response.ok) {
                 const errorText = await response.text();
                 console.error('BannerApi: Error response:', errorText);
@@ -43,7 +42,6 @@ class BannerApi {
             }
 
             const data = await response.json();
-            console.log('BannerApi: Active banners data:', data);
 
             // Convert relative URLs to full URLs
             const processedData = data.map(banner => ({
@@ -53,7 +51,6 @@ class BannerApi {
                     : banner.banner_url
             }));
 
-            console.log('BannerApi: Processed banners with full URLs:', processedData);
             return processedData;
         } catch(error) {
             console.error('BannerApi: Error fetching active banners:', error);
