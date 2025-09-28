@@ -12,6 +12,7 @@ import CategoryProducts from './product/CategoryProducts';
 import SignIn from './authentication/Auth/SignIn';
 import Register from './authentication/Auth/Register';
 import EmailVerification from './authentication/Auth/EmailVerification';
+import EmailVerifiedSuccess from './authentication/Auth/EmailVerifiedSuccess';
 import SearchResult from './product/SearchResult';
 import PlaceOrder from './order/PlaceOrder';
 import OrderComplete from './order/OrderComplete';
@@ -38,6 +39,7 @@ function AppShell() {
                     <Route path="/signin" element={<SignIn />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/email-verification" element={<EmailVerification />} />
+                    <Route path="/email-verified" element={<EmailVerifiedSuccess />} />
                     <Route path="/search" element={<SearchResult />} />
                     <Route path="/place-order" element={<PlaceOrder />} />
                     <Route path="/order-complete" element={<OrderComplete />} />

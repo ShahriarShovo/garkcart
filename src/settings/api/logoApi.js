@@ -27,7 +27,7 @@ class LogoApi {
     // Get active logo (public endpoint)
     async getActiveLogo() {
         try {
-            console.log('LogoApi: Fetching active logo from:', `${API_BASE_URL}/logos/get_active_logo/`);
+            // Fetch active logo
             const response = await fetch(`${API_BASE_URL}/logos/get_active_logo/`, {
                 method: 'GET',
                 headers: {

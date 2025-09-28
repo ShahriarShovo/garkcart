@@ -11,8 +11,29 @@ const EmailVerification = () => {
     });
     const [isResending, setIsResending] = useState(false);
     const [countdown, setCountdown] = useState(0);
+    const [userEmail, setUserEmail] = useState('');
     const {user} = useAuth();
     const navigate = useNavigate();
+
+    // Get user email from localStorage or context
+    React.useEffect(() => {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+            try {
+                const userData = JSON.parse(savedUser);
+                setUserEmail(userData.email || '');
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+            }
+        }
+        
+        // Also check URL parameters for email (in case of direct navigation)
+        const urlParams = new URLSearchParams(window.location.search);
+        const emailFromUrl = urlParams.get('email');
+        if (emailFromUrl && !userEmail) {
+            setUserEmail(emailFromUrl);
+        }
+    }, [userEmail]);
 
     useEffect(() => {
         // Start countdown for resend button
@@ -42,12 +63,26 @@ const EmailVerification = () => {
         setIsResending(true);
         
         try {
-            // Simulate API call to resend verification email
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            showToast('Verification email sent successfully!', 'success');
-            setCountdown(60); // 60 seconds cooldown
+            const response = await fetch('http://localhost:8000/api/accounts/resend-verification/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: userEmail || user?.email
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                showToast(data.message || 'Verification email sent successfully!', 'success');
+                setCountdown(60); // 60 seconds cooldown
+            } else {
+                const errorData = await response.json();
+                showToast(errorData.message || 'Failed to send verification email. Please try again.', 'error');
+            }
         } catch (error) {
+            console.error('Resend verification error:', error);
             showToast('Failed to send verification email. Please try again.', 'error');
         } finally {
             setIsResending(false);
@@ -57,6 +92,7 @@ const EmailVerification = () => {
     const handleContinue = () => {
         navigate('/');
     };
+
 
     return (
         <>
@@ -83,7 +119,18 @@ const EmailVerification = () => {
                         
                         {/* User Email */}
                         <div className="alert alert-info mb-4">
-                            <strong>{user?.email || 'your-email@example.com'}</strong>
+                            <i className="fa fa-envelope mr-2"></i>
+                            <strong>
+                                {userEmail || user?.email || 'your-email@example.com'}
+                            </strong>
+                            {!userEmail && !user?.email && (
+                                <div className="mt-2">
+                                    <small className="text-muted">
+                                        <i className="fa fa-info-circle mr-1"></i>
+                                        Email address not found. Please check your registration.
+                                    </small>
+                                </div>
+                            )}
                         </div>
 
                         {/* Instructions */}
@@ -100,25 +147,27 @@ const EmailVerification = () => {
                         {/* Resend Email Button */}
                         <div className="mb-4">
                             <p className="text-muted mb-3">Didn't receive the email?</p>
-                            <button
-                                className={`btn resend-button ${countdown > 0 ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
-                                onClick={handleResendEmail}
-                                disabled={isResending || countdown > 0}
-                            >
-                                {isResending ? (
-                                    <>
-                                        <i className="fa fa-spinner fa-spin mr-2"></i>
-                                        Sending...
-                                    </>
-                                ) : countdown > 0 ? (
-                                    <span className="countdown-text">Resend in {countdown}s</span>
-                                ) : (
-                                    <>
-                                        <i className="fa fa-paper-plane mr-2"></i>
-                                        Resend Verification Email
-                                    </>
-                                )}
-                            </button>
+                            <div className="d-flex justify-content-center">
+                                <button
+                                    className={`btn resend-button ${countdown > 0 ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
+                                    onClick={handleResendEmail}
+                                    disabled={isResending || countdown > 0}
+                                >
+                                    {isResending ? (
+                                        <>
+                                            <i className="fa fa-spinner fa-spin mr-2"></i>
+                                            Sending...
+                                        </>
+                                    ) : countdown > 0 ? (
+                                        <span className="countdown-text">Resend in {countdown}s</span>
+                                    ) : (
+                                        <>
+                                            <i className="fa fa-paper-plane mr-2"></i>
+                                            Resend Verification Email
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Continue Button */}

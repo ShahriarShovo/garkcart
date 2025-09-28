@@ -40,7 +40,8 @@ export const AuthProvider = ({children}) => {
                     user_type: data.user_type || 'customer',
                     is_admin: data.is_admin || false,
                     is_superuser: data.is_superuser || false,
-                    is_staff: data.is_staff || false
+                    is_staff: data.is_staff || false,
+                    email_verified: data.email_verified || false
                 };
 
                 console.log('AuthContext: Prepared user info:', userInfo);
@@ -78,6 +79,17 @@ export const AuthProvider = ({children}) => {
             } else {
                 const errorData = await response.json();
                 console.error('AuthContext: Login failed:', errorData);
+                
+                // Check if it's an email verification error
+                if(errorData.email_verification_required) {
+                    return {
+                        success: false, 
+                        message: errorData.message || 'Please verify your email address before logging in.',
+                        email_verification_required: true,
+                        email: errorData.email
+                    };
+                }
+                
                 return {success: false, message: errorData.message || 'Login failed'};
             }
         } catch(error) {
@@ -127,26 +139,47 @@ export const AuthProvider = ({children}) => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Registration successful:', data);
 
-                // Set user data from response
-                const userInfo = {
-                    email: userData.email,
-                    full_name: userData.full_name,
-                    token: data.token
-                };
+                // For email verification, we should NOT automatically login the user
+                // User should verify email first before getting tokens
+                if (data.email_verification_sent) {
+                    const result = {
+                        success: true, 
+                        message: data.message, 
+                        user: {
+                            email: userData.email,
+                            full_name: userData.full_name,
+                        },
+                        email_verification_sent: data.email_verification_sent || false
+                    };
+                    
+                    return result;
+                } else {
+                    // If no email verification required, proceed with normal login
+                    const userInfo = {
+                        email: userData.email,
+                        full_name: userData.full_name,
+                        token: data.token
+                    };
 
-                setUser(userInfo);
-                setIsAuthenticated(true);
-                localStorage.setItem('user', JSON.stringify(userInfo));
-                localStorage.setItem('token', data.token.access);
-                localStorage.setItem('refresh_token', data.token.refresh);
-                scheduleTokenRefresh();
+                    setUser(userInfo);
+                    setIsAuthenticated(true);
+                    localStorage.setItem('user', JSON.stringify(userInfo));
+                    localStorage.setItem('token', data.token.access);
+                    localStorage.setItem('refresh_token', data.token.refresh);
+                    scheduleTokenRefresh();
 
-                return {success: true, message: data.message, user: userInfo};
+                    const result = {
+                        success: true, 
+                        message: data.message, 
+                        user: userInfo,
+                        email_verification_sent: data.email_verification_sent || false
+                    };
+                    
+                    return result;
+                }
             } else {
                 const errorData = await response.json();
-                console.error('Registration failed:', errorData);
                 return {success: false, message: errorData.message || 'Registration failed'};
             }
         } catch(error) {

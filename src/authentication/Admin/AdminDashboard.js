@@ -341,6 +341,121 @@ const AdminDashboard = () => {
         sms_gateway: '',
         payment_gateway: 'cod'
     });
+    
+    // Email Settings states
+    const [emailSettings, setEmailSettings] = useState({
+        admin_email: '',
+        support_email: '',
+        notification_email: '',
+        email_signature: ''
+    });
+    const [emailSettingsLoading, setEmailSettingsLoading] = useState(false);
+    const [emailSettingsSaving, setEmailSettingsSaving] = useState(false);
+    const [emailSettingsError, setEmailSettingsError] = useState(null);
+    const [emailSettingsSuccess, setEmailSettingsSuccess] = useState(null);
+    
+    // SMTP Settings states
+    const [smtpSettings, setSmtpSettings] = useState({
+        smtp_host: 'smtp.gmail.com',
+        smtp_port: 587,
+        smtp_username: '',
+        smtp_password: '',
+        smtp_use_tls: true,
+        smtp_use_ssl: false,
+        from_email: '',
+        from_name: 'Your Store Name'
+    });
+    const [smtpTesting, setSmtpTesting] = useState(false);
+    const [smtpTestResult, setSmtpTestResult] = useState(null);
+    const [smtpSaving, setSmtpSaving] = useState(false);
+    const [smtpError, setSmtpError] = useState(null);
+    const [smtpSuccess, setSmtpSuccess] = useState(null);
+    
+    // Email Selection States
+    const [savedEmailSettings, setSavedEmailSettings] = useState([]);
+    const [selectedEmailSetting, setSelectedEmailSetting] = useState(null);
+    
+    // Load existing email settings on component mount
+    useEffect(() => {
+        console.log('🔍 DEBUG: useEffect triggered, calling loadExistingEmailSettings...');
+        
+        const loadExistingEmailSettings = async () => {
+            console.log('🔍 DEBUG: Starting to load email settings...');
+            try {
+                const token = localStorage.getItem('token');
+                console.log('🔍 DEBUG: Token found:', token ? 'Yes' : 'No');
+                console.log('🔍 DEBUG: Token value:', token);
+                
+                const response = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('🔍 DEBUG: API Response status:', response.status);
+                console.log('🔍 DEBUG: API Response ok:', response.ok);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('🔍 DEBUG: Email settings API response:', data);
+                    console.log('🔍 DEBUG: Data type:', Array.isArray(data) ? 'Array' : typeof data);
+                    console.log('🔍 DEBUG: Data length:', Array.isArray(data) ? data.length : 'Not array');
+                    
+                    // Handle both array response and object with results property
+                    const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                    console.log('🔍 DEBUG: Email settings array:', emailSettings);
+                    console.log('🔍 DEBUG: Email settings length:', emailSettings.length);
+                    
+                    if (emailSettings && emailSettings.length > 0) {
+                        console.log('🔍 DEBUG: Found email settings, storing...');
+                        // Store all saved email settings
+                        setSavedEmailSettings(emailSettings);
+                        console.log('🔍 DEBUG: savedEmailSettings state updated with:', emailSettings);
+                        
+                        // Select the first one as default
+                        const firstSetting = emailSettings[0];
+                        setSelectedEmailSetting(firstSetting);
+                        console.log('🔍 DEBUG: selectedEmailSetting state updated:', firstSetting);
+                        
+                        // Populate form with first setting
+                        setEmailSettings({
+                            admin_email: firstSetting.email_address || '',
+                            support_email: firstSetting.reply_to_email || '',
+                            notification_email: firstSetting.from_email || '',
+                            email_signature: ''
+                        });
+                        console.log('🔍 DEBUG: emailSettings state updated');
+                        
+                        setSmtpSettings({
+                            smtp_host: firstSetting.smtp_host || 'smtp.gmail.com',
+                            smtp_port: firstSetting.smtp_port || 587,
+                            smtp_username: firstSetting.smtp_username || '',
+                            smtp_password: '', // Don't load password for security
+                            smtp_use_tls: firstSetting.use_tls || true,
+                            smtp_use_ssl: firstSetting.use_ssl || false,
+                            from_email: firstSetting.from_email || '',
+                            from_name: firstSetting.from_name || 'Your Store Name'
+                        });
+                        console.log('🔍 DEBUG: smtpSettings state updated');
+                    } else {
+                        console.log('🔍 DEBUG: No email settings found in API response');
+                        console.log('🔍 DEBUG: emailSettings array is:', emailSettings);
+                    }
+                } else {
+                    console.log('🔍 DEBUG: API response not ok:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.log('🔍 DEBUG: Error response:', errorText);
+                }
+            } catch (err) {
+                console.log('🔍 DEBUG: Error loading email settings:', err);
+                console.log('🔍 DEBUG: Error details:', err.message);
+            }
+        };
+        
+        loadExistingEmailSettings();
+    }, []);
 
     // Fetch all orders (admin can see all orders)
     const fetchAllOrders = async () => {
@@ -1651,30 +1766,7 @@ const AdminDashboard = () => {
                                     </small>
                                 </div>
                             </a>
-                            {/* TODO: Future implementation - Notification and Discount management
-                            <a
-                                className={`list-group-item ${activeTab === 'notifications' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('notifications');
-                                }}
-                            >
-                                <i className="fa fa-bell mr-2"></i>
-                                Notifications
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'discounts' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('discounts');
-                                }}
-                            >
-                                <i className="fa fa-tag mr-2"></i>
-                                Discounts
-                            </a>
-                            */}
+
                             <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
                                 href="#"
@@ -1708,7 +1800,7 @@ const AdminDashboard = () => {
                             <i className="fa fa-power-off"></i>
                             <span className="text">Log out</span>
                         </a>
-                        {/* ADMIN SIDEBAR .//END */}
+                        
                     </aside>
 
                     <main className="col-md-9">
@@ -2844,7 +2936,7 @@ const AdminDashboard = () => {
                         {activeTab === 'discounts' && (
                             <AdminDiscountManager />
                         )} */}
-                        */}
+                        
 
                         {activeTab === 'reports' && (
                             <article className="card">
@@ -2974,28 +3066,14 @@ const AdminDashboard = () => {
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'profile' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('profile')}}>Admin Profile</a>
                                         </li>
-                                        {/* TODO: Future implementation - Settings tabs
-                                        <li className="nav-item">
-                                            <a href="#" className={`nav-link ${settingsTab === 'general' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('general')}}>General</a>
-                                        </li>
-                                        <li className="nav-item">
-                                            <a href="#" className={`nav-link ${settingsTab === 'staff' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('staff')}}>Staff Users</a>
-                                        </li>
-                                        <li className="nav-item">
-                                            <a href="#" className={`nav-link ${settingsTab === 'roles' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('roles')}}>Roles & Permissions</a>
-                                        </li>
-                                        <li className="nav-item">
-                                            <a href="#" className={`nav-link ${settingsTab === 'features' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('features')}}>Features</a>
-                                        </li>
-                                        <li className="nav-item">
-                                            <a href="#" className={`nav-link ${settingsTab === 'integrations' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('integrations')}}>Integrations</a>
-                                        </li>
-                                        */}
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'logo' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('logo')}}>Logo Management</a>
                                         </li>
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'banner' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('banner')}}>Banner Management</a>
+                                        </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'email' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('email')}}>Email Settings</a>
                                         </li>
                                     </ul>
 
@@ -3280,90 +3358,1001 @@ const AdminDashboard = () => {
                                     {settingsTab === 'banner' && (
                                         <AdminBannerManager />
                                     )}
+                                    
+                                    {settingsTab === 'email' && (
+                                        <div>
+                                            {emailSettingsError && (
+                                                <div className="alert alert-danger">
+                                                    <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                    {emailSettingsError}
+                                                </div>
+                                            )}
+                                            {emailSettingsSuccess && (
+                                                <div className="alert alert-success">
+                                                    <i className="fa fa-check-circle mr-2"></i>
+                                                    {emailSettingsSuccess}
+                                                </div>
+                                            )}
+                                            
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                try {
+                                                    setEmailSettingsSaving(true);
+                                                    setEmailSettingsError(null);
+                                                    setEmailSettingsSuccess(null);
+                                                    
+                                                    // Validate required fields
+                                                    if (!emailSettings.admin_email || !smtpSettings.smtp_host || !smtpSettings.smtp_username || !smtpSettings.smtp_password) {
+                                                        setEmailSettingsError('Please fill in all required fields (Admin Email, SMTP Host, Username, Password)');
+                                                        return;
+                                                    }
+                                                    
+                                                    const token = localStorage.getItem('token');
+                                                    
+                                                    // First, try to get existing email settings
+                                                    let existingSettings = null;
+                                                    try {
+                                                        const getResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                            method: 'GET',
+                                                            headers: {
+                                                                'Authorization': `Bearer ${token}`,
+                                                                'Content-Type': 'application/json'
+                                                            }
+                                                        });
+                                                        
+                                                        if (getResponse.ok) {
+                                                            const data = await getResponse.json();
+                                                            if (data.results && data.results.length > 0) {
+                                                                existingSettings = data.results[0]; // Get the first existing setting
+                                                                console.log('Found existing email settings:', existingSettings);
+                                                            }
+                                                        }
+                                                    } catch (err) {
+                                                        console.log('No existing email settings found');
+                                                    }
+                                                    
+                                                    // Use PUT if exists, POST if new
+                                                    const method = existingSettings ? 'PUT' : 'POST';
+                                                    const url = existingSettings ? 
+                                                        `http://localhost:8000/api/settings/email-settings/${existingSettings.id}/` : 
+                                                        'http://localhost:8000/api/settings/email-settings/';
+                                                    
+                                                    const response = await fetch(url, {
+                                                        method: method,
+                                                        headers: {
+                                                            'Authorization': `Bearer ${token}`,
+                                                            'Content-Type': 'application/json'
+                                                        },
+                                                        body: JSON.stringify({
+                                                            name: 'Admin Email Configuration',
+                                                            email_address: emailSettings.admin_email,
+                                                            email_password: smtpSettings.smtp_password, // Add this required field
+                                                            smtp_host: smtpSettings.smtp_host,
+                                                            smtp_port: smtpSettings.smtp_port,
+                                                            smtp_username: smtpSettings.smtp_username,
+                                                            smtp_password: smtpSettings.smtp_password,
+                                                            use_tls: smtpSettings.smtp_use_tls,
+                                                            use_ssl: smtpSettings.smtp_use_ssl,
+                                                            from_name: smtpSettings.from_name,
+                                                            from_email: smtpSettings.from_email,
+                                                            reply_to_email: emailSettings.support_email,
+                                                            email_provider: 'smtp',
+                                                            is_primary: true,
+                                                            is_active: true,
+                                                            use_for_registration: true,
+                                                            use_for_password_reset: true,
+                                                            use_for_order_notifications: true,
+                                                            use_for_admin_notifications: true,
+                                                            use_for_support: true
+                                                        })
+                                                    });
+                                                    
+                                                    if (response.ok) {
+                                                        const data = await response.json();
+                                                        setEmailSettingsSuccess('Email settings saved successfully!');
+                                                        console.log('Email settings saved:', data);
+                                                    } else {
+                                                        const errorData = await response.json();
+                                                        setEmailSettingsError(errorData.message || 'Failed to save email settings');
+                                                    }
+                                                } catch(err) {
+                                                    console.error('Email settings save error:', err);
+                                                    setEmailSettingsError('Network error while saving email settings');
+                                                } finally {
+                                                    setEmailSettingsSaving(false);
+                                                }
+                                            }}>
+                                                
+                                                {/* SMTP Configuration Section */}
+                                                <hr className="my-4" />
+                                                <h5 className="mb-3">
+                                                    <i className="fa fa-server mr-2"></i>
+                                                    SMTP Configuration
+                                                </h5>
+                                                
+                                                {smtpError && (
+                                                    <div className="alert alert-danger">
+                                                        <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                        {smtpError}
+                                                    </div>
+                                                )}
+                                                {smtpSuccess && (
+                                                    <div className="alert alert-success">
+                                                        <i className="fa fa-check-circle mr-2"></i>
+                                                        {smtpSuccess}
+                                                    </div>
+                                                )}
+                                                {smtpTestResult && (
+                                                    <div className={`alert ${smtpTestResult.success ? 'alert-success' : 'alert-danger'}`}>
+                                                        <i className={`fa ${smtpTestResult.success ? 'fa-check-circle' : 'fa-times-circle'} mr-2`}></i>
+                                                        {smtpTestResult.message}
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="smtp_host">
+                                                                <i className="fa fa-globe mr-2"></i>
+                                                                SMTP Host
+                                                            </label>
+                                                            <input 
+                                                                type="text" 
+                                                                className="form-control" 
+                                                                id="smtp_host"
+                                                                placeholder="smtp.gmail.com"
+                                                                value={smtpSettings.smtp_host} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, smtp_host: e.target.value})}
+                                                            />
+                                                            <small className="form-text text-muted">
+                                                                SMTP server address (e.g., smtp.gmail.com, smtp.outlook.com)
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="smtp_port">
+                                                                <i className="fa fa-plug mr-2"></i>
+                                                                SMTP Port
+                                                            </label>
+                                                            <input 
+                                                                type="number" 
+                                                                className="form-control" 
+                                                                id="smtp_port"
+                                                                placeholder="587"
+                                                                value={smtpSettings.smtp_port} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, smtp_port: parseInt(e.target.value) || 587})}
+                                                            />
+                                                            <small className="form-text text-muted">
+                                                                Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="smtp_username">
+                                                                <i className="fa fa-user mr-2"></i>
+                                                                SMTP Username
+                                                            </label>
+                                                            <input 
+                                                                type="text" 
+                                                                className="form-control" 
+                                                                id="smtp_username"
+                                                                placeholder="your-email@gmail.com"
+                                                                value={smtpSettings.smtp_username} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, smtp_username: e.target.value})}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="smtp_password">
+                                                                <i className="fa fa-lock mr-2"></i>
+                                                                SMTP Password
+                                                            </label>
+                                                            <input 
+                                                                type="password" 
+                                                                className="form-control" 
+                                                                id="smtp_password"
+                                                                placeholder="Your email password or app password"
+                                                                value={smtpSettings.smtp_password} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, smtp_password: e.target.value})}
+                                                            />
+                                                            <small className="form-text text-muted">
+                                                                For Gmail, use App Password instead of regular password
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="from_email">
+                                                                <i className="fa fa-envelope mr-2"></i>
+                                                                From Email Address
+                                                            </label>
+                                                            <input 
+                                                                type="email" 
+                                                                className="form-control" 
+                                                                id="from_email"
+                                                                placeholder="noreply@yourstore.com"
+                                                                value={smtpSettings.from_email} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, from_email: e.target.value})}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <label htmlFor="from_name">
+                                                                <i className="fa fa-tag mr-2"></i>
+                                                                From Name
+                                                            </label>
+                                                            <input 
+                                                                type="text" 
+                                                                className="form-control" 
+                                                                id="from_name"
+                                                                placeholder="Your Store Name"
+                                                                value={smtpSettings.from_name} 
+                                                                onChange={(e) => setSmtpSettings({...smtpSettings, from_name: e.target.value})}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <div className="form-check">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    className="form-check-input" 
+                                                                    id="smtp_use_tls"
+                                                                    checked={smtpSettings.smtp_use_tls} 
+                                                                    onChange={(e) => setSmtpSettings({...smtpSettings, smtp_use_tls: e.target.checked, smtp_use_ssl: e.target.checked ? false : smtpSettings.smtp_use_ssl})}
+                                                                />
+                                                                <label className="form-check-label" htmlFor="smtp_use_tls">
+                                                                    Use TLS (Recommended)
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <div className="form-group">
+                                                            <div className="form-check">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    className="form-check-input" 
+                                                                    id="smtp_use_ssl"
+                                                                    checked={smtpSettings.smtp_use_ssl} 
+                                                                    onChange={(e) => setSmtpSettings({...smtpSettings, smtp_use_ssl: e.target.checked, smtp_use_tls: e.target.checked ? false : smtpSettings.smtp_use_tls})}
+                                                                />
+                                                                <label className="form-check-label" htmlFor="smtp_use_ssl">
+                                                                    Use SSL
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-12">
+                                                        <div className="alert alert-info">
+                                                            <i className="fa fa-info-circle mr-2"></i>
+                                                            <strong>Gmail Setup Instructions:</strong>
+                                                            <ul className="mb-0 mt-2">
+                                                                <li>For Gmail: Use <code>smtp.gmail.com</code> with port <code>587</code> and TLS enabled</li>
+                                                                <li>Enable 2-Factor Authentication on your Gmail account</li>
+                                                                <li>Generate an <strong>App Password</strong> (not your regular password)</li>
+                                                                <li>Go to Google Account → Security → App passwords → Generate password</li>
+                                                                <li>Use the generated App Password in the SMTP Password field</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-12">
+                                                        <div className="alert alert-warning">
+                                                            <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                            <strong>Security Note:</strong> Make sure to use secure connections (TLS/SSL) for production environments. 
+                                                            Never use unencrypted connections for sending emails.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="row">
+                                                    <div className="col-12">
+                                                        <div className="d-flex justify-content-between">
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn btn-info" 
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        setSmtpTesting(true);
+                                                                        setSmtpTestResult(null);
+                                                                        setSmtpError(null);
+                                                                        
+                                                                        const token = localStorage.getItem('token');
+                                                                        
+                                                                        const testData = {
+                                                                            smtp_host: smtpSettings.smtp_host,
+                                                                            smtp_port: smtpSettings.smtp_port,
+                                                                            smtp_username: smtpSettings.smtp_username,
+                                                                            smtp_password: smtpSettings.smtp_password,
+                                                                            use_tls: smtpSettings.smtp_use_tls,
+                                                                            use_ssl: smtpSettings.smtp_use_ssl
+                                                                        };
+                                                                        
+                                                                        // Only add test_email if it's not empty
+                                                                        const testEmail = emailSettings.admin_email || smtpSettings.from_email;
+                                                                        if (testEmail && testEmail.trim() !== '') {
+                                                                            testData.test_email = testEmail;
+                                                                        }
+                                                                        
+                                                                        console.log('SMTP Test Data:', testData);
+                                                                        
+                                                                        const response = await fetch('http://localhost:8000/api/settings/smtp/test/', {
+                                                                            method: 'POST',
+                                                                            headers: {
+                                                                                'Authorization': `Bearer ${token}`,
+                                                                                'Content-Type': 'application/json'
+                                                                            },
+                                                                            body: JSON.stringify(testData)
+                                                                        });
+                                                                        
+                                                                        if (response.ok) {
+                                                                            const data = await response.json();
+                                                                            setSmtpTestResult({
+                                                                                success: data.success,
+                                                                                message: data.message
+                                                                            });
+                                                                        } else {
+                                                                            const errorData = await response.json();
+                                                                            console.error('SMTP test error response:', errorData);
+                                                                            console.error('Response status:', response.status);
+                                                                            setSmtpTestResult({
+                                                                                success: false,
+                                                                                message: errorData.message || 'SMTP test failed'
+                                                                            });
+                                                                        }
+                                                                    } catch(err) {
+                                                                        console.error('SMTP test error:', err);
+                                                                        setSmtpTestResult({
+                                                                            success: false,
+                                                                            message: 'Network error during SMTP test'
+                                                                        });
+                                                                    } finally {
+                                                                        setSmtpTesting(false);
+                                                                    }
+                                                                }}
+                                                                disabled={smtpTesting}
+                                                            >
+                                                                {smtpTesting ? (
+                                                                    <>
+                                                                        <i className="fa fa-spinner fa-spin mr-2"></i>
+                                                                        Testing Connection...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <i className="fa fa-flask mr-2"></i>
+                                                                        Test SMTP Connection
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                            
+                                                            <button 
+                                                                type="button" 
+                                                                className="btn btn-success" 
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        setSmtpSaving(true);
+                                                                        setSmtpError(null);
+                                                                        setSmtpSuccess(null);
+                                                                        
+                                                                        // Validate required fields
+                                                                        if (!smtpSettings.smtp_host || !smtpSettings.smtp_username || !smtpSettings.smtp_password || !smtpSettings.from_email) {
+                                                                            setSmtpError('Please fill in all required fields (SMTP Host, Username, Password, From Email)');
+                                                                            return;
+                                                                        }
+                                                                        
+                                                                        const token = localStorage.getItem('token');
+                                                                        
+                                                                        // First, try to get existing email settings
+                                                                        let existingSettings = null;
+                                                                        try {
+                                                                            const getResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                method: 'GET',
+                                                                                headers: {
+                                                                                    'Authorization': `Bearer ${token}`,
+                                                                                    'Content-Type': 'application/json'
+                                                                                }
+                                                                            });
+                                                                            
+                                                                            if (getResponse.ok) {
+                                                                                const data = await getResponse.json();
+                                                                                if (data.results && data.results.length > 0) {
+                                                                                    existingSettings = data.results[0]; // Get the first existing setting
+                                                                                    console.log('Found existing email settings for SMTP:', existingSettings);
+                                                                                }
+                                                                            }
+                                                                        } catch (err) {
+                                                                            console.log('No existing email settings found for SMTP');
+                                                                        }
+                                                                        
+                                                                        // Use PUT if exists, POST if new
+                                                                        const method = existingSettings ? 'PUT' : 'POST';
+                                                                        const url = existingSettings ? 
+                                                                            `http://localhost:8000/api/settings/email-settings/${existingSettings.id}/` : 
+                                                                            'http://localhost:8000/api/settings/email-settings/';
+                                                                        
+                                                                        const response = await fetch(url, {
+                                                                            method: method,
+                                                                            headers: {
+                                                                                'Authorization': `Bearer ${token}`,
+                                                                                'Content-Type': 'application/json'
+                                                                            },
+                                                        body: JSON.stringify({
+                                                            name: 'SMTP Configuration',
+                                                            email_address: smtpSettings.from_email,
+                                                            email_password: smtpSettings.smtp_password, // Add this required field
+                                                            smtp_host: smtpSettings.smtp_host,
+                                                            smtp_port: smtpSettings.smtp_port,
+                                                            smtp_username: smtpSettings.smtp_username,
+                                                            smtp_password: smtpSettings.smtp_password,
+                                                            use_tls: smtpSettings.smtp_use_tls,
+                                                            use_ssl: smtpSettings.smtp_use_ssl,
+                                                            from_name: smtpSettings.from_name,
+                                                            from_email: smtpSettings.from_email,
+                                                            email_provider: 'smtp',
+                                                            is_primary: true,
+                                                            is_active: true,
+                                                            use_for_registration: true,
+                                                            use_for_password_reset: true,
+                                                            use_for_order_notifications: true,
+                                                            use_for_admin_notifications: true,
+                                                            use_for_support: true
+                                                        })
+                                                                        });
+                                                                        
+                                                    if (response.ok) {
+                                                        const data = await response.json();
+                                                        setSmtpSuccess('SMTP settings saved successfully!');
+                                                        console.log('SMTP settings saved:', data);
+                                                    } else {
+                                                        const errorData = await response.json();
+                                                        console.error('SMTP save error response:', errorData);
+                                                        console.error('Response status:', response.status);
+                                                        setSmtpError(errorData.message || 'Failed to save SMTP settings');
+                                                    }
+                                                                    } catch(err) {
+                                                                        console.error('SMTP save error:', err);
+                                                                        setSmtpError('Network error while saving SMTP settings');
+                                                                    } finally {
+                                                                        setSmtpSaving(false);
+                                                                    }
+                                                                }}
+                                                                disabled={smtpSaving}
+                                                            >
+                                                                {smtpSaving ? (
+                                                                    <>
+                                                                        <i className="fa fa-spinner fa-spin mr-2"></i>
+                                                                        Saving...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <i className="fa fa-save mr-2"></i>
+                                                                        Save SMTP Settings
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                            </form>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Email Selection Section - Show Saved Email Settings - Only in Email Settings Tab */}
+                                    {settingsTab === 'email' && (
+                                        <>
+                                            <style>
+                                                {`
+                                                    .email-setting-card {
+                                                        border: 2px solid #e9ecef;
+                                                        transition: all 0.3s ease;
+                                                        background: #fff;
+                                                    }
+                                                    
+                                                    .email-setting-card:hover {
+                                                        border-color: #007bff;
+                                                        box-shadow: 0 4px 8px rgba(0,123,255,0.1);
+                                                        transform: translateY(-2px);
+                                                    }
+                                                    
+                                                    .email-setting-selected {
+                                                        border-color: #28a745 !important;
+                                                        background: #f8fff9 !important;
+                                                        box-shadow: 0 4px 12px rgba(40,167,69,0.2) !important;
+                                                    }
+                                                    
+                                                    .email-setting-selected .card-title {
+                                                        color: #28a745 !important;
+                                                        font-weight: bold;
+                                                    }
+                                                    
+                                                    .email-selection-section {
+                                                        margin-top: 20px;
+                                                    }
+                                                `}
+                                            </style>
+                                            
+                                            <hr className="my-4" />
+                                            <div className="row">
+                                                <div className="col-12">
+                                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                                        <h5 className="mb-0">
+                                                            <i className="fa fa-database mr-2"></i>
+                                                            Saved Email Settings
+                                                        </h5>
+                                                        <button 
+                                                            type="button" 
+                                                            className="btn btn-outline-primary btn-sm mr-2"
+                                                            onClick={async () => {
+                                                                console.log('🔍 DEBUG: Refresh button clicked');
+                                                                try {
+                                                                    const token = localStorage.getItem('token');
+                                                                    console.log('🔍 DEBUG: Refresh - Token found:', token ? 'Yes' : 'No');
+                                                                    console.log('🔍 DEBUG: Refresh - Token value:', token);
+                                                                    
+                                                                    const response = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                        method: 'GET',
+                                                                        headers: {
+                                                                            'Authorization': `Bearer ${token}`,
+                                                                            'Content-Type': 'application/json'
+                                                                        }
+                                                                    });
+                                                                    
+                                                                    console.log('🔍 DEBUG: Refresh - API Response status:', response.status);
+                                                                    console.log('🔍 DEBUG: Refresh - API Response ok:', response.ok);
+                                                                    
+                                                                    if (response.ok) {
+                                                                        const data = await response.json();
+                                                                        console.log('🔍 DEBUG: Refresh - Email settings API response:', data);
+                                                                        console.log('🔍 DEBUG: Refresh - Data type:', Array.isArray(data) ? 'Array' : typeof data);
+                                                                        console.log('🔍 DEBUG: Refresh - Data length:', Array.isArray(data) ? data.length : 'Not array');
+                                                                        
+                                                                        // Handle both array response and object with results property
+                                                                        const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                        console.log('🔍 DEBUG: Refresh - Email settings array:', emailSettings);
+                                                                        console.log('🔍 DEBUG: Refresh - Email settings length:', emailSettings.length);
+                                                                        
+                                                                        if (emailSettings && emailSettings.length > 0) {
+                                                                            setSavedEmailSettings(emailSettings);
+                                                                            setSelectedEmailSetting(emailSettings[0]);
+                                                                            
+                                                                            // Update form with first setting
+                                                                            const firstSetting = emailSettings[0];
+                                                                            setEmailSettings({
+                                                                                admin_email: firstSetting.email_address || '',
+                                                                                support_email: firstSetting.reply_to_email || '',
+                                                                                notification_email: firstSetting.from_email || '',
+                                                                                email_signature: ''
+                                                                            });
+                                                                            
+                                                                            setSmtpSettings({
+                                                                                smtp_host: firstSetting.smtp_host || 'smtp.gmail.com',
+                                                                                smtp_port: firstSetting.smtp_port || 587,
+                                                                                smtp_username: firstSetting.smtp_username || '',
+                                                                                smtp_password: '',
+                                                                                smtp_use_tls: firstSetting.use_tls || true,
+                                                                                smtp_use_ssl: firstSetting.use_ssl || false,
+                                                                                from_email: firstSetting.from_email || '',
+                                                                                from_name: firstSetting.from_name || 'Your Store Name'
+                                                                            });
+                                                                        } else {
+                                                                            setSavedEmailSettings([]);
+                                                                            setSelectedEmailSetting(null);
+                                                                        }
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Error refreshing email settings:', err);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <i className="fa fa-refresh mr-1"></i>
+                                                            Refresh
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    {(() => {
+                                                        console.log('🔍 DEBUG: Rendering email settings section');
+                                                        console.log('🔍 DEBUG: savedEmailSettings length:', savedEmailSettings.length);
+                                                        console.log('🔍 DEBUG: savedEmailSettings:', savedEmailSettings);
+                                                        return null;
+                                                    })()}
+                                                    
+                                                    {savedEmailSettings.length > 0 ? (
+                                                        <div className="email-selection-section">
+                                                            <div className="row">
+                                                                {savedEmailSettings.map((emailSetting, index) => (
+                                                                    <div key={emailSetting.id} className="col-md-6 mb-3">
+                                                                        <div
+                                                                            className={`card email-setting-card ${selectedEmailSetting && selectedEmailSetting.id === emailSetting.id ? 'email-setting-selected' : ''}`}
+                                                                            onClick={() => {
+                                                                                console.log('Email setting selected:', emailSetting);
+                                                                                setSelectedEmailSetting(emailSetting);
+                                                                                
+                                                                                // Populate form with selected email setting
+                                                                                setEmailSettings({
+                                                                                    admin_email: emailSetting.email_address || '',
+                                                                                    support_email: emailSetting.reply_to_email || '',
+                                                                                    notification_email: emailSetting.from_email || '',
+                                                                                    email_signature: ''
+                                                                                });
+                                                                                
+                                                                                setSmtpSettings({
+                                                                                    smtp_host: emailSetting.smtp_host || 'smtp.gmail.com',
+                                                                                    smtp_port: emailSetting.smtp_port || 587,
+                                                                                    smtp_username: emailSetting.smtp_username || '',
+                                                                                    smtp_password: '', // Don't load password for security
+                                                                                    smtp_use_tls: emailSetting.use_tls || true,
+                                                                                    smtp_use_ssl: emailSetting.use_ssl || false,
+                                                                                    from_email: emailSetting.from_email || '',
+                                                                                    from_name: emailSetting.from_name || 'Your Store Name'
+                                                                                });
+                                                                            }}
+                                                                            style={{cursor: 'pointer'}}
+                                                                        >
+                                                                            <div className="card-body">
+                                                                                {(() => {
+                                                                                    console.log('🔍 DEBUG: Rendering email setting card:', emailSetting);
+                                                                                    console.log('🔍 DEBUG: SMTP Host:', emailSetting.smtp_host);
+                                                                                    console.log('🔍 DEBUG: SMTP Port:', emailSetting.smtp_port);
+                                                                                    console.log('🔍 DEBUG: SMTP Username:', emailSetting.smtp_username);
+                                                                                    return null;
+                                                                                })()}
+                                                                                
+                                                                                <div className="d-flex justify-content-between align-items-start">
+                                                                                    <div>
+                                                                                        <h6 className="card-title mb-1">
+                                                                                            <i className="fa fa-envelope mr-2"></i>
+                                                                                            {emailSetting.name}
+                                                                                        </h6>
+                                                                                        <p className="card-text text-muted mb-1">
+                                                                                            <strong>Email:</strong> {emailSetting.email_address}
+                                                                                        </p>
+                                                                                        <p className="card-text text-muted mb-1">
+                                                                                            <strong>SMTP Host:</strong> {emailSetting.smtp_host || 'Not set'}
+                                                                                        </p>
+                                                                                        <p className="card-text text-muted mb-1">
+                                                                                            <strong>Port:</strong> {emailSetting.smtp_port || 'Not set'}
+                                                                                        </p>
+                                                                                        <p className="card-text text-muted mb-1">
+                                                                                            <strong>Username:</strong> {emailSetting.smtp_username || 'Not set'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div className="text-right">
+                                                                                        {emailSetting.is_primary && (
+                                                            <span className="badge badge-primary mb-1">Primary</span>
+                                                                                        )}
+                                                                                        {emailSetting.is_active && (
+                                                            <span className="badge badge-success mb-1">Active</span>
+                                                                                        )}
+                                                                                        {!emailSetting.is_active && (
+                                                            <span className="badge badge-secondary mb-1">Inactive</span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div className="mt-2">
+                                                                                    <small className="text-muted">
+                                                                                        <i className="fa fa-clock mr-1"></i>
+                                                                                        Created: {new Date(emailSetting.created_at).toLocaleDateString()}
+                                                                                    </small>
+                                                                                </div>
+                                                                                
+                                                                                <div className="mt-3">
+                                                                                    <button 
+                                                                                        type="button" 
+                                                                                        className="btn btn-sm btn-outline-info"
+                                                                                        onClick={async (e) => {
+                                                                                            e.stopPropagation(); // Prevent card selection
+                                                                                            console.log('🔍 DEBUG: Testing connection for email setting:', emailSetting);
+                                                                                            
+                                                                                            try {
+                                                                                                const token = localStorage.getItem('token');
+                                                                                                const response = await fetch('http://localhost:8000/api/settings/smtp/test/', {
+                                                                                                    method: 'POST',
+                                                                                                    headers: {
+                                                                                                        'Authorization': `Bearer ${token}`,
+                                                                                                        'Content-Type': 'application/json'
+                                                                                                    },
+                                                                                                    body: JSON.stringify({
+                                                                                                        smtp_host: emailSetting.smtp_host,
+                                                                                                        smtp_port: emailSetting.smtp_port,
+                                                                                                        smtp_username: emailSetting.smtp_username,
+                                                                                                        smtp_password: 'tcrb umgr tyir rxuv', // Use your Gmail app password
+                                                                                                        use_tls: emailSetting.use_tls,
+                                                                                                        use_ssl: emailSetting.use_ssl,
+                                                                                                        test_email: emailSetting.email_address
+                                                                                                    })
+                                                                                                });
+                                                                                                
+                                                                                                if (response.ok) {
+                                                                                                    const result = await response.json();
+                                                                                                    if (result.success) {
+                                                                                                        alert(`✅ SMTP Connection Successful!\n\nEmail: ${emailSetting.email_address}\nHost: ${emailSetting.smtp_host}\nPort: ${emailSetting.smtp_port}`);
+                                                                                                    } else {
+                                                                                                        alert(`❌ SMTP Connection Failed!\n\nError: ${result.message}\n\nPlease check your SMTP settings.`);
+                                                                                                    }
+                                                                                                } else {
+                                                                                                    const error = await response.text();
+                                                                                                    alert(`❌ SMTP Test Failed!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                }
+                                                                                            } catch (err) {
+                                                                                                console.error('SMTP test error:', err);
+                                                                                                alert(`❌ SMTP Test Error!\n\nError: ${err.message}`);
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <i className="fa fa-plug mr-1"></i>
+                                                                                        Test Connection
+                                                                                    </button>
+                                                                                    {!emailSetting.is_primary && (
+                                                                                        <button 
+                                                                                            type="button" 
+                                                                                            className="btn btn-sm btn-outline-warning ml-2"
+                                                                                            onClick={async (e) => {
+                                                                                                e.stopPropagation(); // Prevent card selection
+                                                                                                
+                                                                                                if (window.confirm(`Set this email as Primary?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis will make it the default email for all communications.`)) {
+                                                                                                    try {
+                                                                                                        const token = localStorage.getItem('token');
+                                                                                                        
+                                                                                                        // First, remove primary status from all other emails
+                                                                                                        const allEmailsResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                            method: 'GET',
+                                                                                                            headers: {
+                                                                                                                'Authorization': `Bearer ${token}`,
+                                                                                                                'Content-Type': 'application/json'
+                                                                                                            }
+                                                                                                        });
+                                                                                                        
+                                                                                                        if (allEmailsResponse.ok) {
+                                                                                                            const allEmailsData = await allEmailsResponse.json();
+                                                                                                            const allEmails = Array.isArray(allEmailsData) ? allEmailsData : (allEmailsData.results || []);
+                                                                                                            
+                                                                                                            // Remove primary status from all emails
+                                                                                                            for (const email of allEmails) {
+                                                                                                                if (email.is_primary) {
+                                                                                                                    await fetch(`http://localhost:8000/api/settings/email-settings/${email.id}/`, {
+                                                                                                                        method: 'PATCH',
+                                                                                                                        headers: {
+                                                                                                                            'Authorization': `Bearer ${token}`,
+                                                                                                                            'Content-Type': 'application/json'
+                                                                                                                        },
+                                                                                                                        body: JSON.stringify({
+                                                                                                                            is_primary: false
+                                                                                                                        })
+                                                                                                                    });
+                                                                                                                }
+                                                                                                            }
+                                                                                                            
+                                                                                                            // Set this email as primary
+                                                                                                            const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                                method: 'PATCH',
+                                                                                                                headers: {
+                                                                                                                    'Authorization': `Bearer ${token}`,
+                                                                                                                    'Content-Type': 'application/json'
+                                                                                                                },
+                                                                                                                body: JSON.stringify({
+                                                                                                                    is_primary: true
+                                                                                                                })
+                                                                                                            });
+                                                                                                            
+                                                                                                            if (response.ok) {
+                                                                                                                alert(`✅ Email set as Primary successfully!\n\nEmail: ${emailSetting.email_address}\nThis is now the default email for all communications.`);
+                                                                                                                
+                                                                                                                // Refresh the email settings list
+                                                                                                                try {
+                                                                                                                    const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                                        method: 'GET',
+                                                                                                                        headers: {
+                                                                                                                            'Authorization': `Bearer ${token}`,
+                                                                                                                            'Content-Type': 'application/json'
+                                                                                                                        }
+                                                                                                                    });
+                                                                                                                    
+                                                                                                                    if (refreshResponse.ok) {
+                                                                                                                        const data = await refreshResponse.json();
+                                                                                                                        const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                                                                        setSavedEmailSettings(emailSettings);
+                                                                                                                        
+                                                                                                                        // Update selected email setting
+                                                                                                                        const updatedEmail = emailSettings.find(e => e.id === emailSetting.id);
+                                                                                                                        if (updatedEmail) {
+                                                                                                                            setSelectedEmailSetting(updatedEmail);
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                } catch (refreshErr) {
+                                                                                                                    console.error('Error refreshing email settings:', refreshErr);
+                                                                                                                }
+                                                                                                            } else {
+                                                                                                                const error = await response.text();
+                                                                                                                alert(`❌ Failed to set as Primary!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                            }
+                                                                                                        } else {
+                                                                                                            alert(`❌ Failed to fetch existing emails!\n\nStatus: ${allEmailsResponse.status}`);
+                                                                                                        }
+                                                                                                    } catch (err) {
+                                                                                                        console.error('Set primary email error:', err);
+                                                                                                        alert(`❌ Set Primary Error!\n\nError: ${err.message}`);
+                                                                                                    }
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            <i className="fa fa-star mr-1"></i>
+                                                                                            Set Primary
+                                                                                        </button>
+                                                                                    )}
+                                                                                    {emailSetting.is_primary && (
+                                                                                        <button 
+                                                                                            type="button" 
+                                                                                            className="btn btn-sm btn-outline-secondary ml-2"
+                                                                                            onClick={async (e) => {
+                                                                                                e.stopPropagation(); // Prevent card selection
+                                                                                                
+                                                                                                if (window.confirm(`Remove Primary status from this email?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis will remove its default status.`)) {
+                                                                                                    try {
+                                                                                                        const token = localStorage.getItem('token');
+                                                                                                        const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                            method: 'PATCH',
+                                                                                                            headers: {
+                                                                                                                'Authorization': `Bearer ${token}`,
+                                                                                                                'Content-Type': 'application/json'
+                                                                                                            },
+                                                                                                            body: JSON.stringify({
+                                                                                                                is_primary: false
+                                                                                                            })
+                                                                                                        });
+                                                                                                        
+                                                                                                        if (response.ok) {
+                                                                                                            alert(`✅ Primary status removed successfully!\n\nEmail: ${emailSetting.email_address}\nThis email is no longer the default.`);
+                                                                                                            
+                                                                                                            // Refresh the email settings list
+                                                                                                            try {
+                                                                                                                const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                                    method: 'GET',
+                                                                                                                    headers: {
+                                                                                                                        'Authorization': `Bearer ${token}`,
+                                                                                                                        'Content-Type': 'application/json'
+                                                                                                                    }
+                                                                                                                });
+                                                                                                                
+                                                                                                                if (refreshResponse.ok) {
+                                                                                                                    const data = await refreshResponse.json();
+                                                                                                                    const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                                                                    setSavedEmailSettings(emailSettings);
+                                                                                                                    
+                                                                                                                    // Update selected email setting
+                                                                                                                    const updatedEmail = emailSettings.find(e => e.id === emailSetting.id);
+                                                                                                                    if (updatedEmail) {
+                                                                                                                        setSelectedEmailSetting(updatedEmail);
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            } catch (refreshErr) {
+                                                                                                                console.error('Error refreshing email settings:', refreshErr);
+                                                                                                            }
+                                                                                                        } else {
+                                                                                                            const error = await response.text();
+                                                                                                            alert(`❌ Failed to remove Primary status!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                        }
+                                                                                                    } catch (err) {
+                                                                                                        console.error('Remove primary email error:', err);
+                                                                                                        alert(`❌ Remove Primary Error!\n\nError: ${err.message}`);
+                                                                                                    }
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            <i className="fa fa-star-o mr-1"></i>
+                                                                                            Remove Primary
+                                                                                        </button>
+                                                                                    )}
+                                                                                    <button 
+                                                                                        type="button" 
+                                                                                        className="btn btn-sm btn-outline-danger ml-2"
+                                                                                        onClick={async (e) => {
+                                                                                            e.stopPropagation(); // Prevent card selection
+                                                                                            
+                                                                                            if (window.confirm(`Are you sure you want to delete this email setting?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis action cannot be undone.`)) {
+                                                                                                try {
+                                                                                                    const token = localStorage.getItem('token');
+                                                                                                    const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                        method: 'DELETE',
+                                                                                                        headers: {
+                                                                                                            'Authorization': `Bearer ${token}`,
+                                                                                                            'Content-Type': 'application/json'
+                                                                                                        }
+                                                                                                    });
+                                                                                                    
+                                                                                                    if (response.ok) {
+                                                                                                        alert(`✅ Email setting deleted successfully!\n\nEmail: ${emailSetting.email_address}`);
+                                                                                                        
+                                                                                                        // Refresh the email settings list
+                                                                                                        try {
+                                                                                                            const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                                method: 'GET',
+                                                                                                                headers: {
+                                                                                                                    'Authorization': `Bearer ${token}`,
+                                                                                                                    'Content-Type': 'application/json'
+                                                                                                                }
+                                                                                                            });
+                                                                                                            
+                                                                                                            if (refreshResponse.ok) {
+                                                                                                                const data = await refreshResponse.json();
+                                                                                                                const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                                                                setSavedEmailSettings(emailSettings);
+                                                                                                                
+                                                                                                                if (emailSettings.length > 0) {
+                                                                                                                    setSelectedEmailSetting(emailSettings[0]);
+                                                                                                                } else {
+                                                                                                                    setSelectedEmailSetting(null);
+                                                                                                                }
+                                                                                                            }
+                                                                                                        } catch (refreshErr) {
+                                                                                                            console.error('Error refreshing email settings:', refreshErr);
+                                                                                                        }
+                                                                                                    } else {
+                                                                                                        const error = await response.text();
+                                                                                                        alert(`❌ Failed to delete email setting!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                    }
+                                                                                                } catch (err) {
+                                                                                                    console.error('Delete email setting error:', err);
+                                                                                                    alert(`❌ Delete Error!\n\nError: ${err.message}`);
+                                                                                                }
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        <i className="fa fa-trash mr-1"></i>
+                                                                                        Delete
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            
+                                                            {selectedEmailSetting && (
+                                                                <div className="alert alert-info">
+                                                                    <i className="fa fa-info-circle mr-2"></i>
+                                                                    <strong>Selected Email Setting:</strong> {selectedEmailSetting.name} ({selectedEmailSetting.email_address})
+                                                                    <br />
+                                                                    <small>Form has been populated with this email setting. You can now test or modify the settings above.</small>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="alert alert-warning">
+                                                            <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                            <strong>No Email Settings Found</strong>
+                                                            <br />
+                                                            <small>No saved email settings found in database. Create a new email configuration above.</small>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </article>
                         )}
 
-                        {activeTab === 'settings' && (
-                            <article className="card mt-3">
-                                <header className="card-header">
-                                    <strong className="d-inline-block mr-3">Change Password</strong>
-                                </header>
-                                <div className="card-body">
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        setPwdError(null);
-                                        setPwdSuccess(null);
-                                        if(!pwdForm.password || !pwdForm.confirm_password) {
-                                            setPwdError('Please fill both fields');
-                                            return;
-                                        }
-                                        if(pwdForm.password !== pwdForm.confirm_password) {
-                                            setPwdError('Passwords do not match');
-                                            return;
-                                        }
-                                        try {
-                                            setPwdLoading(true);
-                                            const token = localStorage.getItem('token');
-                                            const res = await fetch('http://localhost:8000/api/accounts/change-password/', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Authorization': `Bearer ${token}`,
-                                                    'Content-Type': 'application/json'
-                                                },
-                                                body: JSON.stringify({
-                                                    password: pwdForm.password,
-                                                    confirm_password: pwdForm.confirm_password
-                                                })
-                                            });
-                                            if(res.ok) {
-                                                setPwdSuccess('Password changed successfully');
-                                                setPwdForm({password: '', confirm_password: ''});
-                                            } else {
-                                                const err = await res.json().catch(() => ({}));
-                                                setPwdError(err.message || 'Failed to change password');
-                                            }
-                                        } catch(err) {
-                                            setPwdError('Network error while changing password');
-                                        } finally {
-                                            setPwdLoading(false);
-                                        }
-                                    }}>
-                                        {pwdError && (
-                                            <div className="alert alert-danger">
-                                                <i className="fa fa-exclamation-triangle mr-2"></i>
-                                                {pwdError}
-                                            </div>
-                                        )}
-                                        {pwdSuccess && (
-                                            <div className="alert alert-success">
-                                                <i className="fa fa-check-circle mr-2"></i>
-                                                {pwdSuccess}
-                                            </div>
-                                        )}
-                                        <div className="row">
-                                            <div className="col-md-6">
-                                                <div className="form-group">
-                                                    <label>New Password</label>
-                                                    <input type="password" className="form-control" value={pwdForm.password} onChange={(e) => setPwdForm({...pwdForm, password: e.target.value})} />
-                                                </div>
-                                            </div>
-                                            <div className="col-md-6">
-                                                <div className="form-group">
-                                                    <label>Confirm Password</label>
-                                                    <input type="password" className="form-control" value={pwdForm.confirm_password} onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <button type="submit" className="btn btn-warning" disabled={pwdLoading}>
-                                                {pwdLoading ? 'Changing...' : 'Change Password'}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </article>
-                        )}
                     </main>
                 </div>
             </div>

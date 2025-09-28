@@ -24,6 +24,7 @@ const Register = () => {
         message: '',
         type: 'success'
     });
+    const [isLoading, setIsLoading] = useState(false);
     const {register} = useAuth();
     const navigate = useNavigate();
 
@@ -85,21 +86,35 @@ const Register = () => {
             return;
         }
 
-        const userData = {
-            email: formData.email,
-            password: formData.password,
-            confirm_password: formData.confirm_password,
-            full_name: formData.full_name
-        };
+        // Set loading state
+        setIsLoading(true);
 
-        const result = await register(userData);
-        if(result.success) {
-            showToast('Registration successful! Please check your email for verification.', 'success');
-            setTimeout(() => {
-                navigate('/email-verification');
-            }, 2000); // Navigate to email verification after 2 seconds
-        } else {
-            showToast(result.message || 'Registration failed. Please try again.', 'error');
+        try {
+            const userData = {
+                email: formData.email,
+                password: formData.password,
+                confirm_password: formData.confirm_password,
+                full_name: formData.full_name
+            };
+
+            const result = await register(userData);
+            
+            if(result.success) {
+                // Check if email verification was sent
+                if(result.email_verification_sent) {
+                    showToast('Registration successful! Please check your email for verification.', 'success');
+                    navigate(`/email-verification?email=${encodeURIComponent(formData.email)}`);
+                } else {
+                    showToast('Registration successful! However, verification email could not be sent. Please contact support.', 'error');
+                    navigate(`/email-verification?email=${encodeURIComponent(formData.email)}`);
+                }
+            } else {
+                showToast(result.message || 'Registration failed. Please try again.', 'error');
+            }
+        } catch (error) {
+            showToast('Registration failed. Please try again.', 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -224,8 +239,19 @@ const Register = () => {
                                 </div>
                             )}
                             <div className="form-group">
-                                <button type="submit" className="btn btn-primary btn-block">
-                                    Register
+                                <button 
+                                    type="submit" 
+                                    className="btn btn-primary btn-block"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <i className="fa fa-spinner fa-spin mr-2"></i>
+                                            Creating Account...
+                                        </>
+                                    ) : (
+                                        'Register'
+                                    )}
                                 </button>
                             </div>
                         </form>

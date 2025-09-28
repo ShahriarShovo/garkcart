@@ -66,7 +66,16 @@ const SignIn = () => {
                 }
             }, 1500);
         } else {
-            showToast(result.message || 'Login failed. Please check your credentials.', 'error');
+            // Check if it's an email verification error
+            if(result.email_verification_required) {
+                showToast(result.message || 'Please verify your email address before logging in.', 'error');
+                // Optionally navigate to email verification page
+                setTimeout(() => {
+                    navigate('/email-verification');
+                }, 2000);
+            } else {
+                showToast(result.message || 'Login failed. Please check your credentials.', 'error');
+            }
         }
     };
 
