@@ -11,6 +11,8 @@ import Cart from './product/Cart';
 import CategoryProducts from './product/CategoryProducts';
 import SignIn from './authentication/Auth/SignIn';
 import Register from './authentication/Auth/Register';
+import ForgotPassword from './authentication/Auth/ForgotPassword';
+import ResetPassword from './authentication/Auth/ResetPassword';
 import EmailVerification from './authentication/Auth/EmailVerification';
 import EmailVerifiedSuccess from './authentication/Auth/EmailVerifiedSuccess';
 import SearchResult from './product/SearchResult';
@@ -38,6 +40,8 @@ function AppShell() {
                     <Route path="/category-products" element={<CategoryProducts />} />
                     <Route path="/signin" element={<SignIn />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/email-verification" element={<EmailVerification />} />
                     <Route path="/email-verified" element={<EmailVerifiedSuccess />} />
                     <Route path="/search" element={<SearchResult />} />

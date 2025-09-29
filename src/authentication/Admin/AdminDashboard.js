@@ -6,6 +6,7 @@ import AdminChatInbox from '../../chat_and_notification/AdminChatInbox';
 import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService';
 import AdminLogoManager from '../../settings/AdminLogoManager';
 import AdminBannerManager from '../../settings/AdminBannerManager';
+import FooterSettings from './FooterSettings';
 // TODO: Future implementation - Notification and Discount management
 // import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
 // import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
@@ -313,6 +314,44 @@ const AdminDashboard = () => {
     const [pwdLoading, setPwdLoading] = useState(false);
     const [pwdError, setPwdError] = useState(null);
     const [pwdSuccess, setPwdSuccess] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordStrength, setPasswordStrength] = useState({
+        score: 0,
+        feedback: '',
+        color: 'danger'
+    });
+
+    // Password strength checker
+    const checkPasswordStrength = (password) => {
+        let score = 0;
+        let feedback = [];
+        
+        if (password.length >= 8) score += 1;
+        else feedback.push('At least 8 characters');
+        
+        if (/[a-z]/.test(password)) score += 1;
+        else feedback.push('Lowercase letter');
+        
+        if (/[A-Z]/.test(password)) score += 1;
+        else feedback.push('Uppercase letter');
+        
+        if (/[0-9]/.test(password)) score += 1;
+        else feedback.push('Number');
+        
+        if (/[^A-Za-z0-9]/.test(password)) score += 1;
+        else feedback.push('Special character');
+        
+        let color = 'danger';
+        if (score >= 4) color = 'success';
+        else if (score >= 3) color = 'warning';
+        
+        setPasswordStrength({
+            score,
+            feedback: feedback.length > 0 ? `Missing: ${feedback.join(', ')}` : 'Strong password!',
+            color
+        });
+    };
 
     // Settings extended UI (frontend-only placeholders)
     const [settingsTab, setSettingsTab] = useState('profile');
@@ -341,7 +380,7 @@ const AdminDashboard = () => {
         sms_gateway: '',
         payment_gateway: 'cod'
     });
-    
+
     // Email Settings states
     const [emailSettings, setEmailSettings] = useState({
         admin_email: '',
@@ -3075,6 +3114,9 @@ const AdminDashboard = () => {
                                         <li className="nav-item">
                                             <a href="#" className={`nav-link ${settingsTab === 'email' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('email')}}>Email Settings</a>
                                         </li>
+                                        <li className="nav-item">
+                                            <a href="#" className={`nav-link ${settingsTab === 'footer' ? 'active' : ''}`} onClick={(e) => {e.preventDefault(); setSettingsTab('footer')}}>Footer Settings</a>
+                                        </li>
                                     </ul>
 
                                     {settingsTab === 'profile' && (
@@ -3084,6 +3126,8 @@ const AdminDashboard = () => {
                                                 <p className="mt-2">Loading profile...</p>
                                             </div>
                                         ) : (
+                                            <div>
+                                            {console.log('🔍 DEBUG: Rendering profile form section')}
                                             <form onSubmit={async (e) => {
                                                 e.preventDefault();
                                                 try {
@@ -3204,7 +3248,206 @@ const AdminDashboard = () => {
                                                     </button>
                                                 </div>
                                             </form>
-                                        ))}
+                                            
+                                            {console.log('🔍 DEBUG: Profile form closed, starting change password section')}
+                                            {/* Change Password Section */}
+                                            <hr className="my-4" />
+                                            <div className="mt-4">
+                                                <h5 className="mb-3">
+                                                    <i className="fa fa-lock mr-2"></i>
+                                                    Change Password
+                                                </h5>
+                                                <form onSubmit={async (e) => {
+                                                    e.preventDefault();
+                                                    
+                                                    // Validation
+                                                    if (!pwdForm.password || !pwdForm.confirm_password) {
+                                                        setPwdError('Please fill in all fields');
+                                                        return;
+                                                    }
+                                                    
+                                                    if (pwdForm.password !== pwdForm.confirm_password) {
+                                                        setPwdError('Passwords do not match');
+                                                        return;
+                                                    }
+                                                    
+                                                    if (pwdForm.password.length < 6) {
+                                                        setPwdError('Password must be at least 6 characters long');
+                                                        return;
+                                                    }
+                                                    
+                                                    try {
+                                                        setPwdLoading(true);
+                                                        setPwdError(null);
+                                                        setPwdSuccess(null);
+                                                        
+                                                        const token = localStorage.getItem('token');
+                                                        if (!token) {
+                                                            setPwdError('Authentication required. Please login again.');
+                                                            return;
+                                                        }
+                                                        
+                                                        console.log('🔍 DEBUG: Sending change password request');
+                                                        const res = await fetch('http://localhost:8000/api/accounts/change-password/', {
+                                                            method: 'POST',
+                                                            headers: {
+                                                                'Authorization': `Bearer ${token}`,
+                                                                'Content-Type': 'application/json'
+                                                            },
+                                                            body: JSON.stringify({
+                                                                password: pwdForm.password,
+                                                                confirm_password: pwdForm.confirm_password
+                                                            })
+                                                        });
+                                                        
+                                                        console.log('🔍 DEBUG: Change password response status:', res.status);
+                                                        
+                                                        if(res.ok) {
+                                                            const data = await res.json();
+                                                            console.log('🔍 DEBUG: Change password success:', data);
+                                                            setPwdSuccess('Password changed successfully!');
+                                                            setPwdForm({
+                                                                password: '',
+                                                                confirm_password: ''
+                                                            });
+                                                        } else {
+                                                            const errorData = await res.json();
+                                                            console.log('🔍 DEBUG: Change password error:', errorData);
+                                                            setPwdError(errorData.message || 'Failed to change password');
+                                                        }
+                                                    } catch(err) {
+                                                        console.error('🔍 DEBUG: Change password network error:', err);
+                                                        setPwdError('Network error while changing password');
+                                                    } finally {
+                                                        setPwdLoading(false);
+                                                    }
+                                                }}>
+                                                    {pwdError && (
+                                                        <div className="alert alert-danger">
+                                                            <i className="fa fa-exclamation-triangle mr-2"></i>
+                                                            {pwdError}
+                                                        </div>
+                                                    )}
+                                                    {pwdSuccess && (
+                                                        <div className="alert alert-success">
+                                                            <i className="fa fa-check-circle mr-2"></i>
+                                                            {pwdSuccess}
+                                                        </div>
+                                                    )}
+                                                    <div className="row">
+                                                        <div className="col-md-6">
+                                                            <div className="form-group">
+                                                                <label>New Password</label>
+                                                                <div className="input-group">
+                                                                    <input 
+                                                                        type={showPassword ? "text" : "password"} 
+                                                                        className="form-control" 
+                                                                        value={pwdForm.password || ''} 
+                                                                        onChange={(e) => {
+                                                                            setPwdForm({...pwdForm, password: e.target.value});
+                                                                            checkPasswordStrength(e.target.value);
+                                                                        }}
+                                                                        required
+                                                                    />
+                                                                    <div className="input-group-append">
+                                                                        <button 
+                                                                            type="button" 
+                                                                            className="btn btn-outline-secondary"
+                                                                            onClick={() => setShowPassword(!showPassword)}
+                                                                        >
+                                                                            <i className={`fa ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Password Strength Indicator */}
+                                                                {pwdForm.password && (
+                                                                    <div className="mt-2">
+                                                                        <div className="progress" style={{height: '5px'}}>
+                                                                            <div 
+                                                                                className={`progress-bar bg-${passwordStrength.color}`}
+                                                                                style={{width: `${(passwordStrength.score / 5) * 100}%`}}
+                                                                            ></div>
+                                                                        </div>
+                                                                        <small className={`text-${passwordStrength.color}`}>
+                                                                            {passwordStrength.feedback}
+                                                                        </small>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="col-md-6">
+                                                            <div className="form-group">
+                                                                <label>Confirm Password</label>
+                                                                <div className="input-group">
+                                                                    <input 
+                                                                        type={showConfirmPassword ? "text" : "password"} 
+                                                                        className="form-control" 
+                                                                        value={pwdForm.confirm_password || ''} 
+                                                                        onChange={(e) => setPwdForm({...pwdForm, confirm_password: e.target.value})}
+                                                                        required
+                                                                    />
+                                                                    <div className="input-group-append">
+                                                                        <button 
+                                                                            type="button" 
+                                                                            className="btn btn-outline-secondary"
+                                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                                        >
+                                                                            <i className={`fa ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Password Match Indicator */}
+                                                                {pwdForm.confirm_password && (
+                                                                    <div className="mt-2">
+                                                                        {pwdForm.password === pwdForm.confirm_password ? (
+                                                                            <small className="text-success">
+                                                                                <i className="fa fa-check mr-1"></i>
+                                                                                Passwords match
+                                                                            </small>
+                                                                        ) : (
+                                                                            <small className="text-danger">
+                                                                                <i className="fa fa-times mr-1"></i>
+                                                                                Passwords do not match
+                                                                            </small>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="row">
+                                                        <div className="col-12">
+                                                            <div className="form-group">
+                                                                <button type="submit" className="btn btn-warning" disabled={pwdLoading || passwordStrength.score < 3}>
+                                                                    {pwdLoading ? (
+                                                                        <>
+                                                                            <i className="fa fa-spinner fa-spin mr-2"></i>
+                                                                            Changing...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <i className="fa fa-key mr-2"></i>
+                                                                            Change Password
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                                {passwordStrength.score < 3 && pwdForm.password && (
+                                                                    <small className="text-muted ml-2">
+                                                                        Password must be stronger to continue
+                                                                    </small>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            {console.log('🔍 DEBUG: Change password section closed, closing profile div')}
+                                            </div>
+                                        )
+                                    )}
                                     {/* TODO: Future implementation - General Settings
                                     {settingsTab === 'general' && (
                                         <form onSubmit={(e) => {e.preventDefault(); setToast({show: true, type: 'success', message: 'Saved (placeholder)'})}}>
@@ -3365,7 +3608,7 @@ const AdminDashboard = () => {
                                                 <div className="alert alert-danger">
                                                     <i className="fa fa-exclamation-triangle mr-2"></i>
                                                     {emailSettingsError}
-                                                </div>
+                                </div>
                                             )}
                                             {emailSettingsSuccess && (
                                                 <div className="alert alert-success">
@@ -3374,8 +3617,8 @@ const AdminDashboard = () => {
                                                 </div>
                                             )}
                                             
-                                            <form onSubmit={async (e) => {
-                                                e.preventDefault();
+                                    <form onSubmit={async (e) => {
+                                        e.preventDefault();
                                                 try {
                                                     setEmailSettingsSaving(true);
                                                     setEmailSettingsError(null);
@@ -3384,10 +3627,10 @@ const AdminDashboard = () => {
                                                     // Validate required fields
                                                     if (!emailSettings.admin_email || !smtpSettings.smtp_host || !smtpSettings.smtp_username || !smtpSettings.smtp_password) {
                                                         setEmailSettingsError('Please fill in all required fields (Admin Email, SMTP Host, Username, Password)');
-                                                        return;
-                                                    }
+                                            return;
+                                        }
                                                     
-                                                    const token = localStorage.getItem('token');
+                                            const token = localStorage.getItem('token');
                                                     
                                                     // First, try to get existing email settings
                                                     let existingSettings = null;
@@ -3419,11 +3662,11 @@ const AdminDashboard = () => {
                                                     
                                                     const response = await fetch(url, {
                                                         method: method,
-                                                        headers: {
-                                                            'Authorization': `Bearer ${token}`,
-                                                            'Content-Type': 'application/json'
-                                                        },
-                                                        body: JSON.stringify({
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`,
+                                                    'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify({
                                                             name: 'Admin Email Configuration',
                                                             email_address: emailSettings.admin_email,
                                                             email_password: smtpSettings.smtp_password, // Add this required field
@@ -3444,21 +3687,21 @@ const AdminDashboard = () => {
                                                             use_for_order_notifications: true,
                                                             use_for_admin_notifications: true,
                                                             use_for_support: true
-                                                        })
-                                                    });
+                                                })
+                                            });
                                                     
                                                     if (response.ok) {
                                                         const data = await response.json();
                                                         setEmailSettingsSuccess('Email settings saved successfully!');
                                                         console.log('Email settings saved:', data);
-                                                    } else {
+                                            } else {
                                                         const errorData = await response.json();
                                                         setEmailSettingsError(errorData.message || 'Failed to save email settings');
-                                                    }
-                                                } catch(err) {
+                                            }
+                                        } catch(err) {
                                                     console.error('Email settings save error:', err);
                                                     setEmailSettingsError('Network error while saving email settings');
-                                                } finally {
+                                        } finally {
                                                     setEmailSettingsSaving(false);
                                                 }
                                             }}>
@@ -3471,17 +3714,17 @@ const AdminDashboard = () => {
                                                 </h5>
                                                 
                                                 {smtpError && (
-                                                    <div className="alert alert-danger">
-                                                        <i className="fa fa-exclamation-triangle mr-2"></i>
+                                            <div className="alert alert-danger">
+                                                <i className="fa fa-exclamation-triangle mr-2"></i>
                                                         {smtpError}
-                                                    </div>
-                                                )}
+                                            </div>
+                                        )}
                                                 {smtpSuccess && (
-                                                    <div className="alert alert-success">
-                                                        <i className="fa fa-check-circle mr-2"></i>
+                                            <div className="alert alert-success">
+                                                <i className="fa fa-check-circle mr-2"></i>
                                                         {smtpSuccess}
-                                                    </div>
-                                                )}
+                                            </div>
+                                        )}
                                                 {smtpTestResult && (
                                                     <div className={`alert ${smtpTestResult.success ? 'alert-success' : 'alert-danger'}`}>
                                                         <i className={`fa ${smtpTestResult.success ? 'fa-check-circle' : 'fa-times-circle'} mr-2`}></i>
@@ -3489,9 +3732,9 @@ const AdminDashboard = () => {
                                                     </div>
                                                 )}
                                                 
-                                                <div className="row">
-                                                    <div className="col-md-6">
-                                                        <div className="form-group">
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <div className="form-group">
                                                             <label htmlFor="smtp_host">
                                                                 <i className="fa fa-globe mr-2"></i>
                                                                 SMTP Host
@@ -3507,10 +3750,10 @@ const AdminDashboard = () => {
                                                             <small className="form-text text-muted">
                                                                 SMTP server address (e.g., smtp.gmail.com, smtp.outlook.com)
                                                             </small>
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-md-6">
-                                                        <div className="form-group">
+                                                </div>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
                                                             <label htmlFor="smtp_port">
                                                                 <i className="fa fa-plug mr-2"></i>
                                                                 SMTP Port
@@ -3526,9 +3769,9 @@ const AdminDashboard = () => {
                                                             <small className="form-text text-muted">
                                                                 Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)
                                                             </small>
-                                                        </div>
-                                                    </div>
                                                 </div>
+                                            </div>
+                                        </div>
                                                 
                                                 <div className="row">
                                                     <div className="col-md-6">
@@ -3848,12 +4091,12 @@ const AdminDashboard = () => {
                                                                         Save SMTP Settings
                                                                     </>
                                                                 )}
-                                                            </button>
-                                                        </div>
+                                            </button>
+                                        </div>
                                                     </div>
                                                 </div>
                                                 
-                                            </form>
+                                    </form>
                                         </div>
                                     )}
                                     
@@ -4348,6 +4591,10 @@ const AdminDashboard = () => {
                                                 </div>
                                             </div>
                                         </>
+                                    )}
+
+                                    {settingsTab === 'footer' && (
+                                        <FooterSettings />
                                     )}
                                 </div>
                             </article>

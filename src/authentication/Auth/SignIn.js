@@ -127,7 +127,10 @@ const SignIn = () => {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <Link to="#" className="float-right">Forgot password?</Link>
+                                <Link to="/forgot-password" className="float-right text-primary">
+                                    <i className="fa fa-key mr-1"></i>
+                                    Forgot password?
+                                </Link>
                             </div>
                             <div className="form-group">
                                 <button type="submit" className="btn btn-primary btn-block">

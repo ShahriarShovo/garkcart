@@ -63,7 +63,9 @@ const ProductDetail = () => {
     const fetchReviews = async () => {
         setReviewsLoading(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${slug}/`);
+            // Use slug if available, otherwise use id (same logic as fetchProduct)
+            const identifier = slug || id;
+            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${identifier}/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -86,7 +88,9 @@ const ProductDetail = () => {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/purchase-verification/${slug}/`, {
+            // Use slug if available, otherwise use id (same logic as fetchProduct)
+            const identifier = slug || id;
+            const response = await fetch(`http://localhost:8000/api/products/purchase-verification/${identifier}/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -118,7 +122,9 @@ const ProductDetail = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${slug}/create/`, {
+            // Use slug if available, otherwise use id (same logic as fetchProduct)
+            const identifier = slug || id;
+            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${identifier}/create/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
