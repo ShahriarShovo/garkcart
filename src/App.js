@@ -20,6 +20,8 @@ import PlaceOrder from './order/PlaceOrder';
 import OrderComplete from './order/OrderComplete';
 import Dashboard from './authentication/User/Dashboard';
 import AdminDashboard from './authentication/Admin/AdminDashboard';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
 import {useAuth} from './context/AuthContext';
 import {FloatingChatWidget} from './chat_and_notification';
 // TODO: Notification features will be developed in future
@@ -49,6 +51,8 @@ function AppShell() {
                     <Route path="/order-complete" element={<OrderComplete />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    <Route path="/about-us" element={<AboutUs />} />
+                    <Route path="/contact-us" element={<ContactUs />} />
                 </Routes>
             </main>
             <Footer />

@@ -3,6 +3,13 @@ import logoApi from '../settings/api/logoApi';
 
 const Footer = () => {
     const [logoUrl, setLogoUrl] = useState('/images/logo.png'); // Default logo
+    const [footerData, setFooterData] = useState({
+        description: 'One of the biggest online shopping platform in Bangladesh.',
+        copyright: '© 2024 GreatKart. All rights reserved',
+        email: 'info@greatkart.com',
+        phone: '+880-123-456-789',
+        social_links: []
+    });
 
     // Fetch active logo
     const fetchActiveLogo = async () => {
@@ -23,8 +30,31 @@ const Footer = () => {
         }
     };
 
+    // Fetch footer settings
+    const fetchFooterSettings = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/settings/footer-settings/active/');
+            if(response.ok) {
+                const data = await response.json();
+                if(data.success && data.data) {
+                    setFooterData({
+                        description: data.data.description || 'One of the biggest online shopping platform in Bangladesh.',
+                        copyright: data.data.copyright || '© 2024 GreatKart. All rights reserved',
+                        email: data.data.email || 'info@greatkart.com',
+                        phone: data.data.phone || '+880-123-456-789',
+                        social_links: data.data.social_links || []
+                    });
+                }
+            }
+        } catch(error) {
+            console.error('Footer: Error fetching footer settings:', error);
+            // Keep default values if API fails
+        }
+    };
+
     useEffect(() => {
         fetchActiveLogo();
+        fetchFooterSettings();
     }, []);
 
     return (
@@ -42,20 +72,27 @@ const Footer = () => {
                                     onLoad={() => {}}
                                     onError={(e) => console.error('Footer: Image failed to load:', logoUrl, e)}
                                 />
-                                <p className="mt-2 mb-2" style={{fontSize: '14px'}}>One of the biggest online shopping platform in Bangladesh.</p>
+                                <p className="mt-2 mb-2" style={{fontSize: '14px'}}>{footerData.description}</p>
                                 <div>
-                                    <a className="btn btn-icon btn-light" title="Facebook" target="_blank" href="#"><i className="fab fa-facebook-f"></i></a>
-                                    <a className="btn btn-icon btn-light" title="Instagram" target="_blank" href="#"><i className="fab fa-instagram"></i></a>
-                                    <a className="btn btn-icon btn-light" title="Youtube" target="_blank" href="#"><i className="fab fa-youtube"></i></a>
-                                    <a className="btn btn-icon btn-light" title="Twitter" target="_blank" href="#"><i className="fab fa-twitter"></i></a>
+                                    {footerData.social_links.map((link, index) => (
+                                        <a 
+                                            key={index}
+                                            className="btn btn-icon btn-light" 
+                                            title={link.platform} 
+                                            target="_blank" 
+                                            href={link.url}
+                                        >
+                                            <i className={link.icon}></i>
+                                        </a>
+                                    ))}
                                 </div>
                             </article>
                         </aside>
                         <aside className="col-md-3">
                             <h6 className="title" style={{fontSize: '16px', marginBottom: '10px'}}>Quick Links</h6>
                             <ul className="list-unstyled" style={{fontSize: '14px'}}>
-                                <li><a href="#">About us</a></li>
-                                <li><a href="#">Contact us</a></li>
+                                <li><a href="/about-us">About us</a></li>
+                                <li><a href="/contact-us">Contact us</a></li>
                                 <li><a href="#">Order tracking</a></li>
                                 <li><a href="#">Returns</a></li>
                             </ul>
@@ -70,11 +107,11 @@ const Footer = () => {
 
                 <section className="footer-bottom border-top row" style={{padding: '15px 0'}}>
                     <div className="col-md-4">
-                        <p className="text-muted" style={{fontSize: '14px', margin: 0}}>&copy 2024 GreatKart. All rights reserved</p>
+                        <p className="text-muted" style={{fontSize: '14px', margin: 0}}>{footerData.copyright}</p>
                     </div>
                     <div className="col-md-4 text-md-center">
-                        <span className="px-2" style={{fontSize: '14px'}}>info@greatkart.com</span>
-                        <span className="px-2" style={{fontSize: '14px'}}>+880-123-456-789</span>
+                        <span className="px-2" style={{fontSize: '14px'}}>{footerData.email}</span>
+                        <span className="px-2" style={{fontSize: '14px'}}>{footerData.phone}</span>
                     </div>
                     <div className="col-md-4 text-md-right text-muted">
                         <i className="fab fa-lg fa-cc-visa"></i>
