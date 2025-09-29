@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useState} from 'react';
+import API_CONFIG from '../config/apiConfig';
 
 const AuthContext = createContext();
 
@@ -12,7 +13,7 @@ export const AuthProvider = ({children}) => {
         try {
             console.log('AuthContext: Starting login process for:', userData.email);
 
-            const response = await fetch('http://localhost:8000/api/accounts/login/', {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'LOGIN'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ export const AuthProvider = ({children}) => {
 
     const register = async (userData) => {
         try {
-            const response = await fetch('http://localhost:8000/api/accounts/signup/', {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'REGISTER'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -192,7 +193,7 @@ export const AuthProvider = ({children}) => {
         const refresh = localStorage.getItem('refresh_token');
         if(!refresh) return false;
         try {
-            const response = await fetch('http://localhost:8000/api/accounts/token/refresh/', {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'REFRESH'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({refresh})

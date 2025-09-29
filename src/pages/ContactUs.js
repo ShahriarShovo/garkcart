@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_CONFIG from '../config/apiConfig';
 
 const ContactUs = () => {
     const [footerData, setFooterData] = useState({
@@ -23,7 +24,7 @@ const ContactUs = () => {
     // Fetch footer settings
     const fetchFooterSettings = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/settings/footer-settings/active/');
+            const response = await fetch(API_CONFIG.getFullUrl('SETTINGS', 'FOOTER'));
             if(response.ok) {
                 const data = await response.json();
                 if(data.success && data.data) {
@@ -62,7 +63,7 @@ const ContactUs = () => {
         setSubmitting(true);
         
         try {
-            const response = await fetch('http://localhost:8000/api/chat_and_notifications/contacts/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

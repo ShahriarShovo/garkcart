@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useReducer, useState, useEffect} from 'react';
+import API_CONFIG from '../config/apiConfig';
 
 const CartContext = createContext();
 
@@ -59,10 +60,17 @@ export const CartProvider = ({children}) => {
         items: []
     });
     const [loading, setLoading] = useState(false);
+    const [cartFetched, setCartFetched] = useState(false);
 
     // Fetch cart from API
     const fetchCart = async () => {
+        if (cartFetched) {
+            return;
+        }
+        
         try {
+            setCartFetched(true);
+            
             const token = localStorage.getItem('token');
             const headers = {};
 
@@ -70,23 +78,40 @@ export const CartProvider = ({children}) => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('http://localhost:8000/api/cart/', {
-                headers: headers
+            const response = await fetch(API_CONFIG.getFullUrl('CART', 'GET'), {
+                headers: headers,
+                credentials: 'include'  // Include cookies in requests
             });
 
             if(response.ok) {
                 const data = await response.json();
+                console.log('🔍 FRONTEND CART: Cart API response data:', data);
                 if(data.success && data.cart) {
+                    console.log('🔍 FRONTEND CART: Setting cart items:', data.cart.items?.length || 0);
+                    if(data.cart.items && data.cart.items.length > 0) {
+                        console.log('🔍 FRONTEND CART: WARNING - Cart has items:', data.cart.items);
+                    }
                     dispatch({type: 'SET_CART', payload: data.cart.items || []});
                 }
             }
         } catch(error) {
             console.error('Failed to fetch cart:', error);
+            setCartFetched(false); // Reset on error
         }
     };
 
     // Add to cart API call
     const addToCart = async (product) => {
+        // Check if user is authenticated
+        const token = localStorage.getItem('token');
+        if (!token) {
+            return {
+                success: false, 
+                message: 'Please login or sign up to add items to cart',
+                requiresAuth: true
+            };
+        }
+
         setLoading(true);
         try {
             const requestData = {
@@ -95,20 +120,24 @@ export const CartProvider = ({children}) => {
                 variant_id: product.selectedVariant?.id || null
             };
 
-            const token = localStorage.getItem('token');
+            console.log('🔍 DEBUG: Request data:', requestData);
+
             const headers = {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             };
 
-            if(token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
+            console.log('🔍 DEBUG: Using authenticated add to cart API');
 
-            const response = await fetch('http://localhost:8000/api/cart/add/', {
+            console.log('🔍 DEBUG: Making API call to add to cart');
+            const response = await fetch(API_CONFIG.getFullUrl('CART', 'ADD'), {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(requestData),
+                credentials: 'include'  // Include cookies in requests
             });
+
+            console.log('🔍 DEBUG: Add to cart API response status:', response.status);
 
             if(response.ok) {
                 const data = await response.json();
@@ -141,7 +170,7 @@ export const CartProvider = ({children}) => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`http://localhost:8000/api/cart/items/${itemId}/remove/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/cart/items/${itemId}/remove/`, {
                 method: 'DELETE',
                 headers: headers
             });
@@ -186,7 +215,7 @@ export const CartProvider = ({children}) => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`http://localhost:8000/api/cart/items/${itemId}/increase/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/cart/items/${itemId}/increase/`, {
                 method: 'POST',
                 headers: headers
             });
@@ -220,7 +249,7 @@ export const CartProvider = ({children}) => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`http://localhost:8000/api/cart/items/${itemId}/decrease/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/cart/items/${itemId}/decrease/`, {
                 method: 'POST',
                 headers: headers
             });
@@ -269,7 +298,7 @@ export const CartProvider = ({children}) => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('http://localhost:8000/api/cart/clear/', {
+            const response = await fetch(API_CONFIG.getFullUrl('CART', 'CLEAR'), {
                 method: 'DELETE',
                 headers: headers
             });
@@ -305,10 +334,29 @@ export const CartProvider = ({children}) => {
         return state.items.reduce((total, item) => total + (item.unit_price * item.quantity), 0);
     };
 
-    // Fetch cart on component mount
+    // Only fetch cart when user is authenticated
     useEffect(() => {
-        fetchCart();
-    }, []);
+        let isMounted = true;
+        
+        const fetchCartOnce = async () => {
+            if (isMounted) {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    // Only fetch cart for authenticated users
+                    await fetchCart();
+                } else {
+                    // For anonymous users, set empty cart
+                    dispatch({type: 'SET_CART', payload: []});
+                }
+            }
+        };
+        
+        fetchCartOnce();
+        
+        return () => {
+            isMounted = false;
+        };
+    }, []); // Empty dependency array to run only once
 
     const value = {
         items: state.items,

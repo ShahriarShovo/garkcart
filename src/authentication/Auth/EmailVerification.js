@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {useAuth} from '../../context/AuthContext';
 import Toast from '../../components/Toast';
+import API_CONFIG from '../../config/apiConfig';
 
 const EmailVerification = () => {
     const [toast, setToast] = useState({
@@ -63,7 +64,7 @@ const EmailVerification = () => {
         setIsResending(true);
         
         try {
-            const response = await fetch('http://localhost:8000/api/accounts/resend-verification/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/resend-verification/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

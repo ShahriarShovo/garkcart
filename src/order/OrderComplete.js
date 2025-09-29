@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom';
 import logoApi from '../settings/api/logoApi';
+import API_CONFIG from '../config/apiConfig';
 
 const OrderComplete = () => {
     const location = useLocation();
@@ -18,7 +19,7 @@ const OrderComplete = () => {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
-                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    finalUrl = `${API_CONFIG.BASE_URL}${finalUrl}`;
                     console.log('Invoice: Converted to full URL:', finalUrl);
                 }
                 console.log('Invoice: Setting logo URL:', finalUrl);

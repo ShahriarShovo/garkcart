@@ -4,6 +4,7 @@ import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 import PriceRangeFilter from '../components/PriceRangeFilter';
 import BannerSlider from '../components/BannerSlider';
+import API_CONFIG from '../config/apiConfig';
 
 const Home = () => {
     const [categoriesExpanded, setCategoriesExpanded] = useState(true);
@@ -31,22 +32,29 @@ const Home = () => {
 
     // Fetch products from API with pagination and price filter
     const fetchProducts = async (page = 1, minPrice = null, maxPrice = null) => {
+        console.log('🔍 HOME_PAGE: fetchProducts called - Page:', page, 'MinPrice:', minPrice, 'MaxPrice:', maxPrice);
+        console.log('🔍 HOME_PAGE: Stack trace:');
+        console.trace();
+        
         setLoading(true);
         setError(null);
         try {
-            let url = `http://localhost:8000/api/products/pagination/products/?page=${page}&page_size=${pageSize}`;
+            let url = `${API_CONFIG.getFullUrl('PRODUCTS', 'PAGINATION')}?page=${page}&page_size=${pageSize}`;
 
             // If price filter is applied, use price filter API
             if(minPrice !== null || maxPrice !== null) {
-                url = `http://localhost:8000/api/products/price-filter/products/?page=${page}&page_size=${pageSize}`;
+                url = `${API_CONFIG.BASE_URL}/api/products/price-filter/products/?page=${page}&page_size=${pageSize}`;
                 if(minPrice !== null) url += `&min_price=${minPrice}`;
                 if(maxPrice !== null) url += `&max_price=${maxPrice}`;
             }
 
+            console.log('🔍 HOME_PAGE: Fetching products from URL:', url);
             const response = await fetch(url);
 
+            console.log('🔍 HOME_PAGE: Products API response status:', response.status);
             if(response.ok) {
                 const data = await response.json();
+                console.log('🔍 HOME_PAGE: Products data received:', data.results?.length || 0, 'products');
                 setProducts(data.results || []);
                 setCurrentPage(data.current_page || 1);
                 setTotalPages(data.total_pages || 1);
@@ -68,7 +76,7 @@ const Home = () => {
     const fetchCategories = async () => {
         setCategoriesLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/products/category/');
+            const response = await fetch(API_CONFIG.getFullUrl('PRODUCTS', 'CATEGORIES'));
 
             if(response.ok) {
                 const data = await response.json();
@@ -90,7 +98,7 @@ const Home = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/products/category/${categorySlug}/subcategories/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/category/${categorySlug}/subcategories/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -503,7 +511,13 @@ const Home = () => {
                                                         </div>
                                                         <button
                                                             className="btn btn-block btn-primary"
-                                                            onClick={async () => {
+                                                            onClick={async (e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                
+                                                                // Prevent multiple clicks
+                                                                if (loading) return;
+                                                                
                                                                 // Determine variant ID - use default variant if product has variants
                                                                 console.log('🏠 Home - Add to Cart clicked for product:', product);
                                                                 console.log('🏠 Home - Product ID:', product.id);
@@ -554,6 +568,12 @@ const Home = () => {
                                                                         show: true,
                                                                         message: result.message || 'Product added to cart successfully!',
                                                                         type: 'success'
+                                                                    });
+                                                                } else if(result && result.requiresAuth) {
+                                                                    setToast({
+                                                                        show: true,
+                                                                        message: result.message || 'Please login or sign up to add items to cart',
+                                                                        type: 'warning'
                                                                     });
                                                                 } else {
                                                                     setToast({

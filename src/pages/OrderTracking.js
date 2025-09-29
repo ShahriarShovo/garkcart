@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_CONFIG from '../config/apiConfig';
 
 const OrderTracking = () => {
     const [trackingNumber, setTrackingNumber] = useState('');
@@ -22,7 +23,7 @@ const OrderTracking = () => {
 
     const fetchFooterSettings = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/settings/footer-settings/active/');
+            const response = await fetch(API_CONFIG.getFullUrl('SETTINGS', 'FOOTER'));
             if (response.ok) {
                 const data = await response.json();
                 if (data.success && data.data) {
@@ -56,9 +57,9 @@ const OrderTracking = () => {
 
         try {
             console.log('Tracking order:', trackingNumber);
-            console.log('API URL:', `http://localhost:8000/api/orders/tracking/${trackingNumber}/`);
+            console.log('API URL:', `${API_CONFIG.getFullUrl('ORDERS', 'TRACKING')}${trackingNumber}/`);
             
-            const response = await fetch(`http://localhost:8000/api/orders/tracking/${trackingNumber}/`, {
+            const response = await fetch(`${API_CONFIG.getFullUrl('ORDERS', 'TRACKING')}${trackingNumber}/`, {
                 headers: {
                     'Content-Type': 'application/json'
                 }

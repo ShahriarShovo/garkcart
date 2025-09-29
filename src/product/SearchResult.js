@@ -3,6 +3,7 @@ import {useSearchParams, Link} from 'react-router-dom';
 import FilterSidebar from '../components/FilterSidebar';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
+import API_CONFIG from '../config/apiConfig';
 
 const SearchResult = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -55,7 +56,7 @@ const SearchResult = () => {
             if(minPriceParam !== null && minPriceParam !== '') params.set('min_price', minPriceParam);
             if(maxPriceParam !== null && maxPriceParam !== '') params.set('max_price', maxPriceParam);
 
-            const response = await fetch(`http://localhost:8000/api/products/search/products/?${params.toString()}`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/search/products/?${params.toString()}`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -230,6 +231,12 @@ const SearchResult = () => {
                                                                     show: true,
                                                                     message: result.message || 'Product added to cart successfully!',
                                                                     type: 'success'
+                                                                });
+                                                            } else if(result && result.requiresAuth) {
+                                                                setToast({
+                                                                    show: true,
+                                                                    message: result.message || 'Please login or sign up to add items to cart',
+                                                                    type: 'warning'
                                                                 });
                                                             } else {
                                                                 setToast({

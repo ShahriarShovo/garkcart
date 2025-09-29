@@ -7,6 +7,7 @@ import adminWebsocketService from '../../chat_and_notification/api/adminWebsocke
 import AdminLogoManager from '../../settings/AdminLogoManager';
 import AdminBannerManager from '../../settings/AdminBannerManager';
 import FooterSettings from './FooterSettings';
+import API_CONFIG from '../../config/apiConfig';
 // TODO: Future implementation - Notification and Discount management
 // import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
 // import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
@@ -118,7 +119,7 @@ const AdminDashboard = () => {
     // Fetch inbox unread count
     const fetchInboxUnreadCount = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/chat/inbox/unread_count/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat/inbox/unread_count/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -151,7 +152,7 @@ const AdminDashboard = () => {
         setContactLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/chat_and_notifications/contacts/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -175,7 +176,7 @@ const AdminDashboard = () => {
     const markContactAsRead = async (contactId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/chat_and_notifications/contacts/${contactId}/mark-read/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/${contactId}/mark-read/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -202,7 +203,7 @@ const AdminDashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/orders/tracking/${orderNumber}/`, {
+            const response = await fetch(`${API_CONFIG.getFullUrl('ORDERS', 'TRACKING')}${orderNumber}/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -520,7 +521,7 @@ const AdminDashboard = () => {
                 console.log('🔍 DEBUG: Token found:', token ? 'Yes' : 'No');
                 console.log('🔍 DEBUG: Token value:', token);
                 
-                const response = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                const response = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -598,7 +599,7 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             console.log('Using token:', token);
-            const response = await fetch('http://localhost:8000/api/orders/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/orders/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -629,7 +630,7 @@ const AdminDashboard = () => {
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/orders/${orderId}/update-status/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/${orderId}/update-status/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -699,8 +700,8 @@ const AdminDashboard = () => {
             setUsersError(null);
             const token = localStorage.getItem('token');
             console.log('Fetching users with token:', token);
-            console.log('API endpoint: http://localhost:8000/api/accounts/users/');
-            const response = await fetch('http://localhost:8000/api/accounts/users/', {
+            console.log('API endpoint: API_CONFIG.BASE_URL/api/accounts/users/');
+            const response = await fetch('API_CONFIG.BASE_URL/api/accounts/users/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -745,7 +746,7 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const newStatus = !currentStatus;
-            const response = await fetch(`http://localhost:8000/api/accounts/users/${userId}/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/accounts/users/${userId}/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -813,7 +814,7 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             console.log(`🔍 Fetching orders for user ID: ${userId}`);
-            const response = await fetch(`http://localhost:8000/api/orders/?user=${userId}`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/?user=${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -850,7 +851,7 @@ const AdminDashboard = () => {
         setStatisticsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/accounts/statistics/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/accounts/statistics/', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -879,7 +880,7 @@ const AdminDashboard = () => {
         setSalesAnalyticsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/analytics/sales-analytics/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/analytics/sales-analytics/', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -918,7 +919,7 @@ const AdminDashboard = () => {
                 params.append('end_date', customEndDate);
             }
 
-            const response = await fetch(`http://localhost:8000/api/analytics/excel-report/?${params}`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/analytics/excel-report/?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -962,7 +963,7 @@ const AdminDashboard = () => {
         setCategoriesError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/products/category/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/products/category/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1003,8 +1004,8 @@ const AdminDashboard = () => {
             }
 
             const url = editingCategory
-                ? `http://localhost:8000/api/products/category/${editingCategory.slug}/`
-                : 'http://localhost:8000/api/products/category/';
+                ? `API_CONFIG.BASE_URL/api/products/category/${editingCategory.slug}/`
+                : 'API_CONFIG.BASE_URL/api/products/category/';
 
             const method = editingCategory ? 'PUT' : 'POST';
 
@@ -1067,7 +1068,7 @@ const AdminDashboard = () => {
     const confirmDeleteCategory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/category/${deleteItem.slug}/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/products/category/${deleteItem.slug}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1104,7 +1105,7 @@ const AdminDashboard = () => {
         setSubcategoriesError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/products/subcategory/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/products/subcategory/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1147,8 +1148,8 @@ const AdminDashboard = () => {
             }
 
             const url = editingSubcategory
-                ? `http://localhost:8000/api/products/subcategory/${editingSubcategory.slug}/`
-                : 'http://localhost:8000/api/products/subcategory/';
+                ? `API_CONFIG.BASE_URL/api/products/subcategory/${editingSubcategory.slug}/`
+                : 'API_CONFIG.BASE_URL/api/products/subcategory/';
 
             const method = editingSubcategory ? 'PUT' : 'POST';
 
@@ -1212,7 +1213,7 @@ const AdminDashboard = () => {
     const confirmDeleteSubcategory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/subcategory/${deleteItem.slug}/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/products/subcategory/${deleteItem.slug}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1249,7 +1250,7 @@ const AdminDashboard = () => {
         setProductsError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/products/product/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/products/product/', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1282,7 +1283,7 @@ const AdminDashboard = () => {
         setArchivedProductsError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/products/product/?status=archived', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/products/product/?status=archived', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1378,8 +1379,8 @@ const AdminDashboard = () => {
             }
 
             const url = editingProduct
-                ? `http://localhost:8000/api/products/product/${editingProduct.slug}/`
-                : 'http://localhost:8000/api/products/product/';
+                ? `API_CONFIG.BASE_URL/api/products/product/${editingProduct.slug}/`
+                : 'API_CONFIG.BASE_URL/api/products/product/';
 
             const method = editingProduct ? 'PUT' : 'POST';
 
@@ -1558,7 +1559,7 @@ const AdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
 
-            const response = await fetch(`http://localhost:8000/api/products/product/${deleteItem.slug}/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/products/product/${deleteItem.slug}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1612,7 +1613,7 @@ const AdminDashboard = () => {
     const handleRestoreProduct = async (product) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8000/api/products/product/${product.slug}/`, {
+            const response = await fetch(`API_CONFIG.BASE_URL/api/products/product/${product.slug}/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1717,7 +1718,7 @@ const AdminDashboard = () => {
                     setProfileLoading(true);
                     setProfileError(null);
                     const token = localStorage.getItem('token');
-                    const res = await fetch('http://localhost:8000/api/accounts/profile/', {
+                    const res = await fetch('API_CONFIG.BASE_URL/api/accounts/profile/', {
                         headers: {'Authorization': `Bearer ${token}`}
                     });
                     if(res.ok) {
@@ -2220,7 +2221,7 @@ const AdminDashboard = () => {
                                                                 <td>
                                                                     {product.primary_image && (
                                                                         <img
-                                                                            src={typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `http://localhost:8000${product.primary_image.image}`}
+                                                                            src={typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `API_CONFIG.BASE_URL${product.primary_image.image}`}
                                                                             className="img-xs border"
                                                                             alt={product.title}
                                                                             style={{width: '50px', height: '50px', objectFit: 'cover'}}
@@ -2395,9 +2396,9 @@ const AdminDashboard = () => {
                                                                     <img
                                                                         src={
                                                                             typeof product.primary_image === 'string'
-                                                                                ? (product.primary_image.startsWith('http') ? product.primary_image : `http://localhost:8000${product.primary_image}`)
+                                                                                ? (product.primary_image.startsWith('http') ? product.primary_image : `API_CONFIG.BASE_URL${product.primary_image}`)
                                                                                 : product.primary_image.image
-                                                                                    ? (typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `http://localhost:8000${product.primary_image.image}`)
+                                                                                    ? (typeof product.primary_image.image === 'string' && product.primary_image.image.startsWith('http') ? product.primary_image.image : `API_CONFIG.BASE_URL${product.primary_image.image}`)
                                                                                     : '#'
                                                                         }
                                                                         className="img-xs border"
@@ -2885,7 +2886,7 @@ const AdminDashboard = () => {
                                                                 <td>
                                                                     {category.image && (
                                                                         <img
-                                                                            src={category.image.startsWith('http') ? category.image : `http://localhost:8000${category.image}`}
+                                                                            src={category.image.startsWith('http') ? category.image : `API_CONFIG.BASE_URL${category.image}`}
                                                                             className="img-xs border"
                                                                             alt={category.name}
                                                                             style={{width: '50px', height: '50px', objectFit: 'cover'}}
@@ -3008,7 +3009,7 @@ const AdminDashboard = () => {
                                                                 <td>
                                                                     {subcategory.image && (
                                                                         <img
-                                                                            src={subcategory.image.startsWith('http') ? subcategory.image : `http://localhost:8000${subcategory.image}`}
+                                                                            src={subcategory.image.startsWith('http') ? subcategory.image : `API_CONFIG.BASE_URL${subcategory.image}`}
                                                                             className="img-xs border"
                                                                             alt={subcategory.name}
                                                                             style={{width: '50px', height: '50px', objectFit: 'cover'}}
@@ -3314,7 +3315,7 @@ const AdminDashboard = () => {
                                                                              onClick={async () => {
                                                                                  try {
                                                                                      const token = localStorage.getItem('token');
-                                                                                     const response = await fetch(`http://localhost:8000/api/chat_and_notifications/contacts/${selectedContact.id}/mark-replied/`, {
+                                                                                     const response = await fetch(`API_CONFIG.BASE_URL/api/chat_and_notifications/contacts/${selectedContact.id}/mark-replied/`, {
                                                                                          method: 'POST',
                                                                                          headers: {
                                                                                              'Authorization': `Bearer ${token}`,
@@ -3636,7 +3637,7 @@ const AdminDashboard = () => {
                                                     setProfileError(null);
                                                     setProfileSuccess(null);
                                                     const token = localStorage.getItem('token');
-                                                    const res = await fetch(`http://localhost:8000/api/accounts/update-profile/${settingsForm.id || 0}/`, {
+                                                    const res = await fetch(`API_CONFIG.BASE_URL/api/accounts/update-profile/${settingsForm.id || 0}/`, {
                                                         method: 'POST',
                                                         headers: {
                                                             'Authorization': `Bearer ${token}`,
@@ -3789,7 +3790,7 @@ const AdminDashboard = () => {
                                                         }
                                                         
                                                         console.log('🔍 DEBUG: Sending change password request');
-                                                        const res = await fetch('http://localhost:8000/api/accounts/change-password/', {
+                                                        const res = await fetch('API_CONFIG.BASE_URL/api/accounts/change-password/', {
                                                             method: 'POST',
                                                             headers: {
                                                                 'Authorization': `Bearer ${token}`,
@@ -4136,7 +4137,7 @@ const AdminDashboard = () => {
                                                     // First, try to get existing email settings
                                                     let existingSettings = null;
                                                     try {
-                                                        const getResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                        const getResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                             method: 'GET',
                                                             headers: {
                                                                 'Authorization': `Bearer ${token}`,
@@ -4158,8 +4159,8 @@ const AdminDashboard = () => {
                                                     // Use PUT if exists, POST if new
                                                     const method = existingSettings ? 'PUT' : 'POST';
                                                     const url = existingSettings ? 
-                                                        `http://localhost:8000/api/settings/email-settings/${existingSettings.id}/` : 
-                                                        'http://localhost:8000/api/settings/email-settings/';
+                                                        `API_CONFIG.BASE_URL/api/settings/email-settings/${existingSettings.id}/` : 
+                                                        'API_CONFIG.BASE_URL/api/settings/email-settings/';
                                                     
                                                     const response = await fetch(url, {
                                                         method: method,
@@ -4439,7 +4440,7 @@ const AdminDashboard = () => {
                                                                         
                                                                         console.log('SMTP Test Data:', testData);
                                                                         
-                                                                        const response = await fetch('http://localhost:8000/api/settings/smtp/test/', {
+                                                                        const response = await fetch('API_CONFIG.BASE_URL/api/settings/smtp/test/', {
                                                                             method: 'POST',
                                                                             headers: {
                                                                                 'Authorization': `Bearer ${token}`,
@@ -4508,7 +4509,7 @@ const AdminDashboard = () => {
                                                                         // First, try to get existing email settings
                                                                         let existingSettings = null;
                                                                         try {
-                                                                            const getResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                            const getResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                                 method: 'GET',
                                                                                 headers: {
                                                                                     'Authorization': `Bearer ${token}`,
@@ -4530,8 +4531,8 @@ const AdminDashboard = () => {
                                                                         // Use PUT if exists, POST if new
                                                                         const method = existingSettings ? 'PUT' : 'POST';
                                                                         const url = existingSettings ? 
-                                                                            `http://localhost:8000/api/settings/email-settings/${existingSettings.id}/` : 
-                                                                            'http://localhost:8000/api/settings/email-settings/';
+                                                                            `API_CONFIG.BASE_URL/api/settings/email-settings/${existingSettings.id}/` : 
+                                                                            'API_CONFIG.BASE_URL/api/settings/email-settings/';
                                                                         
                                                                         const response = await fetch(url, {
                                                                             method: method,
@@ -4653,7 +4654,7 @@ const AdminDashboard = () => {
                                                                     console.log('🔍 DEBUG: Refresh - Token found:', token ? 'Yes' : 'No');
                                                                     console.log('🔍 DEBUG: Refresh - Token value:', token);
                                                                     
-                                                                    const response = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                    const response = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                         method: 'GET',
                                                                         headers: {
                                                                             'Authorization': `Bearer ${token}`,
@@ -4810,7 +4811,7 @@ const AdminDashboard = () => {
                                                                                             
                                                                                             try {
                                                                                                 const token = localStorage.getItem('token');
-                                                                                                const response = await fetch('http://localhost:8000/api/settings/smtp/test/', {
+                                                                                                const response = await fetch('API_CONFIG.BASE_URL/api/settings/smtp/test/', {
                                                                                                     method: 'POST',
                                                                                                     headers: {
                                                                                                         'Authorization': `Bearer ${token}`,
@@ -4859,7 +4860,7 @@ const AdminDashboard = () => {
                                                                                                         const token = localStorage.getItem('token');
                                                                                                         
                                                                                                         // First, remove primary status from all other emails
-                                                                                                        const allEmailsResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                        const allEmailsResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                                                             method: 'GET',
                                                                                                             headers: {
                                                                                                                 'Authorization': `Bearer ${token}`,
@@ -4874,7 +4875,7 @@ const AdminDashboard = () => {
                                                                                                             // Remove primary status from all emails
                                                                                                             for (const email of allEmails) {
                                                                                                                 if (email.is_primary) {
-                                                                                                                    await fetch(`http://localhost:8000/api/settings/email-settings/${email.id}/`, {
+                                                                                                                    await fetch(`API_CONFIG.BASE_URL/api/settings/email-settings/${email.id}/`, {
                                                                                                                         method: 'PATCH',
                                                                                                                         headers: {
                                                                                                                             'Authorization': `Bearer ${token}`,
@@ -4888,7 +4889,7 @@ const AdminDashboard = () => {
                                                                                                             }
                                                                                                             
                                                                                                             // Set this email as primary
-                                                                                                            const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                            const response = await fetch(`API_CONFIG.BASE_URL/api/settings/email-settings/${emailSetting.id}/`, {
                                                                                                                 method: 'PATCH',
                                                                                                                 headers: {
                                                                                                                     'Authorization': `Bearer ${token}`,
@@ -4904,7 +4905,7 @@ const AdminDashboard = () => {
                                                                                                                 
                                                                                                                 // Refresh the email settings list
                                                                                                                 try {
-                                                                                                                    const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                                    const refreshResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                                                                         method: 'GET',
                                                                                                                         headers: {
                                                                                                                             'Authorization': `Bearer ${token}`,
@@ -4954,7 +4955,7 @@ const AdminDashboard = () => {
                                                                                                 if (window.confirm(`Remove Primary status from this email?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis will remove its default status.`)) {
                                                                                                     try {
                                                                                                         const token = localStorage.getItem('token');
-                                                                                                        const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                        const response = await fetch(`API_CONFIG.BASE_URL/api/settings/email-settings/${emailSetting.id}/`, {
                                                                                                             method: 'PATCH',
                                                                                                             headers: {
                                                                                                                 'Authorization': `Bearer ${token}`,
@@ -4970,7 +4971,7 @@ const AdminDashboard = () => {
                                                                                                             
                                                                                                             // Refresh the email settings list
                                                                                                             try {
-                                                                                                                const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                                const refreshResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                                                                     method: 'GET',
                                                                                                                     headers: {
                                                                                                                         'Authorization': `Bearer ${token}`,
@@ -5016,7 +5017,7 @@ const AdminDashboard = () => {
                                                                                             if (window.confirm(`Are you sure you want to delete this email setting?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis action cannot be undone.`)) {
                                                                                                 try {
                                                                                                     const token = localStorage.getItem('token');
-                                                                                                    const response = await fetch(`http://localhost:8000/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                    const response = await fetch(`API_CONFIG.BASE_URL/api/settings/email-settings/${emailSetting.id}/`, {
                                                                                                         method: 'DELETE',
                                                                                                         headers: {
                                                                                                             'Authorization': `Bearer ${token}`,
@@ -5029,7 +5030,7 @@ const AdminDashboard = () => {
                                                                                                         
                                                                                                         // Refresh the email settings list
                                                                                                         try {
-                                                                                                            const refreshResponse = await fetch('http://localhost:8000/api/settings/email-settings/', {
+                                                                                                            const refreshResponse = await fetch('API_CONFIG.BASE_URL/api/settings/email-settings/', {
                                                                                                                 method: 'GET',
                                                                                                                 headers: {
                                                                                                                     'Authorization': `Bearer ${token}`,
@@ -5185,7 +5186,7 @@ const AdminDashboard = () => {
                                                     <small className="text-muted">Current image:</small>
                                                     <br />
                                                     <img
-                                                        src={editingCategory.image.startsWith('http') ? editingCategory.image : `http://localhost:8000${editingCategory.image}`}
+                                                        src={editingCategory.image.startsWith('http') ? editingCategory.image : `API_CONFIG.BASE_URL${editingCategory.image}`}
                                                         alt="Current category"
                                                         style={{width: '100px', height: '100px', objectFit: 'cover'}}
                                                         className="border rounded"
@@ -5321,7 +5322,7 @@ const AdminDashboard = () => {
                                                     <small className="text-muted">Current image:</small>
                                                     <br />
                                                     <img
-                                                        src={editingSubcategory.image.startsWith('http') ? editingSubcategory.image : `http://localhost:8000${editingSubcategory.image}`}
+                                                        src={editingSubcategory.image.startsWith('http') ? editingSubcategory.image : `API_CONFIG.BASE_URL${editingSubcategory.image}`}
                                                         alt="Current subcategory"
                                                         style={{width: '100px', height: '100px', objectFit: 'cover'}}
                                                         className="border rounded"
@@ -6100,9 +6101,9 @@ const AdminDashboard = () => {
                                                                 {item.product?.primary_image && (
                                                                     <img
                                                                         src={typeof item.product.primary_image === 'string'
-                                                                            ? (item.product.primary_image.startsWith('http') ? item.product.primary_image : `http://localhost:8000${item.product.primary_image}`)
+                                                                            ? (item.product.primary_image.startsWith('http') ? item.product.primary_image : `API_CONFIG.BASE_URL${item.product.primary_image}`)
                                                                             : item.product.primary_image.image
-                                                                                ? (typeof item.product.primary_image.image === 'string' && item.product.primary_image.image.startsWith('http') ? item.product.primary_image.image : `http://localhost:8000${item.product.primary_image.image}`)
+                                                                                ? (typeof item.product.primary_image.image === 'string' && item.product.primary_image.image.startsWith('http') ? item.product.primary_image.image : `API_CONFIG.BASE_URL${item.product.primary_image.image}`)
                                                                                 : '#'
                                                                         }
                                                                         alt={item.product?.title}

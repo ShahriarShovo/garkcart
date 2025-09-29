@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import API_CONFIG from '../../config/apiConfig';
 
 const EmailVerifiedSuccess = () => {
     const navigate = useNavigate();
@@ -25,7 +26,7 @@ const EmailVerifiedSuccess = () => {
     const verifyEmailToken = async (token) => {
         try {
             console.log('🔍 DEBUG: Verifying email token:', token);
-            const response = await fetch(`http://localhost:8000/api/accounts/verify-email/${token}/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/verify-email/${token}/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

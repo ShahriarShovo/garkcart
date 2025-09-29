@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8000/api/settings';
+import API_CONFIG from '../../config/apiConfig';
+
+const API_BASE_URL = `${API_CONFIG.BASE_URL}/api/settings`;
 
 class BannerApi {
     // Get all banners (admin only)
@@ -47,7 +49,7 @@ class BannerApi {
             const processedData = data.map(banner => ({
                 ...banner,
                 banner_url: banner.banner_url && banner.banner_url.startsWith('/media/')
-                    ? `http://localhost:8000${banner.banner_url}`
+                    ? `${API_CONFIG.BASE_URL}${banner.banner_url}`
                     : banner.banner_url
             }));
 

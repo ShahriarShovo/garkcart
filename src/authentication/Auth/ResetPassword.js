@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Toast from '../../components/Toast';
+import API_CONFIG from '../../config/apiConfig';
 
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
@@ -66,7 +67,7 @@ const ResetPassword = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/api/accounts/reset-password/${token}/`);
+                const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/reset-password/${token}/`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -108,7 +109,7 @@ const ResetPassword = () => {
         try {
             setIsLoading(true);
 
-            const response = await fetch(`http://localhost:8000/api/accounts/reset-password/${token}/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/reset-password/${token}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

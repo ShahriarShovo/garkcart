@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_CONFIG from '../../config/apiConfig';
 
 const FooterSettings = () => {
     const [footerData, setFooterData] = useState({
@@ -34,7 +35,7 @@ const FooterSettings = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/settings/footer-settings/', {
+            const response = await fetch('API_CONFIG.BASE_URL/api/settings/footer-settings/', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -74,8 +75,8 @@ const FooterSettings = () => {
         try {
             const token = localStorage.getItem('token');
             const url = footerId 
-                ? `http://localhost:8000/api/settings/footer-settings/${footerId}/`
-                : 'http://localhost:8000/api/settings/footer-settings/';
+                ? `API_CONFIG.BASE_URL/api/settings/footer-settings/${footerId}/`
+                : 'API_CONFIG.BASE_URL/api/settings/footer-settings/';
             
             const method = footerId ? 'PUT' : 'POST';
             

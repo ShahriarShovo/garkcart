@@ -5,9 +5,14 @@ import {useCart} from '../context/CartContext';
 const ProductCard = ({product}) => {
     const {addToCart} = useCart();
 
-    const handleAddToCart = (e) => {
+    const handleAddToCart = async (e) => {
         e.preventDefault();
-        addToCart(product);
+        const result = await addToCart(product);
+        
+        if(result && result.requiresAuth) {
+            // Show login message for anonymous users
+            alert('Please login or sign up to add items to cart');
+        }
     };
 
     const renderRating = () => {

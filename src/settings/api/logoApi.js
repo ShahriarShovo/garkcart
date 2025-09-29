@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8000/api/settings';
+import API_CONFIG from '../../config/apiConfig';
+
+const API_BASE_URL = `${API_CONFIG.BASE_URL}/api/settings`;
 
 class LogoApi {
     // Get all logos (admin only)
@@ -45,7 +47,7 @@ class LogoApi {
 
             // Convert relative URL to full URL
             if(data.logo_url && data.logo_url.startsWith('/media/')) {
-                data.logo_url = `http://localhost:8000${data.logo_url}`;
+                data.logo_url = `${API_CONFIG.BASE_URL}${data.logo_url}`;
             }
 
             return data;

@@ -2,7 +2,9 @@
  * Chat API service for communicating with backend
  */
 
-const API_BASE_URL = 'http://localhost:8000/api/chat';
+import API_CONFIG from '../../config/apiConfig';
+
+const API_BASE_URL = `${API_CONFIG.BASE_URL}/api/chat`;
 
 class ChatApiService {
     constructor() {

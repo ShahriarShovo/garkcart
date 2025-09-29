@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {Link} from 'react-router-dom';
+import API_CONFIG from '../config/apiConfig';
 
 const CategoryFilter = ({onCategoryChange, onSubcategoryChange}) => {
     const [categories, setCategories] = useState([]);
@@ -14,7 +15,7 @@ const CategoryFilter = ({onCategoryChange, onSubcategoryChange}) => {
     const fetchCategories = async () => {
         setCategoriesLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/products/category/');
+            const response = await fetch(API_CONFIG.getFullUrl('PRODUCTS', 'CATEGORIES'));
             if(response.ok) {
                 const data = await response.json();
                 setCategories(data.results || data || []);
@@ -33,7 +34,7 @@ const CategoryFilter = ({onCategoryChange, onSubcategoryChange}) => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/products/category/${categorySlug}/subcategories/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/category/${categorySlug}/subcategories/`);
             if(response.ok) {
                 const data = await response.json();
                 setSubcategories(prev => ({

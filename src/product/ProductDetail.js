@@ -3,6 +3,7 @@ import {useParams, Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
+import API_CONFIG from '../config/apiConfig';
 
 const ProductDetail = () => {
     const {slug, id} = useParams();
@@ -36,15 +37,19 @@ const ProductDetail = () => {
 
     // Fetch product details
     const fetchProduct = async () => {
+        console.log('🔍 DEBUG: fetchProduct called - Slug:', slug, 'ID:', id);
         setLoading(true);
         setError(null);
         try {
             // Use slug if available, otherwise use id
             const identifier = slug || id;
-            const response = await fetch(`http://localhost:8000/api/products/product-detail/${identifier}/`);
+            console.log('🔍 DEBUG: Using identifier:', identifier);
+            const response = await fetch(`${API_CONFIG.getFullUrl('PRODUCTS', 'DETAIL')}${identifier}/`);
 
+            console.log('🔍 DEBUG: Product API response status:', response.status);
             if(response.ok) {
                 const data = await response.json();
+                console.log('🔍 DEBUG: Product data received:', data.product?.title);
                 setProduct(data.product);
             } else {
                 const errorData = await response.json();
@@ -65,7 +70,7 @@ const ProductDetail = () => {
         try {
             // Use slug if available, otherwise use id (same logic as fetchProduct)
             const identifier = slug || id;
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${identifier}/`);
+            const response = await fetch(`${API_CONFIG.getFullUrl('PRODUCTS', 'REVIEWS')}${identifier}/`);
 
             if(response.ok) {
                 const data = await response.json();
@@ -90,7 +95,7 @@ const ProductDetail = () => {
             const token = localStorage.getItem('token');
             // Use slug if available, otherwise use id (same logic as fetchProduct)
             const identifier = slug || id;
-            const response = await fetch(`http://localhost:8000/api/products/purchase-verification/${identifier}/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/purchase-verification/${identifier}/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -124,7 +129,7 @@ const ProductDetail = () => {
             const token = localStorage.getItem('token');
             // Use slug if available, otherwise use id (same logic as fetchProduct)
             const identifier = slug || id;
-            const response = await fetch(`http://localhost:8000/api/products/product-reviews/${identifier}/create/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/product-reviews/${identifier}/create/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -236,10 +241,16 @@ const ProductDetail = () => {
                 message: result.message || 'Product added to cart successfully!',
                 type: 'success'
             });
+        } else if(result && result.requiresAuth) {
+            setToast({
+                show: true,
+                message: result.message || 'Please login or sign up to add items to cart',
+                type: 'warning'
+            });
         } else {
             setToast({
                 show: true,
-                message: `Failed to add to cart: ${result.error}`,
+                message: `Failed to add to cart: ${result?.error || 'Unknown error'}`,
                 type: 'error'
             });
         }

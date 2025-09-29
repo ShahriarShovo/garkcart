@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import logoApi from '../settings/api/logoApi';
+import API_CONFIG from '../config/apiConfig';
 
 const Footer = () => {
     const [logoUrl, setLogoUrl] = useState('/images/logo.png'); // Default logo
@@ -19,7 +20,7 @@ const Footer = () => {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
-                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    finalUrl = `${API_CONFIG.BASE_URL}${finalUrl}`;
                 }
                 setLogoUrl(finalUrl);
             } else {
@@ -33,7 +34,7 @@ const Footer = () => {
     // Fetch footer settings
     const fetchFooterSettings = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/settings/footer-settings/active/');
+            const response = await fetch(API_CONFIG.getFullUrl('SETTINGS', 'FOOTER'));
             if(response.ok) {
                 const data = await response.json();
                 if(data.success && data.data) {

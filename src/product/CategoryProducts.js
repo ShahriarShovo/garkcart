@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {useSearchParams, Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
+import API_CONFIG from '../config/apiConfig';
 
 const CategoryProducts = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -42,7 +43,7 @@ const CategoryProducts = () => {
             if(searchParams.get('min_price')) params.set('min_price', searchParams.get('min_price'));
             if(searchParams.get('max_price')) params.set('max_price', searchParams.get('max_price'));
 
-            const url = `http://localhost:8000/api/products/product/category_products/?${params.toString()}`;
+            const url = `${API_CONFIG.BASE_URL}/api/products/product/category_products/?${params.toString()}`;
             const response = await fetch(url);
 
             if(response.ok) {
@@ -65,7 +66,7 @@ const CategoryProducts = () => {
     const fetchCategories = async () => {
         setCategoriesLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/products/category/');
+            const response = await fetch(API_CONFIG.getFullUrl('PRODUCTS', 'CATEGORIES'));
             if(response.ok) {
                 const data = await response.json();
                 setCategories(data.results || data);
@@ -81,7 +82,7 @@ const CategoryProducts = () => {
     const fetchSubcategories = async (catSlug) => {
         if(subcategories[catSlug]) return;
         try {
-            const response = await fetch(`http://localhost:8000/api/products/category/${catSlug}/subcategories/`);
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/products/category/${catSlug}/subcategories/`);
             if(response.ok) {
                 const data = await response.json();
                 setSubcategories(prev => ({...prev, [catSlug]: data.subcategories || []}));
@@ -461,6 +462,12 @@ const CategoryProducts = () => {
                                                                     show: true,
                                                                     message: result.message || 'Product added to cart successfully!',
                                                                     type: 'success'
+                                                                });
+                                                            } else if(result && result.requiresAuth) {
+                                                                setToast({
+                                                                    show: true,
+                                                                    message: result.message || 'Please login or sign up to add items to cart',
+                                                                    type: 'warning'
                                                                 });
                                                             } else {
                                                                 setToast({

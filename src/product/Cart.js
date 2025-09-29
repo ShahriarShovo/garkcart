@@ -4,15 +4,47 @@ import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import API_CONFIG from '../config/apiConfig';
 // TODO: Discount features will be developed in future
 // import DiscountCalculator from '../chat_and_notification/DiscountCalculator';
 
 const Cart = () => {
     const {items, removeFromCart, increaseQuantity, decreaseQuantity, clearCart, getTotalPrice, loading} = useCart();
-    const {user} = useAuth();
+    const {user, isAuthenticated} = useAuth();
     const [toast, setToast] = useState({show: false, message: '', type: 'success'});
     const [confirmDialog, setConfirmDialog] = useState({show: false, title: '', message: '', onConfirm: null, itemId: null});
     const [appliedDiscount, setAppliedDiscount] = useState(null);
+
+    // Show login message for anonymous users
+    if (!isAuthenticated) {
+        return (
+            <div className="container mt-5">
+                <div className="row justify-content-center">
+                    <div className="col-md-8">
+                        <div className="card">
+                            <div className="card-body text-center py-5">
+                                <i className="fa fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                <h4 className="text-muted">Your Cart is Empty</h4>
+                                <p className="text-muted mb-4">
+                                    Please login or sign up to add items to your cart and start shopping!
+                                </p>
+                                <div className="d-flex justify-content-center gap-4 p-3">
+                                    <Link to="/login" className="btn btn-primary px-4 py-2">
+                                        <i className="fa fa-sign-in mr-2"></i>
+                                        Login
+                                    </Link>
+                                    <Link to="/register" className="btn btn-outline-primary px-4 py-2">
+                                        <i className="fa fa-user-plus mr-2"></i>
+                                        Sign Up
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const handleIncreaseQuantity = async (itemId) => {
         const result = await increaseQuantity(itemId);
@@ -110,7 +142,7 @@ const Cart = () => {
     const getProductImage = (item) => {
         if(item.product && item.product.primary_image) {
             const imageUrl = item.product.primary_image.image_url;
-            return imageUrl.startsWith('http') ? imageUrl : `http://localhost:8000${imageUrl}`;
+            return imageUrl.startsWith('http') ? imageUrl : `${API_CONFIG.BASE_URL}${imageUrl}`;
         }
         return '/images/items/1.jpg'; // Default fallback image
     };

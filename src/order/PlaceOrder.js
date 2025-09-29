@@ -3,6 +3,7 @@ import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import Toast from '../components/Toast';
+import API_CONFIG from '../config/apiConfig';
 
 const PlaceOrder = () => {
     const {items, getTotalPrice, clearCart} = useCart();
@@ -17,14 +18,14 @@ const PlaceOrder = () => {
                 return item.product.primary_image.image_url;
             }
             // If it's a relative URL, add the domain
-            return `http://localhost:8000${item.product.primary_image.image_url}`;
+            return `${API_CONFIG.BASE_URL}${item.product.primary_image.image_url}`;
         }
         if(item.product?.primary_image?.image) {
             // If image field exists, use it
             if(item.product.primary_image.image.startsWith('http')) {
                 return item.product.primary_image.image;
             }
-            return `http://localhost:8000${item.product.primary_image.image}`;
+            return `${API_CONFIG.BASE_URL}${item.product.primary_image.image}`;
         }
         // Fallback to default image
         return '/images/items/1.jpg';
@@ -69,7 +70,7 @@ const PlaceOrder = () => {
                 }
             }
 
-            const response = await fetch('http://localhost:8000/api/orders/addresses/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
@@ -110,7 +111,7 @@ const PlaceOrder = () => {
                 }
             }
 
-            const response = await fetch('http://localhost:8000/api/orders/addresses/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -186,7 +187,7 @@ const PlaceOrder = () => {
                 notes: 'Order placed from website'
             };
 
-            const response = await fetch('http://localhost:8000/api/orders/create/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/create/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,

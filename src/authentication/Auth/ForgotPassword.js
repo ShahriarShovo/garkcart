@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Toast from '../../components/Toast';
+import API_CONFIG from '../../config/apiConfig';
 
 const ForgotPassword = () => {
     const { user } = useAuth();
@@ -45,7 +46,7 @@ const ForgotPassword = () => {
         try {
             setIsLoading(true);
             
-            const response = await fetch('http://localhost:8000/api/accounts/forgot-password/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/forgot-password/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_CONFIG from '../config/apiConfig';
 
 const AboutUs = () => {
     const [footerData, setFooterData] = useState({
@@ -16,7 +17,7 @@ const AboutUs = () => {
     // Fetch footer settings
     const fetchFooterSettings = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/settings/footer-settings/active/');
+            const response = await fetch(API_CONFIG.getFullUrl('SETTINGS', 'FOOTER'));
             if(response.ok) {
                 const data = await response.json();
                 if(data.success && data.data) {

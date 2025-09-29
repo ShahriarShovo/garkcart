@@ -3,6 +3,7 @@ import {Link, useNavigate, useLocation} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
 import logoApi from '../settings/api/logoApi';
+import API_CONFIG from '../config/apiConfig';
 
 const Header = () => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -30,7 +31,7 @@ const Header = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8000/api/accounts/profile/', {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'PROFILE'), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -57,7 +58,7 @@ const Header = () => {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
-                    finalUrl = `http://localhost:8000${finalUrl}`;
+                    finalUrl = `${API_CONFIG.BASE_URL}${finalUrl}`;
                 }
                 setLogoUrl(finalUrl);
             } else {
@@ -100,23 +101,7 @@ const Header = () => {
                         </div>
                         {!isAdminView && (
                             <div className="col-lg col-sm col-md col-6 flex-grow-0">
-                                <div className="category-wrap dropdown d-inline-block float-right">
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary dropdown-toggle"
-                                        data-toggle="dropdown"
-                                    >
-                                        <i className="fa fa-bars"></i> All category
-                                    </button>
-                                    <div className="dropdown-menu">
-                                        <a className="dropdown-item" href="#">Machinery / Mechanical Parts / Tools</a>
-                                        <a className="dropdown-item" href="#">Consumer Electronics / Home Appliances</a>
-                                        <a className="dropdown-item" href="#">Auto / Transportation</a>
-                                        <a className="dropdown-item" href="#">Apparel / Textiles / Timepieces</a>
-                                        <a className="dropdown-item" href="#">Home & Garden / Construction / Lights</a>
-                                        <a className="dropdown-item" href="#">Beauty & Personal Care / Health</a>
-                                    </div>
-                                </div>
+                                {/* Empty spacer - All Category button removed but space maintained */}
                             </div>
                         )}
                         {!isAdminView && (
@@ -177,7 +162,7 @@ const Header = () => {
                                             <i className="fa fa-shopping-cart"></i>
                                         </div>
                                         <span className="badge badge-pill badge-danger notify">
-                                            {getTotalItems() || 0}
+                                            {isAuthenticated ? (getTotalItems() || 0) : 0}
                                         </span>
                                     </Link>
                                 )}
