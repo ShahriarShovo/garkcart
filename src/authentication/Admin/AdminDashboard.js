@@ -98,6 +98,13 @@ const AdminDashboard = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
+
+    // Contact messages states
+    const [contacts, setContacts] = useState([]);
+    const [selectedContact, setSelectedContact] = useState(null);
+    const [contactLoading, setContactLoading] = useState(false);
+    const [contactUnreadCount, setContactUnreadCount] = useState(0);
+    const [showContactModal, setShowContactModal] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
     const [wsConnected, setWsConnected] = useState(false);
@@ -133,10 +140,59 @@ const AdminDashboard = () => {
         active_users: 0
     });
 
+    // Fetch contact messages
+    const fetchContacts = async () => {
+        setContactLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('http://localhost:8000/api/chat_and_notifications/contacts/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setContacts(data);
+                // Count unread contacts
+                const unreadCount = data.filter(contact => !contact.is_read).length;
+                setContactUnreadCount(unreadCount);
+            }
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+        } finally {
+            setContactLoading(false);
+        }
+    };
+
+    // Mark contact as read
+    const markContactAsRead = async (contactId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/chat_and_notifications/contacts/${contactId}/mark-read/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                // Update local state
+                setContacts(prev => prev.map(contact => 
+                    contact.id === contactId ? {...contact, is_read: true} : contact
+                ));
+                setContactUnreadCount(prev => Math.max(0, prev - 1));
+            }
+        } catch (error) {
+            console.error('Error marking contact as read:', error);
+        }
+    };
+
     // Fetch inbox unread count on component mount
     useEffect(() => {
         if(isAuthenticated && user) {
             fetchInboxUnreadCount();
+            fetchContacts();
         }
     }, [isAuthenticated, user]);
 
@@ -1807,6 +1863,24 @@ const AdminDashboard = () => {
                             </a>
 
                             <a
+                                className={`list-group-item ${activeTab === 'contacts' ? 'active' : ''}`}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setActiveTab('contacts');
+                                }}
+                            >
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i className="fa fa-envelope mr-2"></i>
+                                        Contact Messages
+                                    </div>
+                                    {contactUnreadCount > 0 && (
+                                        <span className="badge bg-danger">{contactUnreadCount}</span>
+                                    )}
+                                </div>
+                            </a>
+                            <a
                                 className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
@@ -3091,6 +3165,137 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                            </article>
+                        )}
+
+                        {activeTab === 'contacts' && (
+                            <article className="card">
+                                <header className="card-header">
+                                    <strong className="d-inline-block mr-3">Contact Messages</strong>
+                                </header>
+                                <div className="card-body">
+                                    {contactLoading ? (
+                                        <div className="text-center py-4">
+                                            <i className="fa fa-spinner fa-spin fa-2x text-primary"></i>
+                                            <p className="mt-3">Loading contact messages...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="row">
+                                            <div className="col-md-4">
+                                                <div className="list-group">
+                                                    {contacts.map(contact => (
+                                                        <div
+                                                            key={contact.id}
+                                                            className={`list-group-item list-group-item-action ${selectedContact?.id === contact.id ? 'active' : ''} ${!contact.is_read ? 'font-weight-bold' : ''}`}
+                                                            onClick={() => {
+                                                                setSelectedContact(contact);
+                                                                if (!contact.is_read) {
+                                                                    markContactAsRead(contact.id);
+                                                                }
+                                                            }}
+                                                            style={{ cursor: 'pointer' }}
+                                                        >
+                                                            <div className="d-flex w-100 justify-content-between">
+                                                                <h6 className="mb-1">{contact.name}</h6>
+                                                                <small>{new Date(contact.created_at).toLocaleDateString()}</small>
+                                                            </div>
+                                                            <p className="mb-1 text-truncate">{contact.subject}</p>
+                                                            <small>{contact.email}</small>
+                                                            {!contact.is_read && (
+                                                                <span className="badge badge-primary ml-2">New</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    {contacts.length === 0 && (
+                                                        <div className="text-center py-4">
+                                                            <i className="fa fa-envelope fa-3x text-muted mb-3"></i>
+                                                            <p className="text-muted">No contact messages yet</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="col-md-8">
+                                                {selectedContact ? (
+                                                    <div className="card">
+                                                        <div className="card-header">
+                                                            <h6 className="mb-0">
+                                                                <i className="fa fa-user mr-2"></i>
+                                                                {selectedContact.name}
+                                                            </h6>
+                                                        </div>
+                                                        <div className="card-body">
+                                                            <div className="row mb-3">
+                                                                <div className="col-md-6">
+                                                                    <strong>Email:</strong> {selectedContact.email}
+                                                                </div>
+                                                                <div className="col-md-6">
+                                                                    <strong>Date:</strong> {new Date(selectedContact.created_at).toLocaleString()}
+                                                                </div>
+                                                            </div>
+                                                            <div className="mb-3">
+                                                                <strong>Subject:</strong>
+                                                                <p className="mt-1">{selectedContact.subject}</p>
+                                                            </div>
+                                                            <div>
+                                                                <strong>Message:</strong>
+                                                                <div className="mt-2 p-3 bg-light rounded">
+                                                                    {selectedContact.message}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="card-footer">
+                                                            <div className="d-flex justify-content-between">
+                                                                <div>
+                                                                    <span className={`badge ${selectedContact.is_replied ? 'badge-success' : 'badge-warning'}`}>
+                                                                        {selectedContact.is_replied ? 'Replied' : 'Pending'}
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <button 
+                                                                        className="btn btn-sm btn-outline-primary mr-2"
+                                                                        onClick={() => window.open(`mailto:${selectedContact.email}?subject=Re: ${selectedContact.subject}`)}
+                                                                    >
+                                                                        <i className="fa fa-reply mr-1"></i> Reply
+                                                                    </button>
+                                                                    <button 
+                                                                        className="btn btn-sm btn-outline-success"
+                                                                        onClick={async () => {
+                                                                            try {
+                                                                                const token = localStorage.getItem('token');
+                                                                                const response = await fetch(`http://localhost:8000/api/chat_and_notifications/contacts/${selectedContact.id}/mark-replied/`, {
+                                                                                    method: 'POST',
+                                                                                    headers: {
+                                                                                        'Authorization': `Bearer ${token}`,
+                                                                                        'Content-Type': 'application/json'
+                                                                                    }
+                                                                                });
+                                                                                if (response.ok) {
+                                                                                    setContacts(prev => prev.map(contact => 
+                                                                                        contact.id === selectedContact.id ? {...contact, is_replied: true} : contact
+                                                                                    ));
+                                                                                    setSelectedContact({...selectedContact, is_replied: true});
+                                                                                }
+                                                                            } catch (error) {
+                                                                                console.error('Error marking as replied:', error);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <i className="fa fa-check mr-1"></i> Mark as Replied
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-5">
+                                                        <i className="fa fa-envelope fa-3x text-muted mb-3"></i>
+                                                        <p className="text-muted">Select a contact message to view details</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </article>
                         )}

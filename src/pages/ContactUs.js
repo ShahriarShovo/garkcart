@@ -62,17 +62,34 @@ const ContactUs = () => {
         setSubmitting(true);
         
         try {
-            // TODO: Implement contact form API
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-            
-            showMessage('Thank you for your message! We will get back to you soon.', 'success');
-            setFormData({
-                name: '',
-                email: '',
-                subject: '',
-                message: ''
+            const response = await fetch('http://localhost:8000/api/chat_and_notifications/contacts/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    subject: formData.subject,
+                    message: formData.message
+                })
             });
+
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showMessage(data.message || 'Thank you for your message! We will get back to you soon.', 'success');
+                setFormData({
+                    name: '',
+                    email: '',
+                    subject: '',
+                    message: ''
+                });
+            } else {
+                showMessage(data.message || 'Failed to send message. Please try again.', 'error');
+            }
         } catch (error) {
+            console.error('Error sending contact message:', error);
             showMessage('Failed to send message. Please try again.', 'error');
         } finally {
             setSubmitting(false);
