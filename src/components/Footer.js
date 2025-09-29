@@ -93,7 +93,7 @@ const Footer = () => {
                             <ul className="list-unstyled" style={{fontSize: '14px'}}>
                                 <li><a href="/about-us">About us</a></li>
                                 <li><a href="/contact-us">Contact us</a></li>
-                                <li><a href="#">Order tracking</a></li>
+                                <li><a href="/order-tracking">Order tracking</a></li>
                                 <li><a href="#">Returns</a></li>
                             </ul>
                         </aside>

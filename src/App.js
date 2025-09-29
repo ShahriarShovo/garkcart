@@ -22,6 +22,7 @@ import Dashboard from './authentication/User/Dashboard';
 import AdminDashboard from './authentication/Admin/AdminDashboard';
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
+import OrderTracking from './pages/OrderTracking';
 import {useAuth} from './context/AuthContext';
 import {FloatingChatWidget} from './chat_and_notification';
 // TODO: Notification features will be developed in future
@@ -53,6 +54,7 @@ function AppShell() {
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/about-us" element={<AboutUs />} />
                     <Route path="/contact-us" element={<ContactUs />} />
+                    <Route path="/order-tracking" element={<OrderTracking />} />
                 </Routes>
             </main>
             <Footer />
