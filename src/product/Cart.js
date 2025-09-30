@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import {useAuth} from '../context/AuthContext';
+import formatBDT from '../utils/currency';
 import Toast from '../components/Toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import API_CONFIG from '../config/apiConfig';
@@ -245,8 +246,8 @@ const Cart = () => {
                                                 </td>
                                                 <td>
                                                     <div className="price-wrap">
-                                                        <var className="price">${item.total_price?.toFixed(2) || (item.unit_price * item.quantity).toFixed(2)}</var>
-                                                        <small className="text-muted">${item.unit_price} each</small>
+                                                        <var className="price">{formatBDT(item.total_price ?? (item.unit_price * item.quantity))}</var>
+                                                        <small className="text-muted">{formatBDT(item.unit_price)} each</small>
                                                     </div>
                                                 </td>
                                                 <td className="text-right">
@@ -269,7 +270,7 @@ const Cart = () => {
                                 <div className="card-body">
                                     <dl className="dlist-align">
                                         <dt>Subtotal:</dt>
-                                        <dd className="text-right">${subtotal.toFixed(2)}</dd>
+                                        <dd className="text-right">{formatBDT(subtotal)}</dd>
                                     </dl>
 
                                     {/* Discount Section */}
@@ -280,19 +281,19 @@ const Cart = () => {
                                                 Discount ({appliedDiscount.discount.name}):
                                             </dt>
                                             <dd className="text-right text-success">
-                                                -${discountAmount.toFixed(2)}
+                                                -{formatBDT(discountAmount)}
                                             </dd>
                                         </dl>
                                     )}
 
                                     <dl className="dlist-align">
                                         <dt>Tax:</dt>
-                                        <dd className="text-right">${tax.toFixed(2)}</dd>
+                                        <dd className="text-right">{formatBDT(tax)}</dd>
                                     </dl>
                                     <dl className="dlist-align">
                                         <dt>Total:</dt>
                                         <dd className="text-right text-dark b">
-                                            <strong>${total.toFixed(2)}</strong>
+                                            <strong>{formatBDT(total)}</strong>
                                         </dd>
                                     </dl>
 

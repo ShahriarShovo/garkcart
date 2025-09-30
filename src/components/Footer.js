@@ -75,7 +75,8 @@ const Footer = () => {
                                 />
                                 <p className="mt-2 mb-2" style={{fontSize: '14px'}}>{footerData.description}</p>
                                 <div>
-                                    {footerData.social_links.map((link, index) => (
+                                    {/* Social links hidden as requested */}
+                                    {/* {footerData.social_links.map((link, index) => (
                                         <a 
                                             key={index}
                                             className="btn btn-icon btn-light" 
@@ -85,7 +86,7 @@ const Footer = () => {
                                         >
                                             <i className={link.icon}></i>
                                         </a>
-                                    ))}
+                                    ))} */}
                                 </div>
                             </article>
                         </aside>
@@ -99,7 +100,7 @@ const Footer = () => {
                             </ul>
                         </aside>
                         <aside className="col-md-3">
-                            <h6 className="title" style={{fontSize: '16px', marginBottom: '10px'}}>Download app</h6>
+                            <h6 className="title" style={{fontSize: '16px', marginBottom: '10px'}}>Download app (Coming soon)</h6>
                             <a href="#" className="d-block mb-1"><img src="/images/misc/appstore.png" height="30" alt="App Store" /></a>
                             <a href="#" className="d-block mb-1"><img src="/images/misc/playmarket.png" height="30" alt="Play Market" /></a>
                         </aside>
@@ -114,11 +115,7 @@ const Footer = () => {
                         <span className="px-2" style={{fontSize: '14px'}}>{footerData.email}</span>
                         <span className="px-2" style={{fontSize: '14px'}}>{footerData.phone}</span>
                     </div>
-                    <div className="col-md-4 text-md-right text-muted">
-                        <i className="fab fa-lg fa-cc-visa"></i>
-                        <i className="fab fa-lg fa-cc-paypal"></i>
-                        <i className="fab fa-lg fa-cc-mastercard"></i>
-                    </div>
+                    <div className="col-md-4 text-md-right text-muted"></div>
                 </section>
             </div>
         </footer>

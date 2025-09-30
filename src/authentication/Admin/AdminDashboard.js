@@ -8,6 +8,7 @@ import AdminLogoManager from '../../settings/AdminLogoManager.jsx';
 import AdminBannerManager from '../../settings/AdminBannerManager.jsx';
 import FooterSettings from './FooterSettings';
 import API_CONFIG from '../../config/apiConfig';
+import formatBDT from '../../utils/currency';
 // TODO: Future implementation - Notification and Discount management
 // import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
 // import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
@@ -627,8 +628,28 @@ const AdminDashboard = () => {
     };
 
     // Update order status
+    const [updatingOrderId, setUpdatingOrderId] = React.useState(null);
+    const [updatingStatus, setUpdatingStatus] = React.useState(null);
+
+    // Lightweight confirm: require double-click within 4s to proceed
+    const [pendingConfirm, setPendingConfirm] = React.useState(null);
+    const [pendingConfirmUntil, setPendingConfirmUntil] = React.useState(0);
+    const requestConfirm = (key, message) => {
+        const now = Date.now();
+        if (pendingConfirm === key && now < pendingConfirmUntil) {
+            setPendingConfirm(null);
+            return true;
+        }
+        setPendingConfirm(key);
+        setPendingConfirmUntil(now + 4000);
+        setToast({ show: true, message: message || 'Tap again to confirm', type: 'error' });
+        return false;
+    };
+
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
+            setUpdatingOrderId(orderId);
+            setUpdatingStatus(newStatus);
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/${orderId}/update-status/`, {
                 method: 'PATCH',
@@ -658,6 +679,9 @@ const AdminDashboard = () => {
             console.error('Error updating order status:', error);
             setToast({show: true, message: 'Network error occurred', type: 'error'});
             return false;
+        } finally {
+            setUpdatingOrderId(null);
+            setUpdatingStatus(null);
         }
     };
 
@@ -2027,7 +2051,7 @@ const AdminDashboard = () => {
                                                         {statisticsLoading ? (
                                                             <i className="fa fa-spinner fa-spin"></i>
                                                         ) : (
-                                                            `$${statistics.total_revenue.toLocaleString()}`
+                                                            formatBDT(statistics.total_revenue)
                                                         )}
                                                     </h2>
                                                 </div>
@@ -2051,7 +2075,7 @@ const AdminDashboard = () => {
                                                         {salesAnalyticsLoading ? (
                                                             <i className="fa fa-spinner fa-spin"></i>
                                                         ) : (
-                                                            `$${salesAnalytics.daily_sales.total_amount.toLocaleString()}`
+                                                            formatBDT(salesAnalytics.daily_sales.total_amount)
                                                         )}
                                                     </h4>
                                                     <small>
@@ -2068,7 +2092,7 @@ const AdminDashboard = () => {
                                                         {salesAnalyticsLoading ? (
                                                             <i className="fa fa-spinner fa-spin"></i>
                                                         ) : (
-                                                            `$${salesAnalytics.weekly_sales.total_amount.toLocaleString()}`
+                                                            formatBDT(salesAnalytics.weekly_sales.total_amount)
                                                         )}
                                                     </h4>
                                                     <small>
@@ -2085,7 +2109,7 @@ const AdminDashboard = () => {
                                                         {salesAnalyticsLoading ? (
                                                             <i className="fa fa-spinner fa-spin"></i>
                                                         ) : (
-                                                            `$${salesAnalytics.monthly_sales.total_amount.toLocaleString()}`
+                                                            formatBDT(salesAnalytics.monthly_sales.total_amount)
                                                         )}
                                                     </h4>
                                                     <small>
@@ -2135,7 +2159,7 @@ const AdminDashboard = () => {
                                                                                 </span>
                                                                             </td>
                                                                             <td>
-                                                                                <strong>${day.total_amount.toLocaleString()}</strong>
+                                                                                <strong>{formatBDT(day.total_amount)}</strong>
                                                                             </td>
                                                                             <td>
                                                                                 <div className="progress" style={{height: '20px'}}>
@@ -2148,9 +2172,9 @@ const AdminDashboard = () => {
                                                                                         aria-valuenow={day.total_amount}
                                                                                         aria-valuemin="0"
                                                                                         aria-valuemax={Math.max(...salesAnalytics.chart_data.map(d => d.total_amount))}
-                                                                                    >
-                                                                                        ${day.total_amount.toLocaleString()}
-                                                                                    </div>
+                                                                                            >
+                                                                                                {formatBDT(day.total_amount)}
+                                                                                            </div>
                                                                                 </div>
                                                                             </td>
                                                                         </tr>
@@ -2271,12 +2295,12 @@ const AdminDashboard = () => {
                                                                 <td>
                                                                     {product.is_variable ? (
                                                                         <div>
-                                                                            <strong>${product.min_price} - ${product.max_price}</strong>
+                                                                            <strong>{formatBDT(product.min_price)} - {formatBDT(product.max_price)}</strong>
                                                                             <br />
                                                                             <small className="text-muted">Variable pricing</small>
                                                                         </div>
                                                                     ) : (
-                                                                        <strong>${product.price}</strong>
+                                                                        <strong>{formatBDT(product.price)}</strong>
                                                                     )}
                                                                 </td>
                                                                 <td>
@@ -2453,12 +2477,12 @@ const AdminDashboard = () => {
                                                             <td>
                                                                 {product.is_variable ? (
                                                                     <div>
-                                                                        <strong>${product.min_price} - ${product.max_price}</strong>
+                                                                        <strong>{formatBDT(product.min_price)} - {formatBDT(product.max_price)}</strong>
                                                                         <br />
                                                                         <small className="text-muted">Variable pricing</small>
                                                                     </div>
                                                                 ) : (
-                                                                    <strong>${product.price}</strong>
+                                                                    <strong>{formatBDT(product.price)}</strong>
                                                                 )}
                                                             </td>
                                                             <td>
@@ -2613,7 +2637,7 @@ const AdminDashboard = () => {
                                                                     </span>
                                                                 </td>
                                                                 <td>
-                                                                    <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                                    <strong>{formatBDT(order.total_amount)}</strong>
                                                                 </td>
                                                                 <td>
                                                                     <span className="badge badge-light">
@@ -2632,37 +2656,77 @@ const AdminDashboard = () => {
                                                                         {order.status !== 'delivered' && (
                                                                             <button
                                                                                 className="btn btn-sm btn-success"
+                                                                                disabled={updatingOrderId === order.id}
                                                                                 onClick={() => updateOrderStatus(order.id, 'delivered')}
                                                                                 title="Mark as Delivered"
                                                                             >
-                                                                                <i className="fa fa-check mr-1"></i>Delivered
+                                                                                {updatingOrderId === order.id && updatingStatus === 'delivered' ? (
+                                                                                    <>
+                                                                                        <span className="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+                                                                                        Updating...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <i className="fa fa-check mr-1"></i>Delivered
+                                                                                    </>
+                                                                                )}
                                                                             </button>
                                                                         )}
                                                                         {order.status !== 'processing' && order.status !== 'delivered' && (
                                                                             <button
                                                                                 className="btn btn-sm btn-primary"
+                                                                                disabled={updatingOrderId === order.id}
                                                                                 onClick={() => updateOrderStatus(order.id, 'processing')}
                                                                                 title="Mark as Processing"
                                                                             >
-                                                                                <i className="fa fa-cog mr-1"></i>Processing
+                                                                                {updatingOrderId === order.id && updatingStatus === 'processing' ? (
+                                                                                    <>
+                                                                                        <span className="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+                                                                                        Updating...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <i className="fa fa-cog mr-1"></i>Processing
+                                                                                    </>
+                                                                                )}
                                                                             </button>
                                                                         )}
                                                                         {order.status !== 'shipped' && order.status !== 'delivered' && (
                                                                             <button
                                                                                 className="btn btn-sm btn-secondary"
+                                                                                disabled={updatingOrderId === order.id}
                                                                                 onClick={() => updateOrderStatus(order.id, 'shipped')}
                                                                                 title="Mark as Shipped"
                                                                             >
-                                                                                <i className="fa fa-truck mr-1"></i>Shipped
+                                                                                {updatingOrderId === order.id && updatingStatus === 'shipped' ? (
+                                                                                    <>
+                                                                                        <span className="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+                                                                                        Updating...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <i className="fa fa-truck mr-1"></i>Shipped
+                                                                                    </>
+                                                                                )}
                                                                             </button>
                                                                         )}
                                                                         {order.status !== 'cancelled' && order.status !== 'delivered' && (
                                                                             <button
                                                                                 className="btn btn-sm btn-danger"
+                                                                                disabled={updatingOrderId === order.id}
                                                                                 onClick={() => updateOrderStatus(order.id, 'cancelled')}
                                                                                 title="Cancel Order"
                                                                             >
-                                                                                <i className="fa fa-times mr-1"></i>Cancel
+                                                                                {updatingOrderId === order.id && updatingStatus === 'cancelled' ? (
+                                                                                    <>
+                                                                                        <span className="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+                                                                                        Updating...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <i className="fa fa-times mr-1"></i>Cancel
+                                                                                    </>
+                                                                                )}
                                                                             </button>
                                                                         )}
                                                                     </div>
@@ -4833,17 +4897,33 @@ const AdminDashboard = () => {
                                                                                                 if (response.ok) {
                                                                                                     const result = await response.json();
                                                                                                     if (result.success) {
-                                                                                                        alert(`✅ SMTP Connection Successful!\n\nEmail: ${emailSetting.email_address}\nHost: ${emailSetting.smtp_host}\nPort: ${emailSetting.smtp_port}`);
+                                                                                                        setToast({
+                                                                                                            show: true,
+                                                                                                            message: `SMTP connection successful for ${emailSetting.email_address}`,
+                                                                                                            type: 'success'
+                                                                                                        });
                                                                                                     } else {
-                                                                                                        alert(`❌ SMTP Connection Failed!\n\nError: ${result.message}\n\nPlease check your SMTP settings.`);
+                                                                                                        setToast({
+                                                                                                            show: true,
+                                                                                                            message: `SMTP connection failed: ${result.message}`,
+                                                                                                            type: 'error'
+                                                                                                        });
                                                                                                     }
                                                                                                 } else {
                                                                                                     const error = await response.text();
-                                                                                                    alert(`❌ SMTP Test Failed!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                    setToast({
+                                                                                                        show: true,
+                                                                                                        message: `SMTP test failed (${response.status}): ${error}`,
+                                                                                                        type: 'error'
+                                                                                                    });
                                                                                                 }
                                                                                             } catch (err) {
                                                                                                 console.error('SMTP test error:', err);
-                                                                                                alert(`❌ SMTP Test Error!\n\nError: ${err.message}`);
+                                                                                                setToast({
+                                                                                                    show: true,
+                                                                                                    message: `SMTP test error: ${err.message}`,
+                                                                                                    type: 'error'
+                                                                                                });
                                                                                             }
                                                                                         }}
                                                                                     >
@@ -4857,7 +4937,7 @@ const AdminDashboard = () => {
                                                                                             onClick={async (e) => {
                                                                                                 e.stopPropagation(); // Prevent card selection
                                                                                                 
-                                                                                                if (window.confirm(`Set this email as Primary?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis will make it the default email for all communications.`)) {
+                                                                                                if (requestConfirm(`set-primary-${emailSetting.id}`, `Tap again to set ${emailSetting.email_address} as Primary`)) {
                                                                                                     try {
                                                                                                         const token = localStorage.getItem('token');
                                                                                                         
@@ -4903,7 +4983,11 @@ const AdminDashboard = () => {
                                                                                                             });
                                                                                                             
                                                                                                             if (response.ok) {
-                                                                                                                alert(`✅ Email set as Primary successfully!\n\nEmail: ${emailSetting.email_address}\nThis is now the default email for all communications.`);
+                                                                                                                setToast({
+                                                                                                                    show: true,
+                                                                                                                    message: `Primary email set: ${emailSetting.email_address}`,
+                                                                                                                    type: 'success'
+                                                                                                                });
                                                                                                                 
                                                                                                                 // Refresh the email settings list
                                                                                                                 try {
@@ -4931,14 +5015,26 @@ const AdminDashboard = () => {
                                                                                                                 }
                                                                                                             } else {
                                                                                                                 const error = await response.text();
-                                                                                                                alert(`❌ Failed to set as Primary!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                                setToast({
+                                                                                                                    show: true,
+                                                                                                                    message: `Failed to set primary (${response.status}): ${error}`,
+                                                                                                                    type: 'error'
+                                                                                                                });
                                                                                                             }
                                                                                                         } else {
-                                                                                                            alert(`❌ Failed to fetch existing emails!\n\nStatus: ${allEmailsResponse.status}`);
+                                                                                                            setToast({
+                                                                                                                show: true,
+                                                                                                                message: `Failed to fetch emails (${allEmailsResponse.status})`,
+                                                                                                                type: 'error'
+                                                                                                            });
                                                                                                         }
                                                                                                     } catch (err) {
                                                                                                         console.error('Set primary email error:', err);
-                                                                                                        alert(`❌ Set Primary Error!\n\nError: ${err.message}`);
+                                                                                                        setToast({
+                                                                                                            show: true,
+                                                                                                            message: `Set primary error: ${err.message}`,
+                                                                                                            type: 'error'
+                                                                                                        });
                                                                                                     }
                                                                                                 }
                                                                                             }}
@@ -4954,7 +5050,7 @@ const AdminDashboard = () => {
                                                                                             onClick={async (e) => {
                                                                                                 e.stopPropagation(); // Prevent card selection
                                                                                                 
-                                                                                                if (window.confirm(`Remove Primary status from this email?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis will remove its default status.`)) {
+                                                                                                if (requestConfirm(`remove-primary-${emailSetting.id}`, `Tap again to remove Primary from ${emailSetting.email_address}`)) {
                                                                                                     try {
                                                                                                         const token = localStorage.getItem('token');
                                                                                                         const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
@@ -4969,7 +5065,11 @@ const AdminDashboard = () => {
                                                                                                         });
                                                                                                         
                                                                                                         if (response.ok) {
-                                                                                                            alert(`✅ Primary status removed successfully!\n\nEmail: ${emailSetting.email_address}\nThis email is no longer the default.`);
+                                                                                                            setToast({
+                                                                                                                show: true,
+                                                                                                                message: `Primary removed: ${emailSetting.email_address}`,
+                                                                                                                type: 'success'
+                                                                                                            });
                                                                                                             
                                                                                                             // Refresh the email settings list
                                                                                                             try {
@@ -4997,11 +5097,19 @@ const AdminDashboard = () => {
                                                                                                             }
                                                                                                         } else {
                                                                                                             const error = await response.text();
-                                                                                                            alert(`❌ Failed to remove Primary status!\n\nStatus: ${response.status}\nError: ${error}`);
+                                                                                                            setToast({
+                                                                                                                show: true,
+                                                                                                                message: `Failed to remove primary (${response.status}): ${error}`,
+                                                                                                                type: 'error'
+                                                                                                            });
                                                                                                         }
                                                                                                     } catch (err) {
                                                                                                         console.error('Remove primary email error:', err);
-                                                                                                        alert(`❌ Remove Primary Error!\n\nError: ${err.message}`);
+                                                                                                        setToast({
+                                                                                                            show: true,
+                                                                                                            message: `Remove primary error: ${err.message}`,
+                                                                                                            type: 'error'
+                                                                                                        });
                                                                                                     }
                                                                                                 }
                                                                                             }}
@@ -5016,7 +5124,7 @@ const AdminDashboard = () => {
                                                                                         onClick={async (e) => {
                                                                                             e.stopPropagation(); // Prevent card selection
                                                                                             
-                                                                                            if (window.confirm(`Are you sure you want to delete this email setting?\n\nEmail: ${emailSetting.email_address}\nName: ${emailSetting.name}\n\nThis action cannot be undone.`)) {
+                                                                                            if (requestConfirm(`delete-${emailSetting.id}`, `Tap again to delete ${emailSetting.email_address}`)) {
                                                                                                 try {
                                                                                                     const token = localStorage.getItem('token');
                                                                                                     const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
@@ -5028,7 +5136,11 @@ const AdminDashboard = () => {
                                                                                                     });
                                                                                                     
                                                                                                     if (response.ok) {
-                                                                                                        alert(`✅ Email setting deleted successfully!\n\nEmail: ${emailSetting.email_address}`);
+                                                                                                        setToast({
+                                                                                                            show: true,
+                                                                                                            message: `Email setting deleted: ${emailSetting.email_address}`,
+                                                                                                            type: 'success'
+                                                                                                        });
                                                                                                         
                                                                                                         // Refresh the email settings list
                                                                                                         try {
@@ -6275,7 +6387,7 @@ const AdminDashboard = () => {
                                             <div className="card bg-light">
                                                 <div className="card-body text-center">
                                                     <h5 className="card-title">Total Spent</h5>
-                                                    <p className="card-text">${parseFloat(selectedUser.total_spent || 0).toFixed(2)}</p>
+                                                    <p className="card-text">{formatBDT(selectedUser.total_spent)}</p>
                                                     <small className="text-muted">Total amount spent</small>
                                                 </div>
                                             </div>
@@ -6400,7 +6512,7 @@ const AdminDashboard = () => {
                                                                 )}
                                                             </td>
                                                             <td>
-                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                                <strong>{formatBDT(order.total_amount)}</strong>
                                                             </td>
                                                             <td>
                                                                 <span className={`badge ${order.payment_status === 'paid' ? 'badge-success' :
@@ -6440,7 +6552,7 @@ const AdminDashboard = () => {
                                     <div className="ml-auto">
                                         <small className="text-muted">
                                             Total Orders: <strong>{userOrders.length}</strong> |
-                                            Total Spent: <strong>${userOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0).toFixed(2)}</strong>
+                                        Total Spent: <strong>{formatBDT(userOrders.reduce((sum, order) => sum + parseFloat(order.total_amount || 0), 0))}</strong>
                                         </small>
                                     </div>
                                 </div>

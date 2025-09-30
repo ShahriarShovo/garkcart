@@ -94,8 +94,25 @@ const AdminLogoManager = () => {
         }
     };
 
+    // Inline confirm: double-click within 4s to confirm
+    const [pendingConfirm, setPendingConfirm] = useState(null);
+    const [pendingConfirmUntil, setPendingConfirmUntil] = useState(0);
+    const requestConfirm = (key, message) => {
+        const now = Date.now();
+        if (pendingConfirm === key && now < pendingConfirmUntil) {
+            setPendingConfirm(null);
+            return true;
+        }
+        setPendingConfirm(key);
+        setPendingConfirmUntil(now + 4000);
+        setError(null);
+        setSuccess(message || 'Tap delete again to confirm');
+        setTimeout(() => setSuccess(null), 2500);
+        return false;
+    };
+
     const handleDeleteLogo = async (logoId) => {
-        if(!window.confirm('Are you sure you want to delete this logo?')) {
+        if (!requestConfirm(`delete-logo-${logoId}`, 'Tap delete again to confirm')) {
             return;
         }
 

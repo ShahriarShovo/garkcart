@@ -78,8 +78,19 @@ const FooterSettings = () => {
                 ? `${API_CONFIG.BASE_URL}/api/settings/footer-settings/${footerId}/`
                 : `${API_CONFIG.BASE_URL}/api/settings/footer-settings/`;
             
-            const method = footerId ? 'PUT' : 'POST';
+            const method = footerId ? 'PATCH' : 'POST';
             
+            // Filter out incomplete social links
+            const cleanedSocialLinks = footerData.social_links
+                .filter(link => link && link.platform && link.url)
+                .map((link, index) => ({
+                    platform: link.platform,
+                    url: link.url,
+                    icon: link.icon || 'fab fa-link',
+                    is_active: true,
+                    order: index
+                }));
+
             const response = await fetch(url, {
                 method: method,
                 headers: {
@@ -97,13 +108,7 @@ const FooterSettings = () => {
                         business_hours: footerData.business_hours,
                         quick_response: footerData.quick_response,
                         is_active: true,
-                    social_links: footerData.social_links.map((link, index) => ({
-                        platform: link.platform,
-                        url: link.url,
-                        icon: link.icon,
-                        is_active: true,
-                        order: index
-                    }))
+                    social_links: cleanedSocialLinks
                 })
             });
 
@@ -118,8 +123,23 @@ const FooterSettings = () => {
                     showMessage(data.message || 'Failed to save footer settings', 'error');
                 }
             } else {
-                const errorData = await response.json();
-                showMessage(errorData.message || 'Failed to save footer settings', 'error');
+                let errorText = 'Failed to save footer settings';
+                try {
+                    const errorData = await response.json();
+                    if (errorData.errors) {
+                        const flat = Object.entries(errorData.errors)
+                            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                            .join(' | ');
+                        errorText = errorData.message ? `${errorData.message} - ${flat}` : flat;
+                    } else if (errorData.message) {
+                        errorText = errorData.message;
+                    }
+                } catch(e) {
+                    // fallback to text
+                    const txt = await response.text();
+                    if (txt) errorText = txt;
+                }
+                showMessage(errorText, 'error');
             }
         } catch (error) {
             console.error('Error saving footer settings:', error);

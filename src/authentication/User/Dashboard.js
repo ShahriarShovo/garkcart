@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
+import formatBDT from '../../utils/currency';
 import API_CONFIG from '../../config/apiConfig';
 
 const Dashboard = () => {
@@ -854,9 +855,9 @@ const Dashboard = () => {
                                                     <div className="card border-success">
                                                         <div className="card-body text-center">
                                                             <div className="icon-lg bg-success text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                                                                <i className="fa fa-dollar-sign fa-2x"></i>
+                                                                <i className="fa fa-money-bill-wave fa-2x"></i>
                                                             </div>
-                                                            <h4 className="card-title text-success">${dashboardStats.totalPayments}</h4>
+                                                            <h4 className="card-title text-success">{formatBDT(dashboardStats.totalPayments)}</h4>
                                                             <p className="card-text text-muted">Total Payments</p>
                                                             <small className="text-muted">Total amount spent</small>
                                                         </div>

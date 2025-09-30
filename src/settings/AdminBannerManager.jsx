@@ -17,8 +17,7 @@ const AdminBannerManager = () => {
         display_order: 0
     });
 
-    const [multipleFiles, setMultipleFiles] = useState([]);
-    const [uploadingMultiple, setUploadingMultiple] = useState(false);
+    
 
     // Load banners and stats
     const loadBanners = async () => {
@@ -50,7 +49,7 @@ const AdminBannerManager = () => {
         });
         setEditingBanner(null);
         setShowForm(false);
-        setMultipleFiles([]);
+        
     };
 
     const handleInputChange = (e) => {
@@ -61,43 +60,7 @@ const AdminBannerManager = () => {
         }));
     };
 
-    const handleMultipleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        setMultipleFiles(files);
-    };
-
-    const handleMultipleUpload = async (e) => {
-        e.preventDefault();
-        if(multipleFiles.length === 0) {
-            setError('Please select at least one image file');
-            return;
-        }
-
-        try {
-            setUploadingMultiple(true);
-            setError(null);
-            setSuccess(null);
-
-            const uploadPromises = multipleFiles.map((file, index) => {
-                const formData = new FormData();
-                formData.append('name', `Banner ${index + 1}`);
-                formData.append('banner_image', file);
-                formData.append('is_active', true);
-                formData.append('display_order', index);
-
-                return bannerApi.createBanner(formData);
-            });
-
-            await Promise.all(uploadPromises);
-            setSuccess(`Successfully uploaded ${multipleFiles.length} banners!`);
-            setMultipleFiles([]);
-            loadBanners();
-        } catch(error) {
-            setError('Failed to upload multiple banners: ' + error.message);
-        } finally {
-            setUploadingMultiple(false);
-        }
-    };
+    
 
     const handleCreateBanner = async (e) => {
         e.preventDefault();
@@ -138,8 +101,25 @@ const AdminBannerManager = () => {
         }
     };
 
+    // Inline confirm: double-click within 4s to confirm
+    const [pendingConfirm, setPendingConfirm] = useState(null);
+    const [pendingConfirmUntil, setPendingConfirmUntil] = useState(0);
+    const requestConfirm = (key, message) => {
+        const now = Date.now();
+        if (pendingConfirm === key && now < pendingConfirmUntil) {
+            setPendingConfirm(null);
+            return true;
+        }
+        setPendingConfirm(key);
+        setPendingConfirmUntil(now + 4000);
+        setError(null);
+        setSuccess(message || 'Tap delete again to confirm');
+        setTimeout(() => setSuccess(null), 2500);
+        return false;
+    };
+
     const handleDeleteBanner = async (bannerId) => {
-        if(!window.confirm('Are you sure you want to delete this banner?')) {
+        if (!requestConfirm(`delete-banner-${bannerId}`, 'Tap delete again to confirm')) {
             return;
         }
 
@@ -201,16 +181,10 @@ const AdminBannerManager = () => {
                             <h4 className="mb-0">Banner Management</h4>
                             <div>
                                 <button
-                                    className="btn btn-success mr-2"
-                                    onClick={() => setShowForm(true)}
-                                >
-                                    <i className="fa fa-upload mr-2"></i>Multiple Upload
-                                </button>
-                                <button
                                     className="btn btn-primary mr-2"
                                     onClick={() => setShowForm(true)}
                                 >
-                                    <i className="fa fa-plus mr-2"></i>Single Banner
+                                    <i className="fa fa-plus mr-2"></i>Upload Banner
                                 </button>
                                 <button
                                     className="btn btn-info"
@@ -265,74 +239,7 @@ const AdminBannerManager = () => {
                                 </div>
                             )}
 
-                            {/* Multiple Upload Form */}
-                            <div className="card mb-4">
-                                <div className="card-header">
-                                    <h5><i className="fa fa-upload mr-2"></i>Multiple Banner Upload</h5>
-                                </div>
-                                <div className="card-body">
-                                    <form onSubmit={handleMultipleUpload}>
-                                        <div className="form-group">
-                                            <label>Select Multiple Banner Images</label>
-                                            <input
-                                                type="file"
-                                                className="form-control"
-                                                multiple
-                                                accept="image/*"
-                                                onChange={handleMultipleFileChange}
-                                            />
-                                            <small className="form-text text-muted">
-                                                Select multiple images at once. They will be automatically named and ordered.
-                                            </small>
-                                        </div>
-
-                                        {multipleFiles.length > 0 && (
-                                            <div className="form-group">
-                                                <label>Selected Files ({multipleFiles.length}):</label>
-                                                <div className="row">
-                                                    {multipleFiles.map((file, index) => (
-                                                        <div key={index} className="col-md-3 mb-2">
-                                                            <div className="card">
-                                                                <img
-                                                                    src={URL.createObjectURL(file)}
-                                                                    alt={`Preview ${index + 1}`}
-                                                                    className="card-img-top"
-                                                                    style={{height: '100px', objectFit: 'cover'}}
-                                                                />
-                                                                <div className="card-body p-2">
-                                                                    <small className="text-muted">
-                                                                        {file.name} ({Math.round(file.size / 1024)}KB)
-                                                                    </small>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="form-group">
-                                            <button
-                                                type="submit"
-                                                className="btn btn-success"
-                                                disabled={uploadingMultiple || multipleFiles.length === 0}
-                                            >
-                                                {uploadingMultiple ? (
-                                                    <>
-                                                        <i className="fa fa-spinner fa-spin mr-2"></i>
-                                                        Uploading {multipleFiles.length} banners...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <i className="fa fa-upload mr-2"></i>
-                                                        Upload {multipleFiles.length} Banners
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
+                            {/* Multiple Upload Form removed */}
 
                             {/* Single Banner Form */}
                             {showForm && (

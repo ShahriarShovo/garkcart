@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom';
 import logoApi from '../settings/api/logoApi';
 import API_CONFIG from '../config/apiConfig';
+import formatBDT from '../utils/currency';
 
 const OrderComplete = () => {
     const location = useLocation();
@@ -117,7 +118,7 @@ const OrderComplete = () => {
                                                                     )}
                                                                 </td>
                                                                 <td className="text-center">{item.quantity}</td>
-                                                                <td className="text-center">${parseFloat(item.total_price || 0).toFixed(2)} USD</td>
+                                                                <td className="text-center">{formatBDT(item.total_price)}</td>
                                                             </tr>
                                                         )) || (
                                                                 <tr>
@@ -128,19 +129,19 @@ const OrderComplete = () => {
                                                     <tfoot>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Sub Total:</th>
-                                                            <th className="text-center">${parseFloat(orderData?.subtotal || 0).toFixed(2)} USD</th>
+                                                            <th className="text-center">{formatBDT(orderData?.subtotal)}</th>
                                                         </tr>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Shipping:</th>
-                                                            <th className="text-center">${parseFloat(orderData?.shipping_cost || 0).toFixed(2)} USD</th>
+                                                            <th className="text-center">{formatBDT(orderData?.shipping_cost)}</th>
                                                         </tr>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Tax:</th>
-                                                            <th className="text-center">${parseFloat(orderData?.tax_amount || 0).toFixed(2)} USD</th>
+                                                            <th className="text-center">{formatBDT(orderData?.tax_amount)}</th>
                                                         </tr>
                                                         <tr>
                                                             <th colSpan="2" className="text-right">Grand Total:</th>
-                                                            <th className="text-center">${parseFloat(orderData?.total_amount || 0).toFixed(2)} USD</th>
+                                                            <th className="text-center">{formatBDT(orderData?.total_amount)}</th>
                                                         </tr>
                                                     </tfoot>
                                                 </table>

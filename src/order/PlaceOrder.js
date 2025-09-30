@@ -4,6 +4,7 @@ import {useAuth} from '../context/AuthContext';
 import {useNavigate} from 'react-router-dom';
 import Toast from '../components/Toast';
 import API_CONFIG from '../config/apiConfig';
+import formatBDT from '../utils/currency';
 
 const PlaceOrder = () => {
     const {items, getTotalPrice, clearCart} = useCart();
@@ -49,6 +50,7 @@ const PlaceOrder = () => {
         address_type: 'home'
     });
     const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
+    const [placingOrder, setPlacingOrder] = useState(false);
 
     // Fetch user addresses
     const fetchAddresses = async () => {
@@ -167,6 +169,7 @@ const PlaceOrder = () => {
 
         // Create order
         try {
+            setPlacingOrder(true);
             const tokenData = localStorage.getItem('token');
             let accessToken = tokenData;
 
@@ -198,7 +201,6 @@ const PlaceOrder = () => {
 
             if(response.ok) {
                 const result = await response.json();
-                console.log('Order created successfully:', result);
 
                 setToast({
                     show: true,
@@ -216,7 +218,6 @@ const PlaceOrder = () => {
                 });
             } else {
                 const error = await response.json();
-                console.error('Order creation failed:', error);
 
                 setToast({
                     show: true,
@@ -225,13 +226,13 @@ const PlaceOrder = () => {
                 });
             }
         } catch(error) {
-            console.error('Order creation error:', error);
-
             setToast({
                 show: true,
                 message: 'Network error occurred. Please try again.',
                 type: 'error'
             });
+        } finally {
+            setPlacingOrder(false);
         }
     };
 
@@ -298,7 +299,7 @@ const PlaceOrder = () => {
                                                             )}
                                                         </p>
                                                         <span className="text-muted">
-                                                            {item.quantity}x = ${item.total_price?.toFixed(2) || (item.unit_price * item.quantity).toFixed(2)}
+                                                            {item.quantity}x = {formatBDT(item.total_price ?? (item.unit_price * item.quantity))}
                                                         </span>
                                                     </figcaption>
                                                 </figure>
@@ -571,16 +572,16 @@ const PlaceOrder = () => {
                                 <div className="card-body">
                                     <dl className="dlist-align">
                                         <dt>Total price:</dt>
-                                        <dd className="text-right">${getTotalPrice().toFixed(2)}</dd>
+                                        <dd className="text-right">{formatBDT(getTotalPrice())}</dd>
                                     </dl>
                                     <dl className="dlist-align">
                                         <dt>Tax:</dt>
-                                        <dd className="text-right">${getTax().toFixed(2)}</dd>
+                                        <dd className="text-right">{formatBDT(getTax())}</dd>
                                     </dl>
                                     <dl className="dlist-align">
                                         <dt>Total:</dt>
                                         <dd className="text-right text-dark b">
-                                            <strong>${getFinalTotal().toFixed(2)}</strong>
+                                            <strong>{formatBDT(getFinalTotal())}</strong>
                                         </dd>
                                     </dl>
                                     <hr />
@@ -623,9 +624,18 @@ const PlaceOrder = () => {
                                     <button
                                         className="btn btn-primary btn-block"
                                         onClick={handleSubmit}
-                                        disabled={!selectedAddress}
+                                        disabled={!selectedAddress || placingOrder}
                                     >
-                                        {!selectedAddress ? 'Please select an address' : 'Place Order'}
+                                        {!selectedAddress
+                                            ? 'Please select an address'
+                                            : placingOrder
+                                                ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                                                        Placing Order...
+                                                    </>
+                                                  )
+                                                : 'Place Order'}
                                     </button>
                                 </div>
                             </div>
