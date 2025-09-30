@@ -277,12 +277,6 @@ const OrderTracking = () => {
                                         <h6 className="text-muted">Total Amount</h6>
                                         <p className="font-weight-bold text-primary">৳{orderDetails.total_amount}</p>
                                     </div>
-                                    <div className="col-md-6">
-                                        <h6 className="text-muted">Payment Status</h6>
-                                        <span className={`badge badge-${orderDetails.payment_status === 'paid' ? 'success' : 'warning'}`}>
-                                            {orderDetails.payment_status}
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* Order Status */}

@@ -1,6 +1,8 @@
+import API_CONFIG from '../../config/apiConfig';
+
 class NotificationApi {
     constructor() {
-        this.baseURL = 'http://127.0.0.1:8000/api/notifications';
+        this.baseURL = `${API_CONFIG.BASE_URL}/api/notifications`;
     }
 
     getAuthHeaders() {

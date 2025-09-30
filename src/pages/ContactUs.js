@@ -63,6 +63,8 @@ const ContactUs = () => {
         setSubmitting(true);
         
         try {
+            console.log('🔍 DEBUG: Submitting contact form payload:', formData);
+            console.log('🔍 DEBUG: Contact API URL:', `${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/`);
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/`, {
                 method: 'POST',
                 headers: {
@@ -75,8 +77,17 @@ const ContactUs = () => {
                     message: formData.message
                 })
             });
-
-            const data = await response.json();
+            console.log('🔍 DEBUG: Contact API response status:', response.status);
+            const rawBody = await response.clone().text();
+            console.log('🔍 DEBUG: Contact API raw response:', rawBody);
+            let data;
+            try {
+                data = await response.json();
+            } catch(jsonErr) {
+                console.warn('🔍 DEBUG: Failed to parse JSON, falling back to text.', jsonErr);
+                data = { success: false, message: rawBody };
+            }
+            console.log('🔍 DEBUG: Contact API parsed data:', data);
             
             if (response.ok && data.success) {
                 showMessage(data.message || 'Thank you for your message! We will get back to you soon.', 'success');
@@ -87,7 +98,21 @@ const ContactUs = () => {
                     message: ''
                 });
             } else {
-                showMessage(data.message || 'Failed to send message. Please try again.', 'error');
+                // Attempt to surface field-level validation errors if present
+                if (data && typeof data === 'object') {
+                    if (data.errors) {
+                        console.log('🔍 DEBUG: Validation errors:', data.errors);
+                    } else {
+                        const fieldErrors = Object.entries(data)
+                            .filter(([k,v]) => Array.isArray(v) || typeof v === 'string')
+                            .map(([k,v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                            .join(' | ');
+                        if (fieldErrors) {
+                            console.log('🔍 DEBUG: Field errors:', fieldErrors);
+                        }
+                    }
+                }
+                showMessage((data && data.message) || 'Failed to send message. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Error sending contact message:', error);

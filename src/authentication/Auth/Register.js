@@ -96,6 +96,9 @@ const Register = () => {
                 confirm_password: formData.confirm_password,
                 full_name: formData.full_name
             };
+            
+            console.log('🔍 DEBUG: Form data email:', formData.email);
+            console.log('🔍 DEBUG: User data email:', userData.email);
 
             const result = await register(userData);
             
@@ -103,9 +106,11 @@ const Register = () => {
                 // Check if email verification was sent
                 if(result.email_verification_sent) {
                     showToast('Registration successful! Please check your email for verification.', 'success');
+                    console.log('🔍 DEBUG: Navigating to email verification with email:', formData.email);
                     navigate(`/email-verification?email=${encodeURIComponent(formData.email)}`);
                 } else {
                     showToast('Registration successful! However, verification email could not be sent. Please contact support.', 'error');
+                    console.log('🔍 DEBUG: Navigating to email verification with email:', formData.email);
                     navigate(`/email-verification?email=${encodeURIComponent(formData.email)}`);
                 }
             } else {

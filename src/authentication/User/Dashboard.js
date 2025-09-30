@@ -60,7 +60,7 @@ const Dashboard = () => {
             const token = localStorage.getItem('token');
 
             // Fetch all orders count
-            const ordersResponse = await fetch('API_CONFIG.BASE_URL/api/orders/', {
+            const ordersResponse = await fetch(`${API_CONFIG.BASE_URL}/api/orders/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -69,7 +69,7 @@ const Dashboard = () => {
             });
 
             // Fetch addresses count
-            const addressesResponse = await fetch('API_CONFIG.BASE_URL/api/orders/addresses/', {
+            const addressesResponse = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -115,7 +115,7 @@ const Dashboard = () => {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/orders/active/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/active/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -146,7 +146,7 @@ const Dashboard = () => {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/orders/delivered/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/delivered/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -177,7 +177,7 @@ const Dashboard = () => {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/orders/cancelled-refunded/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/cancelled-refunded/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -206,7 +206,7 @@ const Dashboard = () => {
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/${orderId}/update-status/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/${orderId}/update-status/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -243,7 +243,7 @@ const Dashboard = () => {
         setProfileLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/accounts/profile/', {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'PROFILE'), {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -269,7 +269,7 @@ const Dashboard = () => {
         setAddressLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/orders/addresses/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -295,7 +295,7 @@ const Dashboard = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('API_CONFIG.BASE_URL/api/orders/addresses/', {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -332,7 +332,7 @@ const Dashboard = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/addresses/${editingAddress.id}/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/${editingAddress.id}/`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -377,7 +377,7 @@ const Dashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/addresses/${addressToDelete.id}/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/${addressToDelete.id}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -435,7 +435,7 @@ const Dashboard = () => {
         setCancelling(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/${orderToCancel.id}/cancel/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/${orderToCancel.id}/cancel/`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -476,7 +476,7 @@ const Dashboard = () => {
     const setDefaultAddress = async (addressId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`API_CONFIG.BASE_URL/api/orders/addresses/${addressId}/set-default/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/addresses/${addressId}/set-default/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -613,7 +613,7 @@ const Dashboard = () => {
                 if(imageUrl.startsWith('http')) {
                     return imageUrl;
                 } else {
-                    return `API_CONFIG.BASE_URL${imageUrl}`;
+                    return `${API_CONFIG.BASE_URL}${imageUrl}`;
                 }
             }
         }
@@ -628,7 +628,7 @@ const Dashboard = () => {
                 if(imageUrl.startsWith('http')) {
                     return imageUrl;
                 } else {
-                    return `API_CONFIG.BASE_URL${imageUrl}`;
+                    return `${API_CONFIG.BASE_URL}${imageUrl}`;
                 }
             }
         }

@@ -13,7 +13,15 @@ const API_CONFIG = {
             REGISTER: '/api/accounts/register/',
             PROFILE: '/api/accounts/profile/',
             REFRESH: '/api/accounts/token/refresh/',
-            LOGOUT: '/api/accounts/logout/'
+            LOGOUT: '/api/accounts/logout/',
+            USERS: '/api/accounts/users/',
+            STATISTICS: '/api/accounts/statistics/',
+            UPDATE_PROFILE: '/api/accounts/update-profile/',
+            CHANGE_PASSWORD: '/api/accounts/change-password/',
+            VERIFY_EMAIL: '/api/accounts/verify-email/',
+            RESEND_VERIFICATION: '/api/accounts/resend-verification/',
+            FORGOT_PASSWORD: '/api/accounts/forgot-password/',
+            RESET_PASSWORD: '/api/accounts/reset-password/'
         },
         
         // Products

@@ -1,6 +1,6 @@
 import React from 'react';
-import FloatingChatButton from './FloatingChatButton';
-import ChatPanel from './ChatPanel';
+import FloatingChatButton from './FloatingChatButton.jsx';
+import ChatPanel from './ChatPanel.jsx';
 
 export const FloatingChatWidget = () => {
     const [open, setOpen] = React.useState(false);
@@ -19,5 +19,4 @@ export const FloatingChatWidget = () => {
     );
 };
 
-export {default as FloatingChatButton} from './FloatingChatButton';
-export {default as ChatPanel} from './ChatPanel';
+export {FloatingChatButton, ChatPanel};

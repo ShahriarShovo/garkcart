@@ -24,7 +24,7 @@ import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import OrderTracking from './pages/OrderTracking';
 import {useAuth} from './context/AuthContext';
-import {FloatingChatWidget} from './chat_and_notification';
+import {FloatingChatWidget} from './chat_and_notification/index.js';
 // TODO: Notification features will be developed in future
 // import NotificationModal from './chat_and_notification/NotificationModal';
 

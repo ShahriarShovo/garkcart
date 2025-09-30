@@ -46,7 +46,7 @@ const ForgotPassword = () => {
         try {
             setIsLoading(true);
             
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/forgot-password/`, {
+            const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'FORGOT_PASSWORD'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
