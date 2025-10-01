@@ -4,6 +4,7 @@ import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 import AdminChatInbox from '../../chat_and_notification/AdminChatInbox.jsx';
 import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService.js';
+import orderWebsocketService from '../../chat_and_notification/api/orderWebsocketService.js';
 import AdminLogoManager from '../../settings/AdminLogoManager.jsx';
 import AdminBannerManager from '../../settings/AdminBannerManager.jsx';
 import FooterSettings from './FooterSettings';
@@ -284,6 +285,10 @@ const AdminDashboard = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
     const [wsConnected, setWsConnected] = useState(false);
+    const [orderWsConnected, setOrderWsConnected] = useState(false);
+    const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+    const [orderStats, setOrderStats] = useState({});
+    const [orderUpdateInProgress, setOrderUpdateInProgress] = useState(false);
     
     // Order tracking states
     const [trackingOrderNumber, setTrackingOrderNumber] = useState('');
@@ -309,6 +314,27 @@ const AdminDashboard = () => {
             }
         } catch(error) {
             console.error('Error fetching inbox unread count:', error);
+        }
+    };
+
+    // Fetch pending orders count
+    const fetchPendingOrdersCount = async () => {
+        try {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/pending-count/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                setPendingOrdersCount(data.pending_count || 0);
+                console.log('AdminDashboard: Pending orders count:', data.pending_count);
+            }
+        } catch(error) {
+            console.error('Error fetching pending orders count:', error);
         }
     };
 
@@ -474,6 +500,164 @@ const AdminDashboard = () => {
             };
         }
     }, [isAuthenticated, user]);
+
+    // Connect to order WebSocket for real-time order updates
+    useEffect(() => {
+        if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
+            console.log('AdminDashboard: Connecting to order WebSocket for real-time order updates');
+            console.log('AdminDashboard: Order WebSocket connection status:', orderWebsocketService.isConnected());
+
+            if(!orderWebsocketService.isConnected()) {
+                console.log('AdminDashboard: Order WebSocket not connected, attempting to connect...');
+                orderWebsocketService.connect();
+            } else {
+                console.log('AdminDashboard: Order WebSocket already connected');
+            }
+
+            const handleNewOrder = (payload) => {
+                console.log('AdminDashboard: New order received via WebSocket:', payload);
+                if(payload?.type === 'new_order' && payload.order) {
+                    console.log('AdminDashboard: New order notification received');
+                    setOrderUpdateInProgress(true);
+                    
+                    // Immediate UI update for better user experience
+                    setPendingOrdersCount(prev => {
+                        const newCount = prev + 1;
+                        console.log('AdminDashboard: Updated pending orders count to:', newCount);
+                        return newCount;
+                    });
+                    
+                    // Show browser notification immediately
+                    if (Notification.permission === 'granted') {
+                        new Notification('New Order Received', {
+                            body: `Order #${payload.order.order_number} from ${payload.order.user_name}`,
+                            icon: '/favicon.ico'
+                        });
+                    }
+                    
+                    // Fetch fresh count in background (non-blocking)
+                    setTimeout(() => {
+                        fetchPendingOrdersCount();
+                        setOrderUpdateInProgress(false);
+                    }, 100);
+                }
+            };
+
+            const handleOrderUpdated = (payload) => {
+                console.log('AdminDashboard: Order updated via WebSocket:', payload);
+                if(payload?.type === 'order_updated' && payload.order) {
+                    console.log('AdminDashboard: Order update notification received');
+                    // Refresh order stats if needed
+                    orderWebsocketService.requestOrderStats();
+                }
+            };
+
+            const handleOrderStatusChanged = (payload) => {
+                console.log('AdminDashboard: Order status changed via WebSocket:', payload);
+                if(payload?.type === 'order_status_changed' && payload.order) {
+                    console.log('AdminDashboard: Order status change notification received');
+                    
+                    // Immediate UI update - no waiting for database
+                    if (payload.order.previous_status === 'pending' && payload.order.status !== 'pending') {
+                        setPendingOrdersCount(prev => {
+                            const newCount = Math.max(0, prev - 1);
+                            console.log('AdminDashboard: Updated pending orders count to:', newCount);
+                            return newCount;
+                        });
+                    }
+                    
+                    // Show visual feedback immediately
+                    setOrderUpdateInProgress(true);
+                    
+                    // Background sync with minimal delay
+                    setTimeout(() => {
+                        fetchPendingOrdersCount();
+                        setOrderUpdateInProgress(false);
+                    }, 50); // Reduced from 100ms to 50ms
+                    
+                    // Request fresh stats immediately
+                    orderWebsocketService.requestOrderStats();
+                }
+            };
+
+            const handleOrderStats = (payload) => {
+                console.log('AdminDashboard: Order stats received via WebSocket:', payload);
+                if(payload?.type === 'order_stats' && payload.stats) {
+                    console.log('AdminDashboard: Updating order stats:', payload.stats);
+                    setOrderStats(payload.stats);
+                    setPendingOrdersCount(payload.stats.pending_orders || 0);
+                    console.log('AdminDashboard: Updated pending orders count to:', payload.stats.pending_orders || 0);
+                }
+            };
+
+            // Add connection status listener
+            const handleOrderConnected = () => {
+                console.log('AdminDashboard: Order WebSocket connected');
+                setOrderWsConnected(true);
+                // Request initial stats
+                orderWebsocketService.requestOrderStats();
+                // Fetch initial pending orders count
+                fetchPendingOrdersCount();
+            };
+
+            const handleOrderDisconnected = () => {
+                console.log('AdminDashboard: Order WebSocket disconnected');
+                setOrderWsConnected(false);
+            };
+
+            orderWebsocketService.on('new_order', handleNewOrder);
+            orderWebsocketService.on('order_updated', handleOrderUpdated);
+            orderWebsocketService.on('order_status_changed', handleOrderStatusChanged);
+            orderWebsocketService.on('order_stats', handleOrderStats);
+            orderWebsocketService.on('connected', handleOrderConnected);
+            orderWebsocketService.on('disconnected', handleOrderDisconnected);
+
+            return () => {
+                orderWebsocketService.off('new_order', handleNewOrder);
+                orderWebsocketService.off('order_updated', handleOrderUpdated);
+                orderWebsocketService.off('order_status_changed', handleOrderStatusChanged);
+                orderWebsocketService.off('order_stats', handleOrderStats);
+                orderWebsocketService.off('connected', handleOrderConnected);
+                orderWebsocketService.off('disconnected', handleOrderDisconnected);
+            };
+        }
+    }, [isAuthenticated, user]);
+
+    // Fetch initial pending orders count on component mount
+    useEffect(() => {
+        if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
+            console.log('AdminDashboard: Fetching initial pending orders count');
+            fetchPendingOrdersCount();
+            
+            // Set up periodic refresh as fallback if WebSocket fails
+            const intervalId = setInterval(() => {
+                console.log('AdminDashboard: Periodic refresh of pending orders count');
+                fetchPendingOrdersCount();
+            }, 30000); // Refresh every 30 seconds
+            
+            return () => clearInterval(intervalId);
+        }
+    }, [isAuthenticated, user]);
+
+
+    // Optimistic update function for immediate UI response
+    const optimisticUpdateCounter = (action, orderId) => {
+        console.log(`AdminDashboard: Optimistic update - ${action} for order ${orderId}`);
+        setOrderUpdateInProgress(true);
+        
+        if (action === 'status_change') {
+            // Immediately decrease counter if order was pending
+            setPendingOrdersCount(prev => {
+                const newCount = Math.max(0, prev - 1);
+                console.log('AdminDashboard: Optimistic counter update to:', newCount);
+                return newCount;
+            });
+        }
+        
+        // Reset loading state quickly
+        setTimeout(() => setOrderUpdateInProgress(false), 200);
+    };
+
     const [statisticsLoading, setStatisticsLoading] = useState(false);
 
     // Sales analytics states
@@ -857,6 +1041,14 @@ const AdminDashboard = () => {
         try {
             setUpdatingOrderId(orderId);
             setUpdatingStatus(newStatus);
+            
+            // Optimistic update - immediately update UI for better UX
+            const order = orders.find(o => o.id === orderId);
+            if (order && order.status === 'pending' && newStatus !== 'pending') {
+                console.log('AdminDashboard: Optimistic update for pending order');
+                optimisticUpdateCounter('status_change', orderId);
+            }
+            
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/${orderId}/update-status/`, {
                 method: 'PATCH',
@@ -872,19 +1064,30 @@ const AdminDashboard = () => {
                 console.log('Order status updated:', data);
                 setToast({show: true, message: data.message, type: 'success'});
 
-                // Refresh orders list
-                fetchAllOrders();
+                // Refresh orders list in background
+                setTimeout(() => fetchAllOrders(), 100);
 
                 return true;
             } else {
                 const errorData = await response.json();
                 console.error('Failed to update order status:', errorData);
                 setToast({show: true, message: errorData.message || 'Failed to update order status', type: 'error'});
+                
+                // Revert optimistic update on error
+                if (order && order.status === 'pending' && newStatus !== 'pending') {
+                    setPendingOrdersCount(prev => prev + 1);
+                }
                 return false;
             }
         } catch(error) {
             console.error('Error updating order status:', error);
             setToast({show: true, message: 'Network error occurred', type: 'error'});
+            
+            // Revert optimistic update on error
+            const order = orders.find(o => o.id === orderId);
+            if (order && order.status === 'pending' && newStatus !== 'pending') {
+                setPendingOrdersCount(prev => prev + 1);
+            }
             return false;
         } finally {
             setUpdatingOrderId(null);
@@ -2112,6 +2315,14 @@ const AdminDashboard = () => {
                                 >
                                     <i className="fa fa-shopping-cart mr-2"></i>
                                     Manage Orders
+                                    {orderUpdateInProgress && (
+                                        <i className="fa fa-spinner fa-spin ml-2 text-info" title="Updating..."></i>
+                                    )}
+                                    {pendingOrdersCount > 0 && (
+                                        <span className="badge badge-danger badge-pill float-right">
+                                            {pendingOrdersCount}
+                                        </span>
+                                    )}
                                 </a>
                             )}
                             {hasPermission('manage_products') && (
