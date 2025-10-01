@@ -59,6 +59,9 @@ const AdminDashboard = () => {
             }
 
             console.log('AdminDashboard: Admin authentication successful');
+            
+            // Load user permissions after successful authentication
+            loadUserPermissions();
         };
 
         // Check immediately
@@ -69,6 +72,7 @@ const AdminDashboard = () => {
 
         return () => clearTimeout(timeoutId);
     }, [isAuthenticated, user, navigate, isAuthReady]);
+
 
     // Order management states
     const [orders, setOrders] = useState([]);
@@ -91,8 +95,152 @@ const AdminDashboard = () => {
     const [showUserOrdersModal, setShowUserOrdersModal] = useState(false);
     const [userOrders, setUserOrders] = useState([]);
     const [userOrdersLoading, setUserOrdersLoading] = useState(false);
+    const [promotingUserId, setPromotingUserId] = useState(null);
     const [showUserStatusModal, setShowUserStatusModal] = useState(false);
     const [userStatusAction, setUserStatusAction] = useState(null);
+
+    // User permissions states
+    const [userPermissions, setUserPermissions] = useState([]);
+    const [userRoles, setUserRoles] = useState([]);
+    const [permissionsLoading, setPermissionsLoading] = useState(false);
+
+    // Load user permissions
+    const loadUserPermissions = async () => {
+        if (!user) {
+            console.log('🔍 DEBUG: No user, skipping permission load');
+            return;
+        }
+        
+        // Check for user ID in different possible fields
+        let userId = user.id || user.user_id || user.pk;
+        
+        // If no direct ID, try to extract from JWT token
+        if (!userId && user.token && user.token.access) {
+            try {
+                // Decode JWT token to get user_id
+                const tokenPayload = JSON.parse(atob(user.token.access.split('.')[1]));
+                userId = tokenPayload.user_id;
+                console.log('🔍 DEBUG: Extracted user ID from JWT token:', userId);
+            } catch (error) {
+                console.log('🔍 DEBUG: Failed to decode JWT token:', error);
+            }
+        }
+        
+        if (!userId) {
+            console.log('🔍 DEBUG: No user ID found, user object:', user);
+            return;
+        }
+        
+        console.log('🔍 DEBUG: Loading permissions for user:', user.email, 'ID:', userId);
+        console.log('🔍 DEBUG: Full user object:', user);
+        setPermissionsLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            console.log('🔍 DEBUG: Token exists:', !!token);
+            
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/permissions/user-permissions/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            console.log('🔍 DEBUG: Permission API response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔍 DEBUG: User permissions loaded:', data);
+                console.log('🔍 DEBUG: Permissions array:', data.permissions);
+                console.log('🔍 DEBUG: Roles array:', data.roles);
+                
+                setUserPermissions(data.permissions || []);
+                setUserRoles(data.roles || []);
+                
+                // Set default tab based on permissions
+                const permissions = data.permissions || [];
+                console.log('🔍 DEBUG: Processing permissions:', permissions);
+                console.log('🔍 DEBUG: User is superuser:', user.is_superuser);
+                
+                if (permissions.length > 0 && !user.is_superuser) {
+                    // Check if user has order tracking permission
+                    const hasOrderTracking = permissions.some(perm => perm.codename === 'order_tracking');
+                    console.log('🔍 DEBUG: Has order tracking permission:', hasOrderTracking);
+                    if (hasOrderTracking) {
+                        console.log('🔍 DEBUG: Setting active tab to order-tracking');
+                        setActiveTab('order-tracking');
+                    }
+                } else {
+                    console.log('🔍 DEBUG: No permissions or user is superuser, staying on dashboard');
+                }
+            } else {
+                const errorText = await response.text();
+                console.error('🔍 DEBUG: Failed to load user permissions:', response.status, errorText);
+            }
+        } catch (error) {
+            console.error('🔍 DEBUG: Error loading user permissions:', error);
+        } finally {
+            setPermissionsLoading(false);
+        }
+    };
+
+    // Check if user has specific permission
+    const hasPermission = (permissionCodename) => {
+        console.log('🔍 DEBUG: Checking permission:', permissionCodename);
+        console.log('🔍 DEBUG: User:', user?.email, 'is_superuser:', user?.is_superuser);
+        console.log('🔍 DEBUG: UserPermissions:', userPermissions);
+        console.log('🔍 DEBUG: UserPermissions type:', typeof userPermissions);
+        console.log('🔍 DEBUG: UserPermissions length:', userPermissions?.length);
+        
+        if (!user || user.is_superuser) {
+            console.log('🔍 DEBUG: User is superuser or no user, returning true');
+            return true; // Superuser has all permissions
+        }
+        
+        if (!userPermissions || userPermissions.length === 0) {
+            console.log('🔍 DEBUG: No permissions loaded yet, returning false');
+            return false; // No permissions loaded yet
+        }
+        
+        // Check if permission exists in the array (direct string match)
+        const hasPerm = userPermissions.includes(permissionCodename);
+        console.log('🔍 DEBUG: Has permission', permissionCodename, ':', hasPerm);
+        console.log('🔍 DEBUG: Permission array contains:', userPermissions);
+        console.log('🔍 DEBUG: Looking for:', permissionCodename);
+        return hasPerm;
+    };
+
+    // Check if user has specific role
+    const hasRole = (roleName) => {
+        if (!user || user.is_superuser) return true; // Superuser has all roles
+        if (!userRoles || userRoles.length === 0) return false; // No roles loaded yet
+        return userRoles.some(role => role.name === roleName);
+    };
+
+    // Dynamic greeting based on user type
+    const getGreeting = () => {
+        if (!user) return 'Welcome!';
+        
+        const userName = user.full_name || user.email || 'User';
+        
+        // Convert string booleans to actual booleans for comparison
+        const isSuperuser = user.is_superuser === true || user.is_superuser === 'true' || user.is_superuser === 1;
+        const isStaff = user.is_staff === true || user.is_staff === 'true' || user.is_staff === 1;
+        const isAdmin = user.is_admin === true || user.is_admin === 'true' || user.is_admin === 1;
+        
+        // Priority: Superuser > Staff/Admin > Customer
+        if (isSuperuser) {
+            return `Welcome, ${userName}! (Admin)`;
+        } 
+        else if (isStaff || isAdmin) {
+            return `Welcome, ${userName}! (Staff)`;
+        } 
+        else if (user.user_type === 'admin' || user.user_type === 'staff') {
+            return `Welcome, ${userName}! (Staff)`;
+        } 
+        else {
+            return `Welcome, ${userName}! (Customer)`;
+        }
+    };
 
     // Chat system states
     const [conversations, setConversations] = useState([]);
@@ -799,6 +947,40 @@ const AdminDashboard = () => {
         }
     };
 
+    // Promote user to admin/staff
+    const promoteToAdmin = async (user) => {
+        try {
+            setPromotingUserId(user.id);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/users/${user.id}/set-role/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({is_staff: true})
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                console.log('User promoted to staff:', data);
+                setToast({show: true, message: `${user.email} has been promoted to staff successfully`, type: 'success'});
+                
+                // Refresh users list
+                fetchAllUsers();
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to promote user:', errorData);
+                setToast({show: true, message: errorData.message || 'Failed to promote user', type: 'error'});
+            }
+        } catch(error) {
+            console.error('Error promoting user:', error);
+            setToast({show: true, message: 'Network error occurred', type: 'error'});
+        } finally {
+            setPromotingUserId(null);
+        }
+    };
+
     // Get filtered users
     const getFilteredUsers = () => {
         if(userStatusFilter === 'all') {
@@ -815,7 +997,12 @@ const AdminDashboard = () => {
 
     const getInactiveUsers = () => {
         if(!users || users.length === 0) return [];
-        return users.filter(user => !user.is_active);
+        const inactiveUsers = users.filter(user => !user.is_active && !user.is_staff && !user.is_superuser);
+        console.log('🔍 DEBUG: getInactiveUsers called');
+        console.log('🔍 DEBUG: Total users:', users.length);
+        console.log('🔍 DEBUG: Inactive users found:', inactiveUsers.length);
+        console.log('🔍 DEBUG: Inactive users:', inactiveUsers.map(u => ({id: u.id, email: u.email, is_active: u.is_active, is_staff: u.is_staff, is_superuser: u.is_superuser})));
+        return inactiveUsers;
     };
 
     // Format user role
@@ -1825,108 +2012,155 @@ const AdminDashboard = () => {
                     <aside className="col-md-3">
                         {/* ADMIN SIDEBAR */}
                         <ul className="list-group">
-                            <a
-                                className={`list-group-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('dashboard');
-                                }}
-                            >
-                                <i className="fa fa-tachometer mr-2"></i>
-                                Dashboard
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'products' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('products');
-                                }}
-                            >
-                                <i className="fa fa-box mr-2"></i>
-                                Manage Products
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'orders' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('orders');
-                                }}
-                            >
-                                <i className="fa fa-shopping-cart mr-2"></i>
-                                Manage Orders
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'archived-products' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('archived-products');
-                                }}
-                            >
-                                <i className="fa fa-archive mr-2"></i>
-                                Archived Products
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'users' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('users');
-                                }}
-                            >
-                                <i className="fa fa-users mr-2"></i>
-                                Manage Users
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'categories' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('categories');
-                                }}
-                            >
-                                <i className="fa fa-tags mr-2"></i>
-                                Manage Categories
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'subcategories' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('subcategories');
-                                }}
-                            >
-                                <i className="fa fa-list mr-2"></i>
-                                Manage Subcategories
-                            </a>
-                            <a
-                                className={`list-group-item d-flex justify-content-between align-items-center ${activeTab === 'inbox' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    console.debug('[AdminDashboard] Inbox sidebar item clicked');
-                                    setActiveTab('inbox');
-                                }}
-                            >
-                                <div className="d-flex align-items-center">
-                                    <i className="fa fa-inbox mr-2"></i>
-                                    Inbox
-                                </div>
-                                <div className="d-flex align-items-center">
-                                    {inboxUnreadCount > 0 && (
-                                        <span className="badge bg-danger mr-2">{inboxUnreadCount}</span>
-                                    )}
-                                    <small className={`${wsConnected ? 'text-success' : 'text-warning'}`}>
-                                        <i className={`fa fa-circle ${wsConnected ? 'text-success' : 'text-warning'}`}></i>
-                                        {wsConnected ? 'Live' : 'Offline'}
-                                    </small>
-                                </div>
-                            </a>
+                            {(() => {
+                                const hasDashPerm = hasPermission('dashboard_access');
+                                console.log('🔍 DEBUG: Dashboard permission check:', hasDashPerm);
+                                return hasDashPerm;
+                            })() && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('dashboard');
+                                    }}
+                                >
+                                    <i className="fa fa-tachometer mr-2"></i>
+                                    Dashboard
+                                </a>
+                            )}
+                            {hasPermission('manage_products') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'products' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('products');
+                                    }}
+                                >
+                                    <i className="fa fa-box mr-2"></i>
+                                    Manage Products
+                                </a>
+                            )}
+                            {hasPermission('manage_orders') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'orders' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('orders');
+                                    }}
+                                >
+                                    <i className="fa fa-shopping-cart mr-2"></i>
+                                    Manage Orders
+                                </a>
+                            )}
+                            {hasPermission('manage_products') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'archived-products' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('archived-products');
+                                    }}
+                                >
+                                    <i className="fa fa-archive mr-2"></i>
+                                    Archived Products
+                                </a>
+                            )}
+                            {hasPermission('manage_users') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'users' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('users');
+                                    }}
+                                >
+                                    <i className="fa fa-users mr-2"></i>
+                                    Manage Users
+                                </a>
+                            )}
+                            {hasPermission('manage_admin_staff') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'admin-staff' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('admin-staff');
+                                    }}
+                                >
+                                    <i className="fa fa-user-shield mr-2"></i>
+                                    Admin & Staff
+                                </a>
+                            )}
+                            {hasPermission('manage_permissions') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'permissions' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('permissions');
+                                    }}
+                                >
+                                    <i className="fa fa-shield-alt mr-2"></i>
+                                    Permission Management
+                                </a>
+                            )}
+                            {hasPermission('manage_categories') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'categories' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('categories');
+                                    }}
+                                >
+                                    <i className="fa fa-tags mr-2"></i>
+                                    Manage Categories
+                                </a>
+                            )}
+                            {hasPermission('manage_subcategories') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'subcategories' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('subcategories');
+                                    }}
+                                >
+                                    <i className="fa fa-list mr-2"></i>
+                                    Manage Subcategories
+                                </a>
+                            )}
+                            {hasPermission('inbox_access') && (
+                                <a
+                                    className={`list-group-item d-flex justify-content-between align-items-center ${activeTab === 'inbox' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        console.debug('[AdminDashboard] Inbox sidebar item clicked');
+                                        setActiveTab('inbox');
+                                    }}
+                                >
+                                    <div className="d-flex align-items-center">
+                                        <i className="fa fa-inbox mr-2"></i>
+                                        Inbox
+                                    </div>
+                                    <div className="d-flex align-items-center">
+                                        {inboxUnreadCount > 0 && (
+                                            <span className="badge bg-danger mr-2">{inboxUnreadCount}</span>
+                                        )}
+                                        <small className={`${wsConnected ? 'text-success' : 'text-warning'}`}>
+                                            <i className={`fa fa-circle ${wsConnected ? 'text-success' : 'text-warning'}`}></i>
+                                            {wsConnected ? 'Live' : 'Offline'}
+                                        </small>
+                                    </div>
+                                </a>
+                            )}
 
-                            <a
+                            {hasPermission('contact_messages') && (
+                                <a
                                      className={`list-group-item ${activeTab === 'contacts' ? 'active' : ''}`}
                                 href="#"
                                 onClick={(e) => {
@@ -1944,7 +2178,14 @@ const AdminDashboard = () => {
                                          )}
                                      </div>
                                  </a>
+                            )}
 
+
+                            {(() => {
+                                const hasOrderPerm = hasPermission('order_tracking');
+                                console.log('🔍 DEBUG: Order tracking permission check:', hasOrderPerm);
+                                return hasOrderPerm;
+                            })() && (
                                  <a
                                      className={`list-group-item ${activeTab === 'order-tracking' ? 'active' : ''}`}
                                 href="#"
@@ -1956,28 +2197,33 @@ const AdminDashboard = () => {
                                      <i className="fa fa-search mr-2"></i>
                                      Order Tracking
                             </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('reports');
-                                }}
-                            >
-                                <i className="fa fa-chart-bar mr-2"></i>
-                                Reports
-                            </a>
-                            <a
-                                className={`list-group-item ${activeTab === 'settings' ? 'active' : ''}`}
-                                href="#"
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setActiveTab('settings');
-                                }}
-                            >
-                                <i className="fa fa-cog mr-2"></i>
-                                Settings
-                            </a>
+                            )}
+                            {hasPermission('reports_access') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'reports' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('reports');
+                                    }}
+                                >
+                                    <i className="fa fa-chart-bar mr-2"></i>
+                                    Reports
+                                </a>
+                            )}
+                            {hasPermission('settings_access') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'settings' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('settings');
+                                    }}
+                                >
+                                    <i className="fa fa-cog mr-2"></i>
+                                    Settings
+                                </a>
+                            )}
                         </ul>
                         <br />
                         <a className="btn btn-light btn-block" href="#" onClick={(e) => {
@@ -1993,11 +2239,18 @@ const AdminDashboard = () => {
                     </aside>
 
                     <main className="col-md-9">
-                        {activeTab === 'dashboard' && (
+                        {/* Global Header - Always visible */}
+                        <div className="card mb-3">
+                            <div className="card-header">
+                                <strong className="d-inline-block mr-3">Admin Dashboard</strong>
+                                <span>{getGreeting()}</span>
+                            </div>
+                        </div>
+
+                        {activeTab === 'dashboard' && hasPermission('dashboard_access') && (
                             <article className="card">
                                 <header className="card-header">
-                                    <strong className="d-inline-block mr-3">Admin Dashboard</strong>
-                                    <span>Welcome, {user?.full_name || user?.email || 'Admin'}</span>
+                                    <strong className="d-inline-block mr-3">Dashboard Overview</strong>
                                 </header>
                                 <div className="card-body">
                                     <div className="row">
@@ -2199,7 +2452,7 @@ const AdminDashboard = () => {
                         )}
 
 
-                        {activeTab === 'products' && (
+                        {activeTab === 'products' && hasPermission('manage_products') && (
                             <article className="card" style={{overflow: 'hidden'}}>
                                 <header className="card-header">
                                     <strong className="d-inline-block mr-3">Manage Products</strong>
@@ -2377,7 +2630,7 @@ const AdminDashboard = () => {
                             </article>
                         )}
 
-                        {activeTab === 'archived-products' && (
+                        {activeTab === 'archived-products' && hasPermission('manage_products') && (
                             <article className="card">
                                 <header className="card-header">
                                     <strong className="d-inline-block mr-3">Archived Products</strong>
@@ -2545,7 +2798,7 @@ const AdminDashboard = () => {
                             </article>
                         )}
 
-                        {activeTab === 'orders' && (
+                        {activeTab === 'orders' && hasPermission('manage_orders') && (
                             <article className="card">
                                 <header className="card-header">
                                     <strong className="d-inline-block mr-3">Manage Orders</strong>
@@ -2753,7 +3006,7 @@ const AdminDashboard = () => {
                             </article>
                         )}
 
-                        {activeTab === 'users' && (
+                        {activeTab === 'users' && hasPermission('manage_users') && (
                             <article className="card" style={{overflow: 'hidden'}}>
                                 <header className="card-header">
                                     <strong className="d-inline-block mr-3">
@@ -2762,7 +3015,7 @@ const AdminDashboard = () => {
                                     <div className="float-right">
                                         <button
                                             className="btn btn-sm btn-outline-secondary mr-2"
-                                            onClick={() => setShowInactiveUsers(!showInactiveUsers)}
+                                    onClick={() => { setShowInactiveUsers(!showInactiveUsers); setUsersPage(1); }}
                                         >
                                             <i className={`fa ${showInactiveUsers ? 'fa-user-check' : 'fa-user-slash'} mr-1`}></i>
                                             {showInactiveUsers ? 'Show Active Users' : 'Show Inactive Users'}
@@ -2787,7 +3040,13 @@ const AdminDashboard = () => {
                                             <i className="fa fa-exclamation-triangle mr-2"></i>
                                             {usersError}
                                         </div>
-                                    ) : (showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active)).length > 0 ? (
+                                    ) : (() => {
+                                        const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
+                                        console.log('🔍 DEBUG: showInactiveUsers:', showInactiveUsers);
+                                        console.log('🔍 DEBUG: filteredUsers length:', filteredUsers.length);
+                                        console.log('🔍 DEBUG: filteredUsers:', filteredUsers.map(u => ({id: u.id, email: u.email, is_active: u.is_active})));
+                                        return filteredUsers;
+                                    })().length > 0 ? (
                                         <div className="table-responsive" style={{overflow: 'hidden', width: '100%'}}>
                                             <table className="table table-hover" style={{width: '100%', tableLayout: 'fixed'}}>
                                                 <thead>
@@ -2803,7 +3062,11 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {(showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active))
+                                                    {(() => {
+                                                        const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
+                                                        console.log('🔍 DEBUG: Rendering users - showInactiveUsers:', showInactiveUsers, 'filteredUsers:', filteredUsers.length);
+                                                        return filteredUsers;
+                                                    })()
                                                         .slice((usersPage - 1) * 10, (usersPage - 1) * 10 + 10)
                                                         .map((user) => (
                                                             <tr key={user.id} className={showInactiveUsers ? 'table-secondary' : ''}>
@@ -2852,7 +3115,7 @@ const AdminDashboard = () => {
                                                                     </span>
                                                                 </td>
                                                                 <td>
-                                                                    <div className="btn-group" role="group">
+                                                                    <div className="btn-group btn-group-sm" role="group" style={{flexWrap: 'wrap', gap: '2px'}}>
                                                                         <button
                                                                             className="btn btn-sm btn-outline-info"
                                                                             onClick={() => viewUserDetails(user)}
@@ -2874,6 +3137,18 @@ const AdminDashboard = () => {
                                                                         >
                                                                             <i className={`fa ${user.is_active ? 'fa-ban' : 'fa-check'}`}></i>
                                                                         </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary"
+                                                                            onClick={() => promoteToAdmin(user)}
+                                                                            disabled={promotingUserId === user.id}
+                                                                            title="Make Admin/Staff"
+                                                                        >
+                                                                            {promotingUserId === user.id ? (
+                                                                                <i className="fa fa-spinner fa-spin"></i>
+                                                                            ) : (
+                                                                                <i className="fa fa-user-shield"></i>
+                                                                            )}
+                                                                        </button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -2881,7 +3156,11 @@ const AdminDashboard = () => {
                                                 </tbody>
                                             </table>
                                             <Pagination
-                                                totalItems={(showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active)).length}
+                                                totalItems={(() => {
+                                                    const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
+                                                    console.log('🔍 DEBUG: Pagination totalItems - showInactiveUsers:', showInactiveUsers, 'count:', filteredUsers.length);
+                                                    return filteredUsers.length;
+                                                })()}
                                                 currentPage={usersPage}
                                                 pageSize={10}
                                                 onPageChange={(p) => setUsersPage(p)}
@@ -2901,6 +3180,28 @@ const AdminDashboard = () => {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                            </article>
+                        )}
+
+                        {activeTab === 'admin-staff' && hasPermission('manage_admin_staff') && (
+                            <article className="card" style={{overflow: 'hidden'}}>
+                                <div className="card-body" style={{overflow: 'hidden'}}>
+                                    {(() => {
+                                        const AdminStaffManager = require('./AdminStaffManager.jsx').default;
+                                        return <AdminStaffManager />;
+                                    })()}
+                                </div>
+                            </article>
+                        )}
+
+                        {activeTab === 'permissions' && hasPermission('manage_permissions') && (
+                            <article className="card" style={{overflow: 'hidden'}}>
+                                <div className="card-body" style={{overflow: 'hidden'}}>
+                                    {(() => {
+                                        const PermissionManagement = require('./PermissionManagement.jsx').default;
+                                        return <PermissionManagement />;
+                                    })()}
                                 </div>
                             </article>
                         )}
@@ -3151,6 +3452,7 @@ const AdminDashboard = () => {
                                 </div>
                             </article>
                         )}
+
 
                         {activeTab === 'inbox' && (
                             <AdminChatInbox />
@@ -3416,7 +3718,7 @@ const AdminDashboard = () => {
                                  </article>
                              )}
 
-                             {activeTab === 'order-tracking' && (
+                             {activeTab === 'order-tracking' && hasPermission('order_tracking') && (
                                  <article className="card">
                                      <header className="card-header">
                                          <strong className="d-inline-block mr-3">Order Tracking</strong>

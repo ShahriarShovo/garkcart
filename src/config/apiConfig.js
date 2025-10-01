@@ -21,7 +21,18 @@ const API_CONFIG = {
             VERIFY_EMAIL: '/api/accounts/verify-email/',
             RESEND_VERIFICATION: '/api/accounts/resend-verification/',
             FORGOT_PASSWORD: '/api/accounts/forgot-password/',
-            RESET_PASSWORD: '/api/accounts/reset-password/'
+            RESET_PASSWORD: '/api/accounts/reset-password/',
+            // Permission Management
+            PERMISSIONS: '/api/accounts/permissions/permissions/',
+            PERMISSION_CATEGORIES: '/api/accounts/permissions/permissions/categories/',
+            CREATE_DEFAULT_PERMISSIONS: '/api/accounts/permissions/permissions/create-defaults/',
+            ROLES: '/api/accounts/permissions/roles/',
+            ROLE_DETAIL: '/api/accounts/permissions/roles/',
+            ROLE_PERMISSIONS: '/api/accounts/permissions/roles/',
+            USER_PERMISSIONS: '/api/accounts/permissions/users/permissions/',
+            ASSIGN_PERMISSIONS: '/api/accounts/permissions/users/assign-permissions/',
+            CHECK_PERMISSION: '/api/accounts/permissions/check-permission/',
+            USER_PERMISSIONS_LIST: '/api/accounts/permissions/user-permissions/'
         },
         
         // Products
