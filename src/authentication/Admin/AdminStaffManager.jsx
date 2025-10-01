@@ -26,6 +26,7 @@ const AdminStaffManager = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [validationError, setValidationError] = useState('');
     const [showPermissionModal, setShowPermissionModal] = useState(false);
+    const [updatingUserId, setUpdatingUserId] = useState(null);
 
     const load = async () => {
         setLoading(true);
@@ -74,12 +75,15 @@ const AdminStaffManager = () => {
     useEffect(() => { load(); }, []);
 
     const updateRole = async (user, changes) => {
+        setUpdatingUserId(user.id);
         try {
             await AdminRolesApi.setUserRole(user.id, changes);
             setToast({show: true, message: 'Role updated', type: 'success'});
             load();
         } catch (e) {
             setToast({show: true, message: e.message, type: 'error'});
+        } finally {
+            setUpdatingUserId(null);
         }
     };
 
@@ -232,14 +236,15 @@ const AdminStaffManager = () => {
                                 <th>Staff</th>
                                 <th>Superuser</th>
                                 <th>Roles</th>
+                                <th>Last Login</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="7" className="text-center"><i className="fa fa-spinner fa-spin"></i> Loading...</td></tr>
+                                <tr><td colSpan="8" className="text-center"><i className="fa fa-spinner fa-spin"></i> Loading...</td></tr>
                             ) : users.length === 0 ? (
-                                <tr><td colSpan="7" className="text-center text-muted">No admin/staff users</td></tr>
+                                <tr><td colSpan="8" className="text-center text-muted">No admin/staff users</td></tr>
                             ) : users.map(u => (
                                 <tr key={u.id}>
                                     <td>{u.email}</td>
@@ -270,41 +275,61 @@ const AdminStaffManager = () => {
                                         </div>
                                     </td>
                                     <td>
-                                        <div className="btn-group btn-group-sm" role="group">
+                                        <span className="text-muted">
+                                            {u.last_login_formatted || u.last_login ? 
+                                                (u.last_login_formatted || new Date(u.last_login).toLocaleString('en-US', {
+                                                    timeZone: 'Asia/Dhaka',
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit',
+                                                    hour12: true
+                                                })) : 
+                                                'Never'
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="btn-group btn-group-sm" role="group" style={{flexWrap: 'wrap', gap: '2px'}}>
                                             <button 
-                                                className={`btn ${u.is_staff ? 'btn-success' : 'btn-outline-success'}`}
+                                                className={`btn btn-sm ${u.is_staff ? 'btn-outline-danger' : 'btn-outline-success'}`}
                                                 onClick={() => updateRole(u, {is_staff: !u.is_staff})}
+                                                disabled={updatingUserId === u.id}
                                                 title={u.is_staff ? 'Remove Staff Access' : 'Grant Staff Access'}
                                             >
-                                                <i className={`fa fa-${u.is_staff ? 'check' : 'plus'}`}></i>
-                                                {u.is_staff ? ' Staff' : ' Make Staff'}
+                                                {updatingUserId === u.id ? (
+                                                    <i className="fa fa-spinner fa-spin"></i>
+                                                ) : (
+                                                    <i className={`fa fa-${u.is_staff ? 'ban' : 'user-tie'}`}></i>
+                                                )}
                                             </button>
                                             <button 
-                                                className={`btn ${u.is_superuser ? 'btn-danger' : 'btn-outline-danger'}`}
+                                                className={`btn btn-sm ${u.is_superuser ? 'btn-outline-danger' : 'btn-outline-primary'}`}
                                                 onClick={() => updateRole(u, {is_superuser: !u.is_superuser})}
+                                                disabled={updatingUserId === u.id}
                                                 title={u.is_superuser ? 'Remove Admin Access' : 'Grant Admin Access'}
                                             >
-                                                <i className={`fa fa-${u.is_superuser ? 'times' : 'crown'}`}></i>
-                                                {u.is_superuser ? ' Admin' : ' Make Admin'}
+                                                {updatingUserId === u.id ? (
+                                                    <i className="fa fa-spinner fa-spin"></i>
+                                                ) : (
+                                                    <i className={`fa fa-${u.is_superuser ? 'times' : 'crown'}`}></i>
+                                                )}
                                             </button>
                                             <button 
-                                                className="btn btn-outline-info"
+                                                className="btn btn-sm btn-outline-warning"
                                                 onClick={() => handleManagePermissions(u)}
                                                 title="Manage Permissions"
                                             >
                                                 <i className="fa fa-key"></i>
-                                                Permissions
-                                                {u.roles && u.roles.length > 0 && (
-                                                    <span className="badge badge-light ml-1">{u.roles.length}</span>
-                                                )}
                                             </button>
                                             <button 
-                                                className="btn btn-outline-success"
+                                                className="btn btn-sm btn-outline-info"
                                                 onClick={() => handleManageUser(u)}
                                                 title="Manage User Profile & Settings"
                                             >
                                                 <i className="fa fa-user-cog"></i>
-                                                Manage User
                                             </button>
                                         </div>
                                     </td>

@@ -23,15 +23,19 @@ const API_CONFIG = {
             FORGOT_PASSWORD: '/api/accounts/forgot-password/',
             RESET_PASSWORD: '/api/accounts/reset-password/',
             // Permission Management
-            PERMISSIONS: '/api/accounts/permissions/permissions/',
+            PERMISSIONS_LIST: '/api/accounts/permissions/permissions/',
             PERMISSION_CATEGORIES: '/api/accounts/permissions/permissions/categories/',
             CREATE_DEFAULT_PERMISSIONS: '/api/accounts/permissions/permissions/create-defaults/',
             ROLES: '/api/accounts/permissions/roles/',
             ROLE_DETAIL: '/api/accounts/permissions/roles/',
             ROLE_PERMISSIONS: '/api/accounts/permissions/roles/',
-            USER_PERMISSIONS: '/api/accounts/permissions/users/permissions/',
+            // Lists users with their permissions (admin view)
+            USER_PERMISSIONS_USERS_LIST: '/api/accounts/permissions/users/permissions/',
+            // Assign permissions to a user (expects user_id in POST body)
             ASSIGN_PERMISSIONS: '/api/accounts/permissions/users/assign-permissions/',
+            // Check a permission for current user
             CHECK_PERMISSION: '/api/accounts/permissions/check-permission/',
+            // Get current user's permissions
             USER_PERMISSIONS_LIST: '/api/accounts/permissions/user-permissions/'
         },
         

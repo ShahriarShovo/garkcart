@@ -7,7 +7,7 @@ class PermissionApi {
 
     // Permission Management
     async getPermissions() {
-        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.PERMISSIONS}`, {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.PERMISSIONS_LIST}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ class PermissionApi {
 
     // User Permission Management
     async getUserPermissions() {
-        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.USER_PERMISSIONS}`, {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.USER_PERMISSIONS_USERS_LIST}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json',
@@ -157,14 +157,6 @@ class PermissionApi {
     }
 
     async assignUserPermissions(userId, permissionIds, roleIds) {
-        console.log('🔍 DEBUG: API Call - assignUserPermissions');
-        console.log('🔍 DEBUG: URL:', `${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.ASSIGN_PERMISSIONS}`);
-        console.log('🔍 DEBUG: Request data:', {
-            user_id: userId,
-            permission_ids: permissionIds,
-            role_ids: roleIds
-        });
-        
         const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.ASSIGN_PERMISSIONS}`, {
             method: 'POST',
             headers: {
@@ -177,20 +169,11 @@ class PermissionApi {
                 role_ids: roleIds
             })
         });
-        
-        console.log('🔍 DEBUG: Response status:', response.status);
-        console.log('🔍 DEBUG: Response ok:', response.ok);
-        
         if (!response.ok) {
             const errorData = await response.json();
-            console.error('🔍 DEBUG: Error response:', errorData);
-            console.error('🔍 DEBUG: Error details:', JSON.stringify(errorData, null, 2));
             throw new Error(errorData.message || errorData.detail || 'Failed to assign user permissions');
         }
-        
-        const result = await response.json();
-        console.log('🔍 DEBUG: Success response:', result);
-        return result;
+        return response.json();
     }
 
     // Permission Checking
@@ -226,6 +209,74 @@ class PermissionApi {
         }
         return response.json();
     }
+
+    // Permission CRUD operations
+    async createPermission(permissionData) {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.PERMISSIONS_LIST}create/`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(permissionData)
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to create permission');
+        }
+        return response.json();
+    }
+
+    async updatePermission(permissionId, permissionData) {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.PERMISSIONS_LIST}${permissionId}/update/`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(permissionData)
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to update permission');
+        }
+        return response.json();
+    }
+
+    async deletePermission(permissionId) {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.PERMISSIONS_LIST}${permissionId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to delete permission');
+        }
+        return response.json();
+    }
+
+    // Dynamic permission checking
+    async checkPermission(permissionCodename) {
+        const response = await fetch(`${this.baseURL}${API_CONFIG.ENDPOINTS.AUTH.CHECK_PERMISSION}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                permission_codename: permissionCodename
+            })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to check permission');
+        }
+        return response.json();
+    }
+
 }
 
 export default new PermissionApi();

@@ -7,6 +7,7 @@ import adminWebsocketService from '../../chat_and_notification/api/adminWebsocke
 import AdminLogoManager from '../../settings/AdminLogoManager.jsx';
 import AdminBannerManager from '../../settings/AdminBannerManager.jsx';
 import FooterSettings from './FooterSettings';
+// import DynamicPermissionManager from './DynamicPermissionManager';
 import API_CONFIG from '../../config/apiConfig';
 import formatBDT from '../../utils/currency';
 // TODO: Future implementation - Notification and Discount management
@@ -138,7 +139,7 @@ const AdminDashboard = () => {
             const token = localStorage.getItem('token');
             console.log('🔍 DEBUG: Token exists:', !!token);
             
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/permissions/user-permissions/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.USER_PERMISSIONS_LIST}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ const AdminDashboard = () => {
         }
     };
 
-    // Check if user has specific permission
+    // Check if user has specific permission (Dynamic permission checking)
     const hasPermission = (permissionCodename) => {
         console.log('🔍 DEBUG: Checking permission:', permissionCodename);
         console.log('🔍 DEBUG: User:', user?.email, 'is_superuser:', user?.is_superuser);
@@ -201,13 +202,38 @@ const AdminDashboard = () => {
             return false; // No permissions loaded yet
         }
         
-        // Check if permission exists in the array (direct string match)
+        // Dynamic permission checking - check if permission exists in the array
         const hasPerm = userPermissions.includes(permissionCodename);
         console.log('🔍 DEBUG: Has permission', permissionCodename, ':', hasPerm);
         console.log('🔍 DEBUG: Permission array contains:', userPermissions);
         console.log('🔍 DEBUG: Looking for:', permissionCodename);
         return hasPerm;
     };
+
+    // Dynamic permission checker for any codename
+    // const checkDynamicPermission = async (permissionCodename) => {
+    //     try {
+    //         const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.CHECK_PERMISSION}`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    //                 'Content-Type': 'application/json',
+    //             },
+    //             body: JSON.stringify({
+    //                 permission_codename: permissionCodename
+    //             })
+    //         });
+    //         
+    //         if (response.ok) {
+    //             const data = await response.json();
+    //             return data.has_permission;
+    //         }
+    //         return false;
+    //     } catch (error) {
+    //         console.error('Error checking dynamic permission:', error);
+    //         return false;
+    //     }
+    // };
 
     // Check if user has specific role
     const hasRole = (roleName) => {
@@ -659,6 +685,39 @@ const AdminDashboard = () => {
     const [savedEmailSettings, setSavedEmailSettings] = useState([]);
     const [selectedEmailSetting, setSelectedEmailSetting] = useState(null);
     
+    // Confirmation Modal States
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmData, setConfirmData] = useState({
+        title: '',
+        message: '',
+        onConfirm: null,
+        confirmText: 'Confirm',
+        confirmClass: 'btn-primary'
+    });
+    
+    // Confirmation Modal Helper
+    const showConfirmation = (title, message, onConfirm, confirmText = 'Confirm', confirmClass = 'btn-primary') => {
+        setConfirmData({
+            title,
+            message,
+            onConfirm,
+            confirmText,
+            confirmClass
+        });
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirm = () => {
+        if (confirmData.onConfirm) {
+            confirmData.onConfirm();
+        }
+        setShowConfirmModal(false);
+    };
+
+    const handleCancel = () => {
+        setShowConfirmModal(false);
+    };
+
     // Load existing email settings on component mount
     useEffect(() => {
         console.log('🔍 DEBUG: useEffect triggered, calling loadExistingEmailSettings...');
@@ -2094,7 +2153,8 @@ const AdminDashboard = () => {
                                     Admin & Staff
                                 </a>
                             )}
-                            {hasPermission('manage_permissions') && (
+                            {/* TODO: Fix Permission Management - Commented out due to API issues */}
+                            {/* {hasPermission('manage_permissions') && (
                                 <a
                                     className={`list-group-item ${activeTab === 'permissions' ? 'active' : ''}`}
                                     href="#"
@@ -2106,7 +2166,20 @@ const AdminDashboard = () => {
                                     <i className="fa fa-shield-alt mr-2"></i>
                                     Permission Management
                                 </a>
-                            )}
+                            )} */}
+                            {/* {hasPermission('manage_permissions') && (
+                                <a
+                                    className={`list-group-item ${activeTab === 'dynamic_permissions' ? 'active' : ''}`}
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setActiveTab('dynamic_permissions');
+                                    }}
+                                >
+                                    <i className="fa fa-magic mr-2"></i>
+                                    Dynamic Permissions
+                                </a>
+                            )} */}
                             {hasPermission('manage_categories') && (
                                 <a
                                     className={`list-group-item ${activeTab === 'categories' ? 'active' : ''}`}
@@ -3109,7 +3182,16 @@ const AdminDashboard = () => {
                                                                 <td>
                                                                     <span className={showInactiveUsers ? 'text-muted' : ''}>
                                                                         {user.last_login ?
-                                                                            new Date(user.last_login).toLocaleDateString() :
+                                                                            new Date(user.last_login).toLocaleString('en-US', {
+                                                                                timeZone: 'Asia/Dhaka',
+                                                                                year: 'numeric',
+                                                                                month: '2-digit',
+                                                                                day: '2-digit',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                                second: '2-digit',
+                                                                                hour12: true
+                                                                            }) :
                                                                             'Never'
                                                                         }
                                                                     </span>
@@ -3195,7 +3277,8 @@ const AdminDashboard = () => {
                             </article>
                         )}
 
-                        {activeTab === 'permissions' && hasPermission('manage_permissions') && (
+                        {/* TODO: Fix Permission Management - Commented out due to API issues */}
+                        {/* {activeTab === 'permissions' && hasPermission('manage_permissions') && (
                             <article className="card" style={{overflow: 'hidden'}}>
                                 <div className="card-body" style={{overflow: 'hidden'}}>
                                     {(() => {
@@ -3204,7 +3287,15 @@ const AdminDashboard = () => {
                                     })()}
                                 </div>
                             </article>
-                        )}
+                        )} */}
+
+                        {/* {activeTab === 'dynamic_permissions' && hasPermission('manage_permissions') && (
+                            <article className="card" style={{overflow: 'hidden'}}>
+                                <div className="card-body" style={{overflow: 'hidden'}}>
+                                    <DynamicPermissionManager />
+                                </div>
+                            </article>
+                        )} */}
 
 
                         {activeTab === 'categories' && (
@@ -4564,6 +4655,51 @@ const AdminDashboard = () => {
                                                         const data = await response.json();
                                                         setEmailSettingsSuccess('Email settings saved successfully!');
                                                         console.log('Email settings saved:', data);
+                                                        
+                                                        // Auto-refresh email settings list
+                                                        try {
+                                                            const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
+                                                                method: 'GET',
+                                                                headers: {
+                                                                    'Authorization': `Bearer ${token}`,
+                                                                    'Content-Type': 'application/json'
+                                                                }
+                                                            });
+                                                            
+                                                            if (refreshResponse.ok) {
+                                                                const refreshData = await refreshResponse.json();
+                                                                const emailSettings = Array.isArray(refreshData) ? refreshData : (refreshData.results || []);
+                                                                setSavedEmailSettings(emailSettings);
+                                                                
+                                                                if (emailSettings.length > 0) {
+                                                                    setSelectedEmailSetting(emailSettings[0]);
+                                                                    
+                                                                    // Update form with first setting
+                                                                    const firstSetting = emailSettings[0];
+                                                                    setEmailSettings({
+                                                                        admin_email: firstSetting.email_address || '',
+                                                                        support_email: firstSetting.reply_to_email || '',
+                                                                        notification_email: firstSetting.from_email || '',
+                                                                        email_signature: ''
+                                                                    });
+                                                                    
+                                                                    setSmtpSettings({
+                                                                        smtp_host: firstSetting.smtp_host || 'smtp.gmail.com',
+                                                                        smtp_port: firstSetting.smtp_port || 587,
+                                                                        smtp_username: firstSetting.smtp_username || '',
+                                                                        smtp_password: '',
+                                                                        smtp_use_tls: firstSetting.use_tls || true,
+                                                                        smtp_use_ssl: firstSetting.use_ssl || false,
+                                                                        from_email: firstSetting.from_email || '',
+                                                                        from_name: firstSetting.from_name || 'Your Store Name'
+                                                                    });
+                                                                } else {
+                                                                    setSelectedEmailSetting(null);
+                                                                }
+                                                            }
+                                                        } catch (refreshErr) {
+                                                            console.error('Error refreshing email settings:', refreshErr);
+                                                        }
                                             } else {
                                                         const errorData = await response.json();
                                                         setEmailSettingsError(errorData.message || 'Failed to save email settings');
@@ -4921,7 +5057,7 @@ const AdminDashboard = () => {
                                                             from_name: smtpSettings.from_name,
                                                             from_email: smtpSettings.from_email,
                                                             email_provider: 'smtp',
-                                                            is_primary: true,
+                                                            is_primary: false,
                                                             is_active: true,
                                                             use_for_registration: true,
                                                             use_for_password_reset: true,
@@ -4935,6 +5071,51 @@ const AdminDashboard = () => {
                                                         const data = await response.json();
                                                         setSmtpSuccess('SMTP settings saved successfully!');
                                                         console.log('SMTP settings saved:', data);
+                                                        
+                                                        // Auto-refresh email settings list
+                                                        try {
+                                                            const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
+                                                                method: 'GET',
+                                                                headers: {
+                                                                    'Authorization': `Bearer ${token}`,
+                                                                    'Content-Type': 'application/json'
+                                                                }
+                                                            });
+                                                            
+                                                            if (refreshResponse.ok) {
+                                                                const refreshData = await refreshResponse.json();
+                                                                const emailSettings = Array.isArray(refreshData) ? refreshData : (refreshData.results || []);
+                                                                setSavedEmailSettings(emailSettings);
+                                                                
+                                                                if (emailSettings.length > 0) {
+                                                                    setSelectedEmailSetting(emailSettings[0]);
+                                                                    
+                                                                    // Update form with first setting
+                                                                    const firstSetting = emailSettings[0];
+                                                                    setEmailSettings({
+                                                                        admin_email: firstSetting.email_address || '',
+                                                                        support_email: firstSetting.reply_to_email || '',
+                                                                        notification_email: firstSetting.from_email || '',
+                                                                        email_signature: ''
+                                                                    });
+                                                                    
+                                                                    setSmtpSettings({
+                                                                        smtp_host: firstSetting.smtp_host || 'smtp.gmail.com',
+                                                                        smtp_port: firstSetting.smtp_port || 587,
+                                                                        smtp_username: firstSetting.smtp_username || '',
+                                                                        smtp_password: '',
+                                                                        smtp_use_tls: firstSetting.use_tls || true,
+                                                                        smtp_use_ssl: firstSetting.use_ssl || false,
+                                                                        from_email: firstSetting.from_email || '',
+                                                                        from_name: firstSetting.from_name || 'Your Store Name'
+                                                                    });
+                                                                } else {
+                                                                    setSelectedEmailSetting(null);
+                                                                }
+                                                            }
+                                                        } catch (refreshErr) {
+                                                            console.error('Error refreshing email settings:', refreshErr);
+                                                        }
                                                     } else {
                                                         const errorData = await response.json();
                                                         console.error('SMTP save error response:', errorData);
@@ -5169,14 +5350,12 @@ const AdminDashboard = () => {
                                                                                     </small>
                                                                                 </div>
                                                                                 
-                                                                                <div className="mt-3">
+                                                                                <div className="mt-3 d-flex align-items-center flex-wrap">
                                                                                     <button 
                                                                                         type="button" 
-                                                                                        className="btn btn-sm btn-outline-info"
+                                                                                        className="btn btn-sm btn-outline-info mr-2"
                                                                                         onClick={async (e) => {
-                                                                                            e.stopPropagation(); // Prevent card selection
-                                                                                            console.log('🔍 DEBUG: Testing connection for email setting:', emailSetting);
-                                                                                            
+                                                                                            e.stopPropagation();
                                                                                             try {
                                                                                                 const token = localStorage.getItem('token');
                                                                                                 const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/smtp/test/`, {
@@ -5189,7 +5368,7 @@ const AdminDashboard = () => {
                                                                                                         smtp_host: emailSetting.smtp_host,
                                                                                                         smtp_port: emailSetting.smtp_port,
                                                                                                         smtp_username: emailSetting.smtp_username,
-                                                                                                        smtp_password: 'tcrb umgr tyir rxuv', // Use your Gmail app password
+                                                                                                        smtp_password: 'tcrb umgr tyir rxuv',
                                                                                                         use_tls: emailSetting.use_tls,
                                                                                                         use_ssl: emailSetting.use_ssl,
                                                                                                         test_email: emailSetting.email_address
@@ -5198,19 +5377,11 @@ const AdminDashboard = () => {
                                                                                                 
                                                                                                 if (response.ok) {
                                                                                                     const result = await response.json();
-                                                                                                    if (result.success) {
-                                                                                                        setToast({
-                                                                                                            show: true,
-                                                                                                            message: `SMTP connection successful for ${emailSetting.email_address}`,
-                                                                                                            type: 'success'
-                                                                                                        });
-                                                                                                    } else {
-                                                                                                        setToast({
-                                                                                                            show: true,
-                                                                                                            message: `SMTP connection failed: ${result.message}`,
-                                                                                                            type: 'error'
-                                                                                                        });
-                                                                                                    }
+                                                                                                    setToast({
+                                                                                                        show: true,
+                                                                                                        message: result.success ? `SMTP connection successful for ${emailSetting.email_address}` : `SMTP connection failed: ${result.message}`,
+                                                                                                        type: result.success ? 'success' : 'error'
+                                                                                                    });
                                                                                                 } else {
                                                                                                     const error = await response.text();
                                                                                                     setToast({
@@ -5220,7 +5391,6 @@ const AdminDashboard = () => {
                                                                                                     });
                                                                                                 }
                                                                                             } catch (err) {
-                                                                                                console.error('SMTP test error:', err);
                                                                                                 setToast({
                                                                                                     show: true,
                                                                                                     message: `SMTP test error: ${err.message}`,
@@ -5232,66 +5402,33 @@ const AdminDashboard = () => {
                                                                                         <i className="fa fa-plug mr-1"></i>
                                                                                         Test Connection
                                                                                     </button>
-                                                                                    {!emailSetting.is_primary && (
+                                                                                    
+                                                                                    {!emailSetting.is_primary ? (
                                                                                         <button 
                                                                                             type="button" 
-                                                                                            className="btn btn-sm btn-outline-warning ml-2"
+                                                                                            className="btn btn-sm btn-outline-warning mr-2"
                                                                                             onClick={async (e) => {
-                                                                                                e.stopPropagation(); // Prevent card selection
-                                                                                                
-                                                                                                if (requestConfirm(`set-primary-${emailSetting.id}`, `Tap again to set ${emailSetting.email_address} as Primary`)) {
-                                                                                                    try {
-                                                                                                        const token = localStorage.getItem('token');
-                                                                                                        
-                                                                                                        // First, remove primary status from all other emails
-                                                                                                        const allEmailsResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
-                                                                                                            method: 'GET',
-                                                                                                            headers: {
-                                                                                                                'Authorization': `Bearer ${token}`,
-                                                                                                                'Content-Type': 'application/json'
-                                                                                                            }
-                                                                                                        });
-                                                                                                        
-                                                                                                        if (allEmailsResponse.ok) {
-                                                                                                            const allEmailsData = await allEmailsResponse.json();
-                                                                                                            const allEmails = Array.isArray(allEmailsData) ? allEmailsData : (allEmailsData.results || []);
-                                                                                                            
-                                                                                                            // Remove primary status from all emails
-                                                                                                            for (const email of allEmails) {
-                                                                                                                if (email.is_primary) {
-                                                                                                                    await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${email.id}/`, {
-                                                                                                                        method: 'PATCH',
-                                                                                                                        headers: {
-                                                                                                                            'Authorization': `Bearer ${token}`,
-                                                                                                                            'Content-Type': 'application/json'
-                                                                                                                        },
-                                                                                                                        body: JSON.stringify({
-                                                                                                                            is_primary: false
-                                                                                                                        })
-                                                                                                                    });
-                                                                                                                }
-                                                                                                            }
-                                                                                                            
-                                                                                                            // Set this email as primary
-                                                                                                            const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
-                                                                                                                method: 'PATCH',
+                                                                                                e.stopPropagation();
+                                                                                                showConfirmation(
+                                                                                                    'Set Primary Email',
+                                                                                                    `Are you sure you want to set ${emailSetting.email_address} as the primary email? This will remove primary status from other emails.`,
+                                                                                                    async () => {
+                                                                                                        try {
+                                                                                                            const token = localStorage.getItem('token');
+                                                                                                            const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/switch-primary-email/`, {
+                                                                                                                method: 'POST',
                                                                                                                 headers: {
                                                                                                                     'Authorization': `Bearer ${token}`,
                                                                                                                     'Content-Type': 'application/json'
                                                                                                                 },
-                                                                                                                body: JSON.stringify({
-                                                                                                                    is_primary: true
-                                                                                                                })
+                                                                                                                body: JSON.stringify({ email_id: emailSetting.id })
                                                                                                             });
                                                                                                             
                                                                                                             if (response.ok) {
-                                                                                                                setToast({
-                                                                                                                    show: true,
-                                                                                                                    message: `Primary email set: ${emailSetting.email_address}`,
-                                                                                                                    type: 'success'
-                                                                                                                });
+                                                                                                                const data = await response.json();
+                                                                                                                setToast({ show: true, message: data.message, type: 'success' });
                                                                                                                 
-                                                                                                                // Refresh the email settings list
+                                                                                                                // Refresh email settings without full page reload
                                                                                                                 try {
                                                                                                                     const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
                                                                                                                         method: 'GET',
@@ -5302,78 +5439,124 @@ const AdminDashboard = () => {
                                                                                                                     });
                                                                                                                     
                                                                                                                     if (refreshResponse.ok) {
-                                                                                                                        const data = await refreshResponse.json();
-                                                                                                                        const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                                                                        const refreshData = await refreshResponse.json();
+                                                                                                                        const emailSettings = Array.isArray(refreshData) ? refreshData : (refreshData.results || []);
                                                                                                                         setSavedEmailSettings(emailSettings);
                                                                                                                         
-                                                                                                                        // Update selected email setting
-                                                                                                                        const updatedEmail = emailSettings.find(e => e.id === emailSetting.id);
-                                                                                                                        if (updatedEmail) {
-                                                                                                                            setSelectedEmailSetting(updatedEmail);
+                                                                                                                        if (emailSettings.length > 0) {
+                                                                                                                            setSelectedEmailSetting(emailSettings[0]);
+                                                                                                                        } else {
+                                                                                                                            setSelectedEmailSetting(null);
                                                                                                                         }
                                                                                                                     }
                                                                                                                 } catch (refreshErr) {
                                                                                                                     console.error('Error refreshing email settings:', refreshErr);
                                                                                                                 }
                                                                                                             } else {
-                                                                                                                const error = await response.text();
-                                                                                                                setToast({
-                                                                                                                    show: true,
-                                                                                                                    message: `Failed to set primary (${response.status}): ${error}`,
-                                                                                                                    type: 'error'
-                                                                                                                });
+                                                                                                                const errorData = await response.json();
+                                                                                                                setToast({ show: true, message: `Failed to switch primary: ${errorData.message}`, type: 'error' });
                                                                                                             }
-                                                                                                        } else {
-                                                                                                            setToast({
-                                                                                                                show: true,
-                                                                                                                message: `Failed to fetch emails (${allEmailsResponse.status})`,
-                                                                                                                type: 'error'
-                                                                                                            });
+                                                                                                        } catch (err) {
+                                                                                                            setToast({ show: true, message: `Network error: ${err.message}`, type: 'error' });
                                                                                                         }
-                                                                                                    } catch (err) {
-                                                                                                        console.error('Set primary email error:', err);
-                                                                                                        setToast({
-                                                                                                            show: true,
-                                                                                                            message: `Set primary error: ${err.message}`,
-                                                                                                            type: 'error'
-                                                                                                        });
-                                                                                                    }
-                                                                                                }
+                                                                                                    },
+                                                                                                    'Set Primary',
+                                                                                                    'btn-warning'
+                                                                                                );
                                                                                             }}
                                                                                         >
                                                                                             <i className="fa fa-star mr-1"></i>
                                                                                             Set Primary
                                                                                         </button>
-                                                                                    )}
-                                                                                    {emailSetting.is_primary && (
+                                                                                    ) : (
                                                                                         <button 
                                                                                             type="button" 
-                                                                                            className="btn btn-sm btn-outline-secondary ml-2"
+                                                                                            className="btn btn-sm btn-outline-danger mr-2"
                                                                                             onClick={async (e) => {
-                                                                                                e.stopPropagation(); // Prevent card selection
-                                                                                                
-                                                                                                if (requestConfirm(`remove-primary-${emailSetting.id}`, `Tap again to remove Primary from ${emailSetting.email_address}`)) {
+                                                                                                e.stopPropagation();
+                                                                                                showConfirmation(
+                                                                                                    'Remove Primary Email',
+                                                                                                    `Are you sure you want to remove primary status from ${emailSetting.email_address}? Another email will be automatically set as primary.`,
+                                                                                                    async () => {
+                                                                                                        try {
+                                                                                                            const token = localStorage.getItem('token');
+                                                                                                            const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
+                                                                                                                method: 'PATCH',
+                                                                                                                headers: {
+                                                                                                                    'Authorization': `Bearer ${token}`,
+                                                                                                                    'Content-Type': 'application/json'
+                                                                                                                },
+                                                                                                                body: JSON.stringify({ is_primary: false })
+                                                                                                            });
+                                                                                                            
+                                                                                                            if (response.ok) {
+                                                                                                                setToast({ show: true, message: 'Primary removed successfully', type: 'success' });
+                                                                                                                
+                                                                                                                // Refresh email settings without full page reload
+                                                                                                                try {
+                                                                                                                    const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
+                                                                                                                        method: 'GET',
+                                                                                                                        headers: {
+                                                                                                                            'Authorization': `Bearer ${token}`,
+                                                                                                                            'Content-Type': 'application/json'
+                                                                                                                        }
+                                                                                                                    });
+                                                                                                                    
+                                                                                                                    if (refreshResponse.ok) {
+                                                                                                                        const refreshData = await refreshResponse.json();
+                                                                                                                        const emailSettings = Array.isArray(refreshData) ? refreshData : (refreshData.results || []);
+                                                                                                                        setSavedEmailSettings(emailSettings);
+                                                                                                                        
+                                                                                                                        if (emailSettings.length > 0) {
+                                                                                                                            setSelectedEmailSetting(emailSettings[0]);
+                                                                                                                        } else {
+                                                                                                                            setSelectedEmailSetting(null);
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                } catch (refreshErr) {
+                                                                                                                    console.error('Error refreshing email settings:', refreshErr);
+                                                                                                                }
+                                                                                                            } else {
+                                                                                                                const errorData = await response.json();
+                                                                                                                setToast({ show: true, message: `Failed to remove primary: ${errorData.message}`, type: 'error' });
+                                                                                                            }
+                                                                                                        } catch (err) {
+                                                                                                            setToast({ show: true, message: `Network error: ${err.message}`, type: 'error' });
+                                                                                                        }
+                                                                                                    },
+                                                                                                    'Remove Primary',
+                                                                                                    'btn-danger'
+                                                                                                );
+                                                                                            }}
+                                                                                        >
+                                                                                            <i className="fa fa-star-o mr-1"></i>
+                                                                                            Remove Primary
+                                                                                        </button>
+                                                                                    )}
+                                                                                    
+                                                                                    <button 
+                                                                                        type="button" 
+                                                                                        className="btn btn-sm btn-outline-danger ml-2"
+                                                                                        onClick={async (e) => {
+                                                                                            e.stopPropagation();
+                                                                                            showConfirmation(
+                                                                                                'Delete Email Setting',
+                                                                                                `Are you sure you want to delete the email setting for ${emailSetting.email_address}? This action cannot be undone.`,
+                                                                                                async () => {
                                                                                                     try {
                                                                                                         const token = localStorage.getItem('token');
                                                                                                         const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
-                                                                                                            method: 'PATCH',
+                                                                                                            method: 'DELETE',
                                                                                                             headers: {
                                                                                                                 'Authorization': `Bearer ${token}`,
                                                                                                                 'Content-Type': 'application/json'
-                                                                                                            },
-                                                                                                            body: JSON.stringify({
-                                                                                                                is_primary: false
-                                                                                                            })
+                                                                                                            }
                                                                                                         });
                                                                                                         
                                                                                                         if (response.ok) {
-                                                                                                            setToast({
-                                                                                                                show: true,
-                                                                                                                message: `Primary removed: ${emailSetting.email_address}`,
-                                                                                                                type: 'success'
-                                                                                                            });
+                                                                                                            setToast({ show: true, message: 'Email setting deleted successfully', type: 'success' });
                                                                                                             
-                                                                                                            // Refresh the email settings list
+                                                                                                            // Refresh email settings without full page reload
                                                                                                             try {
                                                                                                                 const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
                                                                                                                     method: 'GET',
@@ -5384,99 +5567,30 @@ const AdminDashboard = () => {
                                                                                                                 });
                                                                                                                 
                                                                                                                 if (refreshResponse.ok) {
-                                                                                                                    const data = await refreshResponse.json();
-                                                                                                                    const emailSettings = Array.isArray(data) ? data : (data.results || []);
+                                                                                                                    const refreshData = await refreshResponse.json();
+                                                                                                                    const emailSettings = Array.isArray(refreshData) ? refreshData : (refreshData.results || []);
                                                                                                                     setSavedEmailSettings(emailSettings);
                                                                                                                     
-                                                                                                                    // Update selected email setting
-                                                                                                                    const updatedEmail = emailSettings.find(e => e.id === emailSetting.id);
-                                                                                                                    if (updatedEmail) {
-                                                                                                                        setSelectedEmailSetting(updatedEmail);
+                                                                                                                    if (emailSettings.length > 0) {
+                                                                                                                        setSelectedEmailSetting(emailSettings[0]);
+                                                                                                                    } else {
+                                                                                                                        setSelectedEmailSetting(null);
                                                                                                                     }
                                                                                                                 }
                                                                                                             } catch (refreshErr) {
                                                                                                                 console.error('Error refreshing email settings:', refreshErr);
                                                                                                             }
                                                                                                         } else {
-                                                                                                            const error = await response.text();
-                                                                                                            setToast({
-                                                                                                                show: true,
-                                                                                                                message: `Failed to remove primary (${response.status}): ${error}`,
-                                                                                                                type: 'error'
-                                                                                                            });
+                                                                                                            const errorData = await response.json();
+                                                                                                            setToast({ show: true, message: `Failed to delete: ${errorData.message}`, type: 'error' });
                                                                                                         }
                                                                                                     } catch (err) {
-                                                                                                        console.error('Remove primary email error:', err);
-                                                                                                        setToast({
-                                                                                                            show: true,
-                                                                                                            message: `Remove primary error: ${err.message}`,
-                                                                                                            type: 'error'
-                                                                                                        });
+                                                                                                        setToast({ show: true, message: `Network error: ${err.message}`, type: 'error' });
                                                                                                     }
-                                                                                                }
-                                                                                            }}
-                                                                                        >
-                                                                                            <i className="fa fa-star-o mr-1"></i>
-                                                                                            Remove Primary
-                                                                                        </button>
-                                                                                    )}
-                                                                                    <button 
-                                                                                        type="button" 
-                                                                                        className="btn btn-sm btn-outline-danger ml-2"
-                                                                                        onClick={async (e) => {
-                                                                                            e.stopPropagation(); // Prevent card selection
-                                                                                            
-                                                                                            if (requestConfirm(`delete-${emailSetting.id}`, `Tap again to delete ${emailSetting.email_address}`)) {
-                                                                                                try {
-                                                                                                    const token = localStorage.getItem('token');
-                                                                                                    const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/${emailSetting.id}/`, {
-                                                                                                        method: 'DELETE',
-                                                                                                        headers: {
-                                                                                                            'Authorization': `Bearer ${token}`,
-                                                                                                            'Content-Type': 'application/json'
-                                                                                                        }
-                                                                                                    });
-                                                                                                    
-                                                                                                    if (response.ok) {
-                                                                                                        setToast({
-                                                                                                            show: true,
-                                                                                                            message: `Email setting deleted: ${emailSetting.email_address}`,
-                                                                                                            type: 'success'
-                                                                                                        });
-                                                                                                        
-                                                                                                        // Refresh the email settings list
-                                                                                                        try {
-                                                                                                            const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
-                                                                                                                method: 'GET',
-                                                                                                                headers: {
-                                                                                                                    'Authorization': `Bearer ${token}`,
-                                                                                                                    'Content-Type': 'application/json'
-                                                                                                                }
-                                                                                                            });
-                                                                                                            
-                                                                                                            if (refreshResponse.ok) {
-                                                                                                                const data = await refreshResponse.json();
-                                                                                                                const emailSettings = Array.isArray(data) ? data : (data.results || []);
-                                                                                                                setSavedEmailSettings(emailSettings);
-                                                                                                                
-                                                                                                                if (emailSettings.length > 0) {
-                                                                                                                    setSelectedEmailSetting(emailSettings[0]);
-                                                                                                                } else {
-                                                                                                                    setSelectedEmailSetting(null);
-                                                                                                                }
-                                                                                                            }
-                                                                                                        } catch (refreshErr) {
-                                                                                                            console.error('Error refreshing email settings:', refreshErr);
-                                                                                                        }
-                                                                                                    } else {
-                                                                                                        const error = await response.text();
-                                                                                                        alert(`❌ Failed to delete email setting!\n\nStatus: ${response.status}\nError: ${error}`);
-                                                                                                    }
-                                                                                                } catch (err) {
-                                                                                                    console.error('Delete email setting error:', err);
-                                                                                                    alert(`❌ Delete Error!\n\nError: ${err.message}`);
-                                                                                                }
-                                                                                            }
+                                                                                                },
+                                                                                                'Delete',
+                                                                                                'btn-danger'
+                                                                                            );
                                                                                         }}
                                                                                     >
                                                                                         <i className="fa fa-trash mr-1"></i>
@@ -6950,6 +7064,49 @@ const AdminDashboard = () => {
                     </div>
                 )
             }
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header border-0 pb-0">
+                                <h5 className="modal-title">
+                                    <i className="fa fa-question-circle text-warning mr-2"></i>
+                                    {confirmData.title}
+                                </h5>
+                                <button 
+                                    type="button" 
+                                    className="close" 
+                                    onClick={handleCancel}
+                                >
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <div className="modal-body pt-0">
+                                <p className="mb-0">{confirmData.message}</p>
+                            </div>
+                            <div className="modal-footer border-0 pt-0">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={handleCancel}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className={`btn ${confirmData.confirmClass}`}
+                                    onClick={handleConfirm}
+                                >
+                                    <i className="fa fa-check mr-1"></i>
+                                    {confirmData.confirmText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section >
     );
 };
