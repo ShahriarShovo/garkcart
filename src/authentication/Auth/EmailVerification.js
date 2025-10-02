@@ -18,30 +18,49 @@ const EmailVerification = () => {
 
     // Get user email from URL parameters first, then localStorage
     React.useEffect(() => {
+        console.log('🔍 DEBUG: EmailVerification useEffect called');
+        console.log('🔍 DEBUG: Current URL:', window.location.href);
+        
         // Check URL parameters first (most recent registration)
         const urlParams = new URLSearchParams(window.location.search);
         const emailFromUrl = urlParams.get('email');
+        const fromLogin = urlParams.get('from') === 'login';
+        
+        console.log('🔍 DEBUG: emailFromUrl:', emailFromUrl);
+        console.log('🔍 DEBUG: fromLogin:', fromLogin);
 
         if (emailFromUrl) {
+            console.log('🔍 DEBUG: Using email from URL:', emailFromUrl);
             // Use email from URL (most recent registration)
             setUserEmail(emailFromUrl);
 
             // Clear old localStorage data to prevent conflicts
             localStorage.removeItem('user');
 
+            // Auto-resend verification email if coming from login attempt
+            if (fromLogin) {
+                console.log('🔍 DEBUG: Auto-resending email from login attempt');
+                // Auto-resend verification email with the email from URL directly
+                setTimeout(() => {
+                    handleResendEmailWithEmail(emailFromUrl);
+                }, 1000);
+            }
+
         } else {
+            console.log('🔍 DEBUG: No email in URL, checking localStorage');
             // Fallback to localStorage if no URL parameter
             const savedUser = localStorage.getItem('user');
 
             if (savedUser) {
                 try {
                     const userData = JSON.parse(savedUser);
-
+                    console.log('🔍 DEBUG: User data from localStorage:', userData);
                     setUserEmail(userData.email || '');
-
                 } catch (error) {
-                    console.error('Error parsing user data:', error);
+                    console.error('🔍 DEBUG: Error parsing user data:', error);
                 }
+            } else {
+                console.log('🔍 DEBUG: No user data in localStorage');
             }
         }
     }, []);
@@ -70,13 +89,19 @@ const EmailVerification = () => {
         });
     };
 
-    const handleResendEmail = async () => {
+    const handleResendEmailWithEmail = async (email) => {
+        console.log('🔍 DEBUG: handleResendEmailWithEmail called with email:', email);
+        
         setIsResending(true);
         
         try {
-            const emailToSend = userEmail || user?.email;
+            if (!email) {
+                console.error('🔍 DEBUG: No email provided to send verification');
+                showToast('Email address not found. Please check your registration.', 'error');
+                return;
+            }
 
-            // Use the original email as entered by user during registration
+            console.log('🔍 DEBUG: Sending verification email to:', email);
 
             const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'RESEND_VERIFICATION'), {
                 method: 'POST',
@@ -84,24 +109,45 @@ const EmailVerification = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    email: emailToSend
+                    email: email
                 }),
             });
 
+            console.log('🔍 DEBUG: Response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('🔍 DEBUG: Success response:', data);
                 showToast(data.message || 'Verification email sent successfully!', 'success');
                 setCountdown(60); // 60 seconds cooldown
             } else {
                 const errorData = await response.json();
+                console.log('🔍 DEBUG: Error response:', errorData);
                 showToast(errorData.message || 'Failed to send verification email. Please try again.', 'error');
             }
         } catch (error) {
-            console.error('Resend verification error:', error);
+            console.error('🔍 DEBUG: Resend verification error:', error);
             showToast('Failed to send verification email. Please try again.', 'error');
         } finally {
             setIsResending(false);
         }
+    };
+
+    const handleResendEmail = async () => {
+        console.log('🔍 DEBUG: handleResendEmail called');
+        console.log('🔍 DEBUG: userEmail:', userEmail);
+        console.log('🔍 DEBUG: user?.email:', user?.email);
+        
+        const emailToSend = userEmail || user?.email;
+        console.log('🔍 DEBUG: emailToSend:', emailToSend);
+        
+        if (!emailToSend) {
+            console.error('🔍 DEBUG: No email found to send verification');
+            showToast('Email address not found. Please check your registration.', 'error');
+            return;
+        }
+        
+        await handleResendEmailWithEmail(emailToSend);
     };
 
     const handleContinue = () => {

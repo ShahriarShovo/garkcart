@@ -5,12 +5,14 @@ import {Link, useNavigate} from 'react-router-dom';
 import AdminChatInbox from '../../chat_and_notification/AdminChatInbox.jsx';
 import adminWebsocketService from '../../chat_and_notification/api/adminWebsocketService.js';
 import orderWebsocketService from '../../chat_and_notification/api/orderWebsocketService.js';
+// Contact WebSocket removed - using simple API polling like Inbox
 import AdminLogoManager from '../../settings/AdminLogoManager.jsx';
 import AdminBannerManager from '../../settings/AdminBannerManager.jsx';
 import FooterSettings from './FooterSettings';
 // import DynamicPermissionManager from './DynamicPermissionManager';
 import API_CONFIG from '../../config/apiConfig';
 import formatBDT from '../../utils/currency';
+import AdvancedProductSearch from './components/AdvancedProductSearch';
 // TODO: Future implementation - Notification and Discount management
 // import AdminNotificationManager from '../../chat_and_notification/AdminNotificationManager';
 // import AdminDiscountManager from '../../chat_and_notification/AdminDiscountManager';
@@ -19,6 +21,8 @@ const AdminDashboard = () => {
     const {user, logout, isAuthenticated, isAuthReady} = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard'); // Default active tab
+    
+    // Contact count will be handled by simple API polling (like Inbox)
 
     // Check authentication on component mount
     useEffect(() => {
@@ -225,6 +229,7 @@ const AdminDashboard = () => {
     const [selectedContact, setSelectedContact] = useState(null);
     const [contactLoading, setContactLoading] = useState(false);
     const [contactUnreadCount, setContactUnreadCount] = useState(0);
+    // useRealTimeContactCount removed - using simple API polling
     const [showContactModal, setShowContactModal] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
@@ -303,10 +308,17 @@ const AdminDashboard = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                setContacts(data);
+                
+                // Handle paginated response for contacts
+                const contacts = data.results || data;
+                setContacts(contacts);
+                
                 // Count unread contacts
-                const unreadCount = data.filter(contact => !contact.is_read).length;
+                const unreadCount = contacts.filter(contact => !contact.is_read).length;
                 setContactUnreadCount(unreadCount);
+                
+                // Contact count updated via API polling
+                console.log('Contact count updated via API polling');
             }
         } catch (error) {
             console.error('Error fetching contacts:', error);
@@ -391,6 +403,54 @@ const AdminDashboard = () => {
             window.removeEventListener('admin_inbox_updated', handleInboxUpdate);
         };
     }, []);
+
+    // Contact count will be handled by the simplified useEffect above
+
+    // Fetch initial contact count when component mounts
+    useEffect(() => {
+        if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
+            console.log('🔍 DEBUG: Fetching initial contact count on mount');
+            fetchContacts();
+        }
+    }, [isAuthenticated, user]);
+
+    // Fetch contact unread count (similar to fetchInboxUnreadCount)
+    const fetchContactUnreadCount = async () => {
+        try {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/chat_and_notifications/contacts/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if(response.ok) {
+                const data = await response.json();
+                const contacts = data.results || data;
+                const unreadCount = contacts.filter(contact => !contact.is_read).length;
+                setContactUnreadCount(unreadCount);
+                console.log('🔍 DEBUG: Contact unread count fetched:', unreadCount);
+            }
+        } catch(error) {
+            console.error('Error fetching contact unread count:', error);
+        }
+    };
+
+    // Handle Contact WebSocket events (simplified like Inbox)
+    useEffect(() => {
+        if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
+            // Fetch initial contact count
+            fetchContactUnreadCount();
+            
+            // Set up interval to check for new contacts (like Inbox polling)
+            const interval = setInterval(fetchContactUnreadCount, 5000); // Check every 5 seconds
+            
+            return () => {
+                clearInterval(interval);
+            };
+        }
+    }, [isAuthenticated, user]);
 
     // Connect to admin WebSocket for real-time updates
     useEffect(() => {
@@ -631,6 +691,18 @@ const AdminDashboard = () => {
     const [archivedProducts, setArchivedProducts] = useState([]);
     const [archivedProductsLoading, setArchivedProductsLoading] = useState(false);
     const [archivedProductsError, setArchivedProductsError] = useState(null);
+    const [productSearchTerm, setProductSearchTerm] = useState('');
+    const [filteredProducts, setFilteredProducts] = useState([]);
+    
+    // Advanced search system state
+    const [useAdvancedSearch, setUseAdvancedSearch] = useState(false);
+    const [advancedSearchResults, setAdvancedSearchResults] = useState({
+        results: [],
+        isLoading: false,
+        error: null,
+        pagination: { currentPage: 1, totalPages: 1, totalCount: 0 },
+        appliedFilters: {}
+    });
     const [showProductModal, setShowProductModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
@@ -1603,6 +1675,51 @@ const AdminDashboard = () => {
         }
     };
 
+    // Filter products based on search term (for simple search)
+    useEffect(() => {
+        if (!useAdvancedSearch) {
+            if (!productSearchTerm.trim()) {
+                setFilteredProducts(products);
+            } else {
+                const filtered = products.filter(product => 
+                    product.title.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                    product.category_name?.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+                    product.sku?.toLowerCase().includes(productSearchTerm.toLowerCase())
+                );
+                setFilteredProducts(filtered);
+            }
+        }
+    }, [products, productSearchTerm, useAdvancedSearch]);
+
+    // Advanced search handlers
+    const handleAdvancedSearchResults = (searchData) => {
+        setAdvancedSearchResults(searchData);
+    };
+
+    const handleAdvancedSearchClear = () => {
+        setAdvancedSearchResults({
+            results: [],
+            isLoading: false,
+            error: null,
+            pagination: { currentPage: 1, totalPages: 1, totalCount: 0 },
+            appliedFilters: {}
+        });
+    };
+
+    const toggleSearchMode = () => {
+        setUseAdvancedSearch(!useAdvancedSearch);
+        if (useAdvancedSearch) {
+            // Switching to simple search
+            setAdvancedSearchResults({
+                results: [],
+                isLoading: false,
+                error: null,
+                pagination: { currentPage: 1, totalPages: 1, totalCount: 0 },
+                appliedFilters: {}
+            });
+        }
+    };
+
     const fetchArchivedProducts = async () => {
         setArchivedProductsLoading(true);
         setArchivedProductsError(null);
@@ -2330,7 +2447,9 @@ const AdminDashboard = () => {
                                              Contact Messages
                                          </div>
                                          {contactUnreadCount > 0 && (
-                                             <span className="badge bg-danger">{contactUnreadCount}</span>
+                                             <span className="badge bg-danger">
+                                                 {contactUnreadCount}
+                                             </span>
                                          )}
                                      </div>
                                  </a>
@@ -2608,14 +2727,69 @@ const AdminDashboard = () => {
                         {activeTab === 'products' && hasPermission('manage_products') && (
                             <article className="card" style={{overflow: 'hidden'}}>
                                 <header className="card-header">
-                                    <strong className="d-inline-block mr-3">Manage Products</strong>
-                                    <button
-                                        className="btn btn-sm btn-primary float-right"
-                                        onClick={() => setShowProductModal(true)}
-                                    >
-                                        <i className="fa fa-plus mr-1"></i>Add Product
-                                    </button>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <strong className="d-inline-block mr-3">Manage Products</strong>
+                                        <div className="d-flex align-items-center">
+                                            <div className="btn-group btn-group-sm mr-3" role="group">
+                                                <button
+                                                    type="button"
+                                                    className={`btn ${!useAdvancedSearch ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                    onClick={() => setUseAdvancedSearch(false)}
+                                                >
+                                                    <i className="fa fa-search mr-1"></i>Simple
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`btn ${useAdvancedSearch ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                    onClick={() => setUseAdvancedSearch(true)}
+                                                >
+                                                    <i className="fa fa-filter mr-1"></i>Advanced
+                                                </button>
+                                            </div>
+                                            <button
+                                                className="btn btn-sm btn-primary"
+                                                onClick={() => setShowProductModal(true)}
+                                            >
+                                                <i className="fa fa-plus mr-1"></i>Add Product
+                                            </button>
+                                        </div>
+                                    </div>
                                 </header>
+                                
+                                {/* Search Interface */}
+                                <div className="card-body" style={{padding: '1rem'}}>
+                                    {useAdvancedSearch ? (
+                                        <AdvancedProductSearch
+                                            onSearchResults={handleAdvancedSearchResults}
+                                            onSearchClear={handleAdvancedSearchClear}
+                                        />
+                                    ) : (
+                                        <div className="row mb-3">
+                                            <div className="col-md-8">
+                                                <div className="input-group">
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder="Search products by name, category, or SKU..."
+                                                        value={productSearchTerm}
+                                                        onChange={(e) => setProductSearchTerm(e.target.value)}
+                                                    />
+                                                    <div className="input-group-append">
+                                                        <span className="input-group-text">
+                                                            <i className="fa fa-search"></i>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4 text-right">
+                                                <small className="text-muted">
+                                                    {filteredProducts.length} of {products.length} products
+                                                </small>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="card-body" style={{overflow: 'hidden', padding: '1rem'}}>
                                     {productsLoading ? (
                                         <div className="text-center py-4">
@@ -2627,7 +2801,7 @@ const AdminDashboard = () => {
                                             <i className="fa fa-exclamation-triangle mr-2"></i>
                                             {productsError}
                                         </div>
-                                    ) : products && products.length > 0 ? (
+                                    ) : !useAdvancedSearch && filteredProducts && filteredProducts.length > 0 ? (
                                         <div className="table-responsive" style={{overflow: 'hidden', width: '100%'}}>
                                             <table className="table table-hover" style={{width: '100%', tableLayout: 'fixed'}}>
                                                 <thead>
@@ -2644,7 +2818,7 @@ const AdminDashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {products
+                                                    {filteredProducts
                                                         .slice((productsPage - 1) * 10, (productsPage - 1) * 10 + 10)
                                                         .map((product) => (
                                                             <tr key={product.id}>
@@ -2760,23 +2934,32 @@ const AdminDashboard = () => {
                                                 </tbody>
                                             </table>
                                             <Pagination
-                                                totalItems={products.length}
+                                                totalItems={useAdvancedSearch ? advancedSearchResults.pagination.totalCount : filteredProducts.length}
                                                 currentPage={productsPage}
                                                 pageSize={10}
                                                 onPageChange={(p) => setProductsPage(p)}
                                             />
                                         </div>
-                                    ) : (
+                                    ) : !useAdvancedSearch && (
                                         <div className="text-center py-5">
                                             <i className="fa fa-box fa-3x text-muted mb-3"></i>
-                                            <h5 className="text-muted">No Products Found</h5>
-                                            <p className="text-muted">Start by creating your first product.</p>
-                                            <button
-                                                className="btn btn-primary"
-                                                onClick={() => setShowProductModal(true)}
-                                            >
-                                                <i className="fa fa-plus mr-1"></i>Create Product
-                                            </button>
+                                            <h5 className="text-muted">
+                                                {productSearchTerm ? 'No Products Match Your Search' : 'No Products Found'}
+                                            </h5>
+                                            <p className="text-muted">
+                                                {productSearchTerm ? 
+                                                    `No products found matching "${productSearchTerm}". Try a different search term.` : 
+                                                    'Start by creating your first product.'
+                                                }
+                                            </p>
+                                            {!productSearchTerm && (
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => setShowProductModal(true)}
+                                                >
+                                                    <i className="fa fa-plus mr-1"></i>Create Product
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -3764,7 +3947,7 @@ const AdminDashboard = () => {
                                          ) : (
                                              <div className="row">
                                                  <div className="col-md-4">
-                                                     <div className="list-group">
+                                                     <div className="list-group" style={{maxHeight: '60vh', overflowY: 'auto'}}>
                                                          {contacts.map(contact => (
                                                              <div
                                                                  key={contact.id}

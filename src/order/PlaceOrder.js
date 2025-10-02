@@ -81,10 +81,13 @@ const PlaceOrder = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                setAddresses(data);
+                
+                // Handle paginated response for addresses
+                const addresses = data.results || data;
+                setAddresses(addresses);
 
                 // Set default address as selected if available
-                const defaultAddress = data.find(addr => addr.is_default);
+                const defaultAddress = addresses.find(addr => addr.is_default);
                 if(defaultAddress) {
                     setSelectedAddress(defaultAddress);
                 }

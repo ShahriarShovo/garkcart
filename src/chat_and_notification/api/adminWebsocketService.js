@@ -2,6 +2,8 @@
  * WebSocket service for admin inbox (global) real-time updates
  */
 
+import API_CONFIG from '../../config/apiConfig';
+
 class AdminWebSocketService {
     constructor() {
         this.socket = null;
@@ -21,7 +23,7 @@ class AdminWebSocketService {
         if (!token || token === 'undefined' || token === 'null') {
             // nothing to do; attempt connect will fail quickly
         }
-        const wsUrl = `ws://127.0.0.1:8000/ws/admin/inbox/?token=${token}`;
+        const wsUrl = API_CONFIG.getWebSocketUrl(API_CONFIG.ENDPOINTS.WEBSOCKET.ADMIN_INBOX, token);
         try {
             this.socket = new WebSocket(wsUrl);
 
@@ -79,7 +81,7 @@ class AdminWebSocketService {
         try {
             const raw = localStorage.getItem('refresh_token');
             if (!raw) return false;
-            const resp = await fetch(`${window?.API_BASE_URL || 'http://127.0.0.1:8000'}/api/accounts/token/refresh/`, {
+            const resp = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/token/refresh/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refresh: raw })

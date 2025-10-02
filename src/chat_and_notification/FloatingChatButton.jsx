@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './styles.module.css';
 import chatApi from './api/chatApi';
+import API_CONFIG from '../config/apiConfig';
 
 const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
     const [actualUnreadCount, setActualUnreadCount] = React.useState(unreadCount);
@@ -18,7 +19,7 @@ const FloatingChatButton = ({onOpen, unreadCount = 0}) => {
                 try {wsRef.current.close(1000, 'Cleanup');} catch(_) {}
             }
             const token = localStorage.getItem('token');
-            const url = `ws://127.0.0.1:8000/ws/chat/${conversationId}/?token=${token}`;
+            const url = API_CONFIG.getWebSocketUrl(`${API_CONFIG.ENDPOINTS.WEBSOCKET.CHAT}${conversationId}/`, token);
             const ws = new WebSocket(url);
             wsRef.current = ws;
 

@@ -5,6 +5,9 @@ const API_CONFIG = {
     // Base URL - can be overridden by environment variables
     BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
     
+    // WebSocket Base URL - can be overridden by environment variables
+    WS_BASE_URL: process.env.REACT_APP_WS_URL || 'ws://127.0.0.1:8000',
+    
     // API Endpoints
     ENDPOINTS: {
         // Authentication
@@ -79,6 +82,14 @@ const API_CONFIG = {
             SUBMIT: '/api/contact/submit/',
             LIST: '/api/contact/messages/',
             DETAIL: '/api/contact/messages/'
+        },
+        
+        // WebSocket Endpoints
+        WEBSOCKET: {
+            CHAT: '/ws/chat/',
+            ADMIN_INBOX: '/ws/admin/inbox/',
+            ADMIN_CONTACTS: '/ws/admin/contacts/',
+            ADMIN_ORDERS: '/ws/admin/orders/'
         }
     },
     
@@ -99,6 +110,20 @@ const API_CONFIG = {
     getFullUrl: (category, action) => {
         const endpoint = API_CONFIG.getEndpoint(category, action);
         return API_CONFIG.getUrl(endpoint);
+    },
+    
+    // Helper function to get WebSocket URL
+    getWebSocketUrl: (endpoint, token) => {
+        const wsUrl = `${API_CONFIG.WS_BASE_URL}${endpoint}`;
+        return token ? `${wsUrl}?token=${token}` : wsUrl;
+    },
+    
+    // Helper function to get WebSocket URL by category and action
+    getWebSocketEndpoint: (category, action) => {
+        if (API_CONFIG.ENDPOINTS.WEBSOCKET[category] && API_CONFIG.ENDPOINTS.WEBSOCKET[category][action]) {
+            return API_CONFIG.ENDPOINTS.WEBSOCKET[category][action];
+        }
+        throw new Error(`WebSocket endpoint not found: ${category}.${action}`);
     }
 };
 

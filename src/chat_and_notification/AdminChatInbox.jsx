@@ -70,11 +70,18 @@ const AdminChatInbox = () => {
         try {
             setIsLoading(true);
             const data = await chatApi.getInbox();
-            setConversations(data);
-            if(data.length > 0 && !selectedConversation) {
-                setSelectedConversation(data[0]);
-                const messagesData = await chatApi.getMessages(data[0].id);
-                setMessages(messagesData);
+            
+            // Handle paginated response for conversations
+            const conversations = data.results || data;
+            setConversations(conversations);
+            
+            if(conversations.length > 0 && !selectedConversation) {
+                setSelectedConversation(conversations[0]);
+                const messagesData = await chatApi.getMessages(conversations[0].id);
+                
+                // Handle paginated response for messages
+                const messages = messagesData.results || messagesData;
+                setMessages(messages);
             }
             // Now connect admin inbox WS for real-time list updates
             if(!adminWebsocketService.isConnected()) {
@@ -120,13 +127,16 @@ const AdminChatInbox = () => {
         setSelectedConversation(conversation);
         try {
             const messagesData = await chatApi.getMessages(conversation.id);
-            setMessages(messagesData);
+            
+            // Handle paginated response for messages
+            const messages = messagesData.results || messagesData;
+            setMessages(messages);
 
             // Always mark customer messages as read when conversation is selected
             // Ensure WS is connecting now so we can wait for 'connected'
             try {websocketService.disconnect();} catch(_) {}
             websocketService.connect(conversation.id);
-            const msgIds = (messagesData || []).filter(m => !m.is_sender_staff).map(m => Number(m.id)).filter(Number.isFinite);
+            const msgIds = (messages || []).filter(m => !m.is_sender_staff).map(m => Number(m.id)).filter(Number.isFinite);
             if(msgIds.length) {
                 // Wait briefly for WS to connect; otherwise fallback to REST
                 const waitForConnected = () => new Promise(resolve => {
@@ -261,7 +271,7 @@ const AdminChatInbox = () => {
             <div className="card-body">
                 <div className="row">
                     <div className="col-md-4">
-                        <div className="list-group" style={{maxHeight: '50vh', overflowY: 'auto'}}>
+                        <div className="list-group" style={{maxHeight: '60vh', overflowY: 'auto'}}>
                             {isLoading ? (
                                 <div className="text-center py-4">
                                     <i className="fa fa-spinner fa-spin"></i>

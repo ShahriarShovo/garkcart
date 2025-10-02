@@ -49,9 +49,11 @@ const SignIn = () => {
         };
 
         const result = await login(userData);
+        
         if(result.success) {
             // Determine admin based on flags
             const isAdmin = !!(result.user?.is_superuser || result.user?.is_staff || result.user?.is_admin || result.user?.user_type === 'admin');
+            
             const successMessage = isAdmin
                 ? 'Admin login successful! Welcome to admin panel!'
                 : 'Login successful! Welcome back!';
@@ -68,10 +70,19 @@ const SignIn = () => {
         } else {
             // Check if it's an email verification error
             if(result.email_verification_required) {
+                console.log('🔍 DEBUG: Email verification required');
+                console.log('🔍 DEBUG: result.email:', result.email);
+                console.log('🔍 DEBUG: formData.email:', formData.email);
+                
                 showToast(result.message || 'Please verify your email address before logging in.', 'error');
-                // Optionally navigate to email verification page
+                // Navigate to email verification page with email parameter
+                const emailToPass = result.email || formData.email;
+                console.log('🔍 DEBUG: Email to pass:', emailToPass);
+                
                 setTimeout(() => {
-                    navigate('/email-verification');
+                    const url = `/email-verification?email=${encodeURIComponent(emailToPass)}&from=login`;
+                    console.log('🔍 DEBUG: Navigating to:', url);
+                    navigate(url);
                 }, 2000);
             } else {
                 showToast(result.message || 'Login failed. Please check your credentials.', 'error');

@@ -252,7 +252,10 @@ const ChatPanel = ({open, onClose}) => {
 
         try {
             const messagesData = await chatApi.getMessages(conversationId);
-            const formattedMessages = messagesData.map(msg => ({
+            
+            // Handle paginated response for messages
+            const messages = messagesData.results || messagesData;
+            const formattedMessages = messages.map(msg => ({
                 id: String(msg.id),
                 side: msg.is_sender_staff ? 'admin' : 'user',
                 text: msg.content,

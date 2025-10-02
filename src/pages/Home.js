@@ -31,24 +31,54 @@ const Home = () => {
     const {addToCart} = useCart();
 
     // Fetch products from API with pagination and price filter
-    const fetchProducts = async (page = 1, minPrice = null, maxPrice = null) => {
+    // Persist active price filter so pagination/refresh respect it
+    const [activeMinPrice, setActiveMinPrice] = useState(null);
+    const [activeMaxPrice, setActiveMaxPrice] = useState(null);
+
+    const fetchProducts = async (page = 1, minPrice = undefined, maxPrice = undefined) => {
         console.trace();
         
         setLoading(true);
         setError(null);
         try {
+            // Resolve effective filter values: explicit args override active state
+            const min = (typeof minPrice !== 'undefined') ? minPrice : activeMinPrice;
+            const max = (typeof maxPrice !== 'undefined') ? maxPrice : activeMaxPrice;
+
+            // Normalize invalid ranges
+            const hasMin = min !== null && typeof min !== 'undefined';
+            const hasMax = max !== null && typeof max !== 'undefined';
+            let effMin = hasMin ? Number(min) : null;
+            let effMax = hasMax ? Number(max) : null;
+            if(Number.isNaN(effMin)) effMin = null;
+            if(Number.isNaN(effMax)) effMax = null;
+            if(effMin !== null && effMax !== null && effMin > effMax) {
+                const t = effMin; effMin = effMax; effMax = t;
+            }
+
             let url = `${API_CONFIG.getFullUrl('PRODUCTS', 'PAGINATION')}?page=${page}&page_size=${pageSize}`;
 
             // If price filter is applied, use price filter API
-            if(minPrice !== null || maxPrice !== null) {
+            if(effMin !== null || effMax !== null) {
                 url = `${API_CONFIG.BASE_URL}/api/products/price-filter/products/?page=${page}&page_size=${pageSize}`;
-                if(minPrice !== null) url += `&min_price=${minPrice}`;
-                if(maxPrice !== null) url += `&max_price=${maxPrice}`;
+                if(effMin !== null) url += `&min_price=${effMin}`;
+                if(effMax !== null) url += `&max_price=${effMax}`;
             }
             const response = await fetch(url);
             if(response.ok) {
                 const data = await response.json();
-                setProducts(data.results || []);
+                let items = data.results || [];
+                // Apply client-side guard filter to ensure correctness if backend misses bounds
+                if(effMin !== null || effMax !== null) {
+                    items = items.filter(p => {
+                        const basePrice = Number(p.display_price ?? p.price ?? 0);
+                        if(Number.isNaN(basePrice)) return false;
+                        if(effMin !== null && basePrice < effMin) return false;
+                        if(effMax !== null && basePrice > effMax) return false;
+                        return true;
+                    });
+                }
+                setProducts(items);
                 setCurrentPage(data.current_page || 1);
                 setTotalPages(data.total_pages || 1);
                 setTotalCount(data.count || 0);
@@ -400,6 +430,8 @@ const Home = () => {
 
                                     <PriceRangeFilter
                                         onPriceFilter={(minPrice, maxPrice) => {
+                                            setActiveMinPrice(minPrice ?? null);
+                                            setActiveMaxPrice(maxPrice ?? null);
                                             setCurrentPage(1);
                                             fetchProducts(1, minPrice, maxPrice);
                                         }}

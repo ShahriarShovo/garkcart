@@ -2,6 +2,8 @@
  * WebSocket service for order management real-time updates
  */
 
+import API_CONFIG from '../../config/apiConfig';
+
 class OrderWebSocketService {
     constructor() {
         this.socket = null;
@@ -23,7 +25,7 @@ class OrderWebSocketService {
             // nothing to do; attempt connect will fail quickly
         }
         
-        const wsUrl = `ws://127.0.0.1:8000/ws/admin/orders/?token=${token}`;
+        const wsUrl = API_CONFIG.getWebSocketUrl(API_CONFIG.ENDPOINTS.WEBSOCKET.ADMIN_ORDERS, token);
         try {
             this.socket = new WebSocket(wsUrl);
 
@@ -84,7 +86,7 @@ class OrderWebSocketService {
         try {
             const raw = localStorage.getItem('refresh_token');
             if (!raw) return false;
-            const resp = await fetch(`${window?.API_BASE_URL || 'http://127.0.0.1:8000'}/api/accounts/token/refresh/`, {
+            const resp = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/token/refresh/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refresh: raw })

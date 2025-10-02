@@ -3,6 +3,7 @@ import {useSearchParams, Link} from 'react-router-dom';
 import {useCart} from '../context/CartContext';
 import Toast from '../components/Toast';
 import API_CONFIG from '../config/apiConfig';
+import PriceRangeFilter from '../components/PriceRangeFilter';
 
 const CategoryProducts = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -21,6 +22,11 @@ const CategoryProducts = () => {
     const [priceExpanded, setPriceExpanded] = useState(true);
     const [subcategories, setSubcategories] = useState({}); // { [slug]: [] }
     const [hoveredCategory, setHoveredCategory] = useState(null);
+    const [showAllCategories, setShowAllCategories] = useState(false);
+    
+    // Category modal state (same as Home)
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [modalHoveredCategory, setModalHoveredCategory] = useState(null);
 
     // Price range from URL or defaults
     const initialMin = parseInt(searchParams.get('min_price') || '0', 10);
@@ -37,18 +43,48 @@ const CategoryProducts = () => {
         setLoading(true);
         setError(null);
         try {
-            const params = new URLSearchParams();
-            params.set('category', categorySlug);
-            if(subcategorySlug) params.set('subcategory', subcategorySlug);
-            if(searchParams.get('min_price')) params.set('min_price', searchParams.get('min_price'));
-            if(searchParams.get('max_price')) params.set('max_price', searchParams.get('max_price'));
+            const minParam = searchParams.get('min_price');
+            const maxParam = searchParams.get('max_price');
 
-            const url = `${API_CONFIG.BASE_URL}/api/products/product/category_products/?${params.toString()}`;
+            let url;
+            // If price filter is applied, reuse the same price-filter endpoint as Home,
+            // while scoping by category/subcategory to match this page context
+            if(minParam !== null || maxParam !== null) {
+                const params = new URLSearchParams();
+                if(minParam !== null && minParam !== '') params.set('min_price', minParam);
+                if(maxParam !== null && maxParam !== '') params.set('max_price', maxParam);
+                if(categorySlug) params.set('category', categorySlug);
+                if(subcategorySlug) params.set('subcategory', subcategorySlug);
+                url = `${API_CONFIG.BASE_URL}/api/products/price-filter/products/?${params.toString()}`;
+            } else {
+                const params = new URLSearchParams();
+                params.set('category', categorySlug);
+                if(subcategorySlug) params.set('subcategory', subcategorySlug);
+                url = `${API_CONFIG.BASE_URL}/api/products/product/category_products/?${params.toString()}`;
+            }
+
             const response = await fetch(url);
 
             if(response.ok) {
                 const data = await response.json();
-                setProducts(data.products || []);
+                // Normalize list for both endpoints
+                let items = data.products || data.results || [];
+                // Apply client-side guard filter matching URL params
+                const minParamNum = (minParam !== null && minParam !== '') ? Number(minParam) : null;
+                const maxParamNum = (maxParam !== null && maxParam !== '') ? Number(maxParam) : null;
+                if((minParamNum !== null && !Number.isNaN(minParamNum)) || (maxParamNum !== null && !Number.isNaN(maxParamNum))) {
+                    let effMin = Number.isNaN(minParamNum) ? null : minParamNum;
+                    let effMax = Number.isNaN(maxParamNum) ? null : maxParamNum;
+                    if(effMin !== null && effMax !== null && effMin > effMax) { const t = effMin; effMin = effMax; effMax = t; }
+                    items = items.filter(p => {
+                        const basePrice = Number(p.display_price ?? p.price ?? 0);
+                        if(Number.isNaN(basePrice)) return false;
+                        if(effMin !== null && basePrice < effMin) return false;
+                        if(effMax !== null && basePrice > effMax) return false;
+                        return true;
+                    });
+                }
+                setProducts(items);
                 setCategory(data.category);
                 setSubcategory(data.subcategory);
             } else {
@@ -185,7 +221,7 @@ const CategoryProducts = () => {
                                                     </div>
                                                 ) : (
                                                     <ul className="list-menu">
-                                                        {categories.slice(0, 10).map((cat) => (
+                                                        {categories.slice(0, showAllCategories ? categories.length : 10).map((cat) => (
                                                             <li
                                                                 key={cat.id}
                                                                 className="position-relative"
@@ -253,67 +289,43 @@ const CategoryProducts = () => {
                                                                     )}
                                                             </li>
                                                         ))}
+                                                        {categories.length > 10 && (
+                                                            <li>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-link p-0"
+                                                                    onClick={() => setShowCategoryModal(true)}
+                                                                    style={{color: '#007bff', textDecoration: 'none'}}
+                                                                >
+                                                                    <strong>More...</strong>
+                                                                </button>
+                                                            </li>
+                                                        )}
                                                     </ul>
                                                 )}
                                             </div>
                                         </div>
                                     )}
                                 </article>
-
-                                {/* Price Range Filter */}
-                                <article className="filter-group">
-                                    <header className="card-header">
-                                        <button
-                                            className="btn btn-link p-0"
-                                            onClick={() => setPriceExpanded(!priceExpanded)}
-                                            style={{border: 'none', background: 'none', width: '100%', textAlign: 'left'}}
-                                        >
-                                            <i className={`icon-control fa ${priceExpanded ? 'fa-chevron-down' : 'fa-chevron-right'}`}></i>
-                                            <h6 className="title">Price range</h6>
-                                        </button>
-                                    </header>
-                                    {priceExpanded && (
-                                        <div className="filter-content" id="collapse_3">
-                                            <div className="card-body">
-                                                <div className="form-row">
-                                                    <div className="form-group col-md-6">
-                                                        <label>Min</label>
-                                                        <select
-                                                            className="mr-2 form-control"
-                                                            value={priceRange.min}
-                                                            onChange={(e) => setPriceRange(prev => ({...prev, min: parseInt(e.target.value, 10)}))}
-                                                        >
-                                                            <option value="0">৳0</option>
-                                                            <option value="50">৳50</option>
-                                                            <option value="100">৳100</option>
-                                                            <option value="150">৳150</option>
-                                                            <option value="200">৳200</option>
-                                                            <option value="500">৳500</option>
-                                                            <option value="1000">৳1000</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="form-group text-right col-md-6">
-                                                        <label>Max</label>
-                                                        <select
-                                                            className="mr-2 form-control"
-                                                            value={priceRange.max}
-                                                            onChange={(e) => setPriceRange(prev => ({...prev, max: parseInt(e.target.value, 10)}))}
-                                                        >
-                                                            <option value="50">৳50</option>
-                                                            <option value="100">৳100</option>
-                                                            <option value="150">৳150</option>
-                                                            <option value="200">৳200</option>
-                                                            <option value="500">৳500</option>
-                                                            <option value="1000">৳1000</option>
-                                                            <option value="2000">৳2000+</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <button className="btn btn-block btn-primary" onClick={applyPriceFilter}>Apply</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </article>
+                                {/* Price Range Filter (reuse shared component for consistency) */}
+                                <PriceRangeFilter
+                                    onPriceFilter={(minPrice, maxPrice) => {
+                                        const newParams = new URLSearchParams(searchParams.toString());
+                                        if (minPrice !== null && minPrice !== undefined) {
+                                            newParams.set('min_price', String(minPrice));
+                                        } else {
+                                            newParams.delete('min_price');
+                                        }
+                                        if (maxPrice !== null && maxPrice !== undefined) {
+                                            newParams.set('max_price', String(maxPrice));
+                                        } else {
+                                            newParams.delete('max_price');
+                                        }
+                                        setSearchParams(newParams);
+                                    }}
+                                    initialMin={initialMin}
+                                    initialMax={initialMax}
+                                />
                             </div>
                         </aside>
 
@@ -523,6 +535,170 @@ const CategoryProducts = () => {
                     type={toast.type}
                     onClose={() => setToast({show: false, message: '', type: 'success'})}
                 />
+            )}
+            
+            {/* Category Modal (same as Home page) */}
+            {showCategoryModal && (
+                <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}} tabIndex="-1" role="dialog" aria-labelledby="categoryModalLabel" aria-hidden="true">
+                    <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title" id="categoryModalLabel">All Categories</h5>
+                                <button type="button" className="close" onClick={() => setShowCategoryModal(false)} aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="row">
+                                    {categories.map(category => (
+                                        <div key={category.id} className="col-md-4 mb-3">
+                                            <div
+                                                className="card h-100 position-relative"
+                                                style={{cursor: 'pointer', border: '1px solid #e0e0e0', borderRadius: '8px'}}
+                                                onMouseEnter={() => {
+                                                    setModalHoveredCategory(category);
+                                                    if(!subcategories[category.slug]) {
+                                                        fetchSubcategories(category.slug);
+                                                    }
+                                                }}
+                                                onMouseLeave={() => setModalHoveredCategory(null)}
+                                            >
+                                                <div className="card-body">
+                                                    <h6 className="card-title text-center mb-3" style={{color: '#333', fontWeight: 'bold'}}>
+                                                        <Link to={`/category-products?category=${category.slug}`} onClick={() => setShowCategoryModal(false)}>
+                                                            {category.name}
+                                                        </Link>
+                                                    </h6>
+
+                                                    {/* Subcategories in modal */}
+                                                    {modalHoveredCategory && modalHoveredCategory.id === category.id &&
+                                                        subcategories[category.slug] &&
+                                                        subcategories[category.slug].length > 0 && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                top: '100%',
+                                                                left: '50%',
+                                                                transform: 'translateX(-50%)',
+                                                                background: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '12px',
+                                                                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+                                                                zIndex: 1000,
+                                                                padding: '15px',
+                                                                marginTop: '8px',
+                                                                minWidth: '200px',
+                                                                backdropFilter: 'blur(10px)',
+                                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                                animation: 'fadeIn 0.2s ease-in-out'
+                                                            }}>
+                                                                <div style={{
+                                                                    textAlign: 'center',
+                                                                    fontWeight: '600',
+                                                                    fontSize: '13px',
+                                                                    color: '#333',
+                                                                    marginBottom: '12px',
+                                                                    textTransform: 'uppercase',
+                                                                    letterSpacing: '0.5px',
+                                                                    borderBottom: '1px solid #f0f0f0',
+                                                                    paddingBottom: '8px'
+                                                                }}>
+                                                                    {category.name}
+                                                                </div>
+                                                                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                                                                    {subcategories[category.slug].map((subcategory, index) => (
+                                                                        <div key={subcategory.id} style={{marginBottom: '4px'}}>
+                                                                            <Link
+                                                                                to={`/category-products?category=${category.slug}&subcategory=${subcategory.slug}`}
+                                                                                onClick={() => setShowCategoryModal(false)}
+                                                                                style={{
+                                                                                    display: 'block',
+                                                                                    padding: '10px 12px',
+                                                                                    color: '#555',
+                                                                                    textDecoration: 'none',
+                                                                                    borderRadius: '8px',
+                                                                                    fontSize: '13px',
+                                                                                    transition: 'all 0.3s ease',
+                                                                                    border: '1px solid transparent',
+                                                                                    position: 'relative',
+                                                                                    fontWeight: '500'
+                                                                                }}
+                                                                                onMouseEnter={(e) => {
+                                                                                    e.target.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                                                                                    e.target.style.color = 'white';
+                                                                                    e.target.style.border = '1px solid rgba(102, 126, 234, 0.3)';
+                                                                                    e.target.style.transform = 'translateX(4px)';
+                                                                                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                                                                                }}
+                                                                                onMouseLeave={(e) => {
+                                                                                    e.target.style.background = 'transparent';
+                                                                                    e.target.style.color = '#555';
+                                                                                    e.target.style.border = '1px solid transparent';
+                                                                                    e.target.style.transform = 'translateX(0)';
+                                                                                    e.target.style.boxShadow = 'none';
+                                                                                }}
+                                                                            >
+                                                                                <div style={{
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'center',
+                                                                                    justifyContent: 'space-between'
+                                                                                }}>
+                                                                                    <span>{subcategory.name}</span>
+                                                                                    <i className="fa fa-arrow-right" style={{
+                                                                                        fontSize: '10px',
+                                                                                        opacity: '0.7',
+                                                                                        transition: 'all 0.2s ease'
+                                                                                    }}></i>
+                                                                                </div>
+                                                                            </Link>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                <div style={{
+                                                                    marginTop: '8px',
+                                                                    paddingTop: '8px',
+                                                                    borderTop: '1px solid #f0f0f0'
+                                                                }}>
+                                                                    <Link
+                                                                        to={`/category-products?category=${category.slug}`}
+                                                                        onClick={() => setShowCategoryModal(false)}
+                                                                        style={{
+                                                                            display: 'block',
+                                                                            padding: '8px 12px',
+                                                                            color: '#007bff',
+                                                                            textDecoration: 'none',
+                                                                            borderRadius: '6px',
+                                                                            fontSize: '12px',
+                                                                            fontWeight: '600',
+                                                                            textAlign: 'center',
+                                                                            background: 'rgba(0, 123, 255, 0.1)',
+                                                                            transition: 'all 0.2s ease'
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.target.style.background = 'rgba(0, 123, 255, 0.2)';
+                                                                            e.target.style.transform = 'scale(1.02)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.target.style.background = 'rgba(0, 123, 255, 0.1)';
+                                                                            e.target.style.transform = 'scale(1)';
+                                                                        }}
+                                                                    >
+                                                                        View All {category.name} Products
+                                                                    </Link>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowCategoryModal(false)}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

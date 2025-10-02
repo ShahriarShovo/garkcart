@@ -3,9 +3,10 @@ import {useAuth} from '../../context/AuthContext';
 import {Link, useNavigate} from 'react-router-dom';
 import formatBDT from '../../utils/currency';
 import API_CONFIG from '../../config/apiConfig';
+import Pagination from '../../components/Pagination';
 
 const Dashboard = () => {
-    const {user, logout, isAuthenticated} = useAuth();
+    const {user, logout, isAuthenticated, isAuthReady} = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [orders, setOrders] = useState([]);
@@ -15,6 +16,18 @@ const Dashboard = () => {
     const [receivedOrdersLoading, setReceivedOrdersLoading] = useState(false);
     const [cancelledRefundedLoading, setCancelledRefundedLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    // Pagination states for received orders
+    const [receivedOrdersCurrentPage, setReceivedOrdersCurrentPage] = useState(1);
+    const [receivedOrdersTotalPages, setReceivedOrdersTotalPages] = useState(1);
+    const [receivedOrdersTotalCount, setReceivedOrdersTotalCount] = useState(0);
+    const [receivedOrdersPageSize] = useState(10);
+
+    // Pagination states for return and refunds
+    const [returnsCurrentPage, setReturnsCurrentPage] = useState(1);
+    const [returnsTotalPages, setReturnsTotalPages] = useState(1);
+    const [returnsTotalCount, setReturnsTotalCount] = useState(0);
+    const [returnsPageSize] = useState(10);
 
     // Address management states
     const [addresses, setAddresses] = useState([]);
@@ -84,17 +97,27 @@ const Dashboard = () => {
 
             if(ordersResponse.ok) {
                 const ordersData = await ordersResponse.json();
-                totalOrders = ordersData.length || 0;
+                
+                // Handle paginated response
+                const orders = ordersData.results || ordersData;
+                totalOrders = ordersData.count || orders.length || 0;
 
                 // Calculate total payments (sum of all order totals)
-                totalPayments = ordersData.reduce((sum, order) => {
-                    return sum + parseFloat(order.total_amount || 0);
-                }, 0);
+                if(Array.isArray(orders)) {
+                    totalPayments = orders.reduce((sum, order) => {
+                        return sum + parseFloat(order.total_amount || 0);
+                    }, 0);
+                } else {
+                    totalPayments = 0;
+                }
             }
 
             if(addressesResponse.ok) {
                 const addressesData = await addressesResponse.json();
-                savedAddresses = addressesData.length || 0;
+                
+                // Handle paginated response for addresses
+                const addresses = addressesData.results || addressesData;
+                savedAddresses = addressesData.count || addresses.length || 0;
             }
 
             setDashboardStats({
@@ -141,13 +164,13 @@ const Dashboard = () => {
         }
     };
 
-    // Fetch received orders (delivered orders)
-    const fetchReceivedOrders = async () => {
+    // Fetch received orders (delivered orders) with pagination
+    const fetchReceivedOrders = async (page = 1) => {
         setReceivedOrdersLoading(true);
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/delivered/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/delivered/?page=${page}&page_size=${receivedOrdersPageSize}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -158,7 +181,20 @@ const Dashboard = () => {
             if(response.ok) {
                 const data = await response.json();
 
-                setReceivedOrders(data.results || data); // Handle both paginated and non-paginated responses
+                // Handle both paginated and non-paginated responses
+                if(data.results) {
+                    // Paginated response
+                    setReceivedOrders(data.results);
+                    setReceivedOrdersTotalCount(data.count || 0);
+                    setReceivedOrdersTotalPages(Math.ceil((data.count || 0) / receivedOrdersPageSize));
+                    setReceivedOrdersCurrentPage(page);
+                } else {
+                    // Non-paginated response (fallback)
+                    setReceivedOrders(data);
+                    setReceivedOrdersTotalCount(data.length || 0);
+                    setReceivedOrdersTotalPages(1);
+                    setReceivedOrdersCurrentPage(1);
+                }
             } else {
                 const errorData = await response.json();
                 console.error('Failed to fetch received orders:', errorData);
@@ -172,13 +208,25 @@ const Dashboard = () => {
         }
     };
 
+    // Handle received orders pagination
+    const handleReceivedOrdersPageChange = (page) => {
+        setReceivedOrdersCurrentPage(page);
+        fetchReceivedOrders(page);
+    };
+
+    // Handle return and refunds pagination
+    const handleReturnsPageChange = (page) => {
+        setReturnsCurrentPage(page);
+        fetchCancelledRefundedOrders(page);
+    };
+
     // Fetch cancelled and refunded orders
-    const fetchCancelledRefundedOrders = async () => {
+    const fetchCancelledRefundedOrders = async (page = 1) => {
         setCancelledRefundedLoading(true);
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/cancelled-refunded/`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/cancelled-refunded/?page=${page}&page_size=${returnsPageSize}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -188,8 +236,18 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-
-                setCancelledRefundedOrders(data.results || data); // Handle both paginated and non-paginated responses
+                
+                if(data.results) {
+                    setCancelledRefundedOrders(data.results);
+                    setReturnsTotalCount(data.count || 0);
+                    setReturnsTotalPages(Math.ceil((data.count || 0) / returnsPageSize));
+                    setReturnsCurrentPage(page);
+                } else {
+                    setCancelledRefundedOrders(data);
+                    setReturnsTotalCount(data.length || 0);
+                    setReturnsTotalPages(1);
+                    setReturnsCurrentPage(1);
+                }
             } else {
                 const errorData = await response.json();
                 console.error('Failed to fetch cancelled/refunded orders:', errorData);
@@ -280,7 +338,10 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                setAddresses(data);
+                
+                // Handle paginated response for addresses
+                const addresses = data.results || data;
+                setAddresses(addresses);
             } else {
                 console.error('Failed to fetch addresses');
             }
@@ -551,7 +612,7 @@ const Dashboard = () => {
         }
 
         setAuthChecking(false);
-    }, [isAuthenticated, user, navigate]);
+    }, [isAuthenticated, user, navigate, isAuthReady]);
 
     // Additional check for localStorage changes (logout from other tabs)
     useEffect(() => {
@@ -591,10 +652,10 @@ const Dashboard = () => {
             fetchOrders();
         }
         if(user && activeTab === 'received-orders') {
-            fetchReceivedOrders();
+            fetchReceivedOrders(1);
         }
         if(user && activeTab === 'returns') {
-            fetchCancelledRefundedOrders();
+            fetchCancelledRefundedOrders(1);
         }
         if(user && activeTab === 'settings') {
             fetchProfile();
@@ -1061,7 +1122,10 @@ const Dashboard = () => {
                                     <strong className="d-inline-block mr-3">Received Orders</strong>
                                     <button
                                         className="btn btn-sm btn-outline-primary float-right"
-                                        onClick={fetchReceivedOrders}
+                                        onClick={() => {
+                                            setReceivedOrdersCurrentPage(1);
+                                            fetchReceivedOrders(1);
+                                        }}
                                         disabled={receivedOrdersLoading}
                                     >
                                         {receivedOrdersLoading ? 'Refreshing...' : 'Refresh'}
@@ -1163,6 +1227,17 @@ const Dashboard = () => {
                                             </Link>
                                         </div>
                                     )}
+
+                                    {/* Pagination for Received Orders */}
+                                    {receivedOrders && receivedOrders.length > 0 && receivedOrdersTotalPages > 1 && (
+                                        <Pagination
+                                            totalItems={receivedOrdersTotalCount}
+                                            currentPage={receivedOrdersCurrentPage}
+                                            pageSize={receivedOrdersPageSize}
+                                            onPageChange={handleReceivedOrdersPageChange}
+                                            maxPagesToShow={5}
+                                        />
+                                    )}
                                 </div>
                             </article>
                         )}
@@ -1184,7 +1259,10 @@ const Dashboard = () => {
                                     <strong className="d-inline-block mr-3">Return and Refunds</strong>
                                     <button
                                         className="btn btn-sm btn-outline-primary float-right"
-                                        onClick={fetchCancelledRefundedOrders}
+                                        onClick={() => {
+                                            setReturnsCurrentPage(1);
+                                            fetchCancelledRefundedOrders(1);
+                                        }}
                                         disabled={cancelledRefundedLoading}
                                     >
                                         {cancelledRefundedLoading ? 'Refreshing...' : 'Refresh'}
@@ -1202,91 +1280,104 @@ const Dashboard = () => {
                                             {error}
                                         </div>
                                     ) : cancelledRefundedOrders && cancelledRefundedOrders.length > 0 ? (
-                                        <div className="table-responsive">
-                                            <table className="table table-hover">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Order #</th>
-                                                        <th>Date</th>
-                                                        <th>Status</th>
-                                                        <th>Total</th>
-                                                        <th>Items</th>
-                                                        <th>Updated At</th>
-                                                        <th>Reason</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {cancelledRefundedOrders.map((order) => (
-                                                        <tr key={order.id}>
-                                                            <td>
-                                                                <strong>#{order.order_number}</strong>
-                                                            </td>
-                                                            <td>
-                                                                {new Date(order.created_at).toLocaleDateString()}
-                                                            </td>
-                                                            <td>
-                                                                <span
-                                                                    className={`badge ${order.status === 'cancelled' ? 'badge-danger' :
-                                                                        order.status === 'refunded' ? 'badge-warning' :
-                                                                            'badge-light'
-                                                                        }`}
-                                                                >
-                                                                    {order.status === 'cancelled' && <i className="fa fa-times mr-1"></i>}
-                                                                    {order.status === 'refunded' && <i className="fa fa-undo mr-1"></i>}
-                                                                    {order.status_display || order.status}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <strong>{formatBDT(order.total_amount)}</strong>
-                                                            </td>
-                                                            <td>
-                                                                <div className="d-flex flex-wrap">
-                                                                    {order.items && order.items.slice(0, 3).map((item, index) => (
-                                                                        <div key={index} className="mr-2 mb-1">
-                                                                            <img
-                                                                                src={getProductImage(item)}
-                                                                                alt={item.product_name}
-                                                                                className="rounded"
-                                                                                style={{width: '30px', height: '30px', objectFit: 'cover'}}
-                                                                                onError={(e) => {
-                                                                                    e.target.src = '/images/items/1.jpg';
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                    ))}
-                                                                    {order.items && order.items.length > 3 && (
-                                                                        <span className="badge badge-light">
-                                                                            +{order.items.length - 3} more
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <span className="text-muted">
-                                                                    <i className="fa fa-clock mr-1"></i>
-                                                                    {new Date(order.updated_at).toLocaleDateString()}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                {order.status === 'cancelled' ? (
-                                                                    <span className="text-danger">
-                                                                        <i className="fa fa-ban mr-1"></i>
-                                                                        Order Cancelled
-                                                                    </span>
-                                                                ) : order.status === 'refunded' ? (
-                                                                    <span className="text-warning">
-                                                                        <i className="fa fa-money-bill-wave mr-1"></i>
-                                                                        Refund Processed
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-muted">-</span>
-                                                                )}
-                                                            </td>
+                                        <>
+                                            <div className="table-responsive">
+                                                <table className="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Order #</th>
+                                                            <th>Date</th>
+                                                            <th>Status</th>
+                                                            <th>Total</th>
+                                                            <th>Items</th>
+                                                            <th>Updated At</th>
+                                                            <th>Reason</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                    </thead>
+                                                    <tbody>
+                                                        {cancelledRefundedOrders.map((order) => (
+                                                            <tr key={order.id}>
+                                                                <td>
+                                                                    <strong>#{order.order_number}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    {new Date(order.created_at).toLocaleDateString()}
+                                                                </td>
+                                                                <td>
+                                                                    <span
+                                                                        className={`badge ${order.status === 'cancelled' ? 'badge-danger' :
+                                                                            order.status === 'refunded' ? 'badge-warning' :
+                                                                                'badge-light'
+                                                                            }`}
+                                                                    >
+                                                                        {order.status === 'cancelled' && <i className="fa fa-times mr-1"></i>}
+                                                                        {order.status === 'refunded' && <i className="fa fa-undo mr-1"></i>}
+                                                                        {order.status_display || order.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <strong>{formatBDT(order.total_amount)}</strong>
+                                                                </td>
+                                                                <td>
+                                                                    <div className="d-flex flex-wrap">
+                                                                        {order.items && order.items.slice(0, 3).map((item, index) => (
+                                                                            <div key={index} className="mr-2 mb-1">
+                                                                                <img
+                                                                                    src={getProductImage(item)}
+                                                                                    alt={item.product_name}
+                                                                                    className="rounded"
+                                                                                    style={{width: '30px', height: '30px', objectFit: 'cover'}}
+                                                                                    onError={(e) => {
+                                                                                        e.target.src = '/images/items/1.jpg';
+                                                                                    }}
+                                                                                />
+                                                                            </div>
+                                                                        ))}
+                                                                        {order.items && order.items.length > 3 && (
+                                                                            <span className="badge badge-light">
+                                                                                +{order.items.length - 3} more
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <span className="text-muted">
+                                                                        <i className="fa fa-clock mr-1"></i>
+                                                                        {new Date(order.updated_at).toLocaleDateString()}
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    {order.status === 'cancelled' ? (
+                                                                        <span className="text-danger">
+                                                                            <i className="fa fa-ban mr-1"></i>
+                                                                            Order Cancelled
+                                                                        </span>
+                                                                    ) : order.status === 'refunded' ? (
+                                                                        <span className="text-warning">
+                                                                            <i className="fa fa-money-bill-wave mr-1"></i>
+                                                                            Refund Processed
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-muted">-</span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            {/* Pagination for Return and Refunds */}
+                                            {returnsTotalPages > 1 && (
+                                                <Pagination
+                                                    totalItems={returnsTotalCount}
+                                                    currentPage={returnsCurrentPage}
+                                                    pageSize={returnsPageSize}
+                                                    onPageChange={handleReturnsPageChange}
+                                                    maxPagesToShow={5}
+                                                />
+                                            )}
+                                        </>
                                     ) : (
                                         <div className="text-center py-5">
                                             <i className="fa fa-check-circle fa-3x text-success mb-3"></i>
@@ -1357,7 +1448,7 @@ const Dashboard = () => {
                                             </div>
                                         ) : (
                                             <>
-                                                {addresses.length === 0 ? (
+                                                {!addresses || !Array.isArray(addresses) || addresses.length === 0 ? (
                                                     <div className="text-center py-4">
                                                         <i className="fa fa-map-marker-alt fa-3x text-muted mb-3"></i>
                                                         <p className="text-muted">No addresses found. Add your first address to get started.</p>
@@ -1370,7 +1461,7 @@ const Dashboard = () => {
                                                     </div>
                                                 ) : (
                                                     <div className="row">
-                                                        {addresses.map((address) => (
+                                                        {addresses && Array.isArray(addresses) && addresses.map((address) => (
                                                             <div key={address.id} className="col-md-6 mb-3">
                                                                 <div className={`card address-card ${address.is_default ? 'border-primary' : ''}`}>
                                                                     <div className="card-body">

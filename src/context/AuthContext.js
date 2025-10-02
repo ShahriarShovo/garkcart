@@ -18,8 +18,10 @@ export const AuthProvider = ({children}) => {
                 },
                 body: JSON.stringify(userData),
             });
+            
             if(response.ok) {
                 const data = await response.json();
+                
                 // Set user data from response
                 const userInfo = {
                     email: userData.email,
@@ -30,11 +32,13 @@ export const AuthProvider = ({children}) => {
                     is_staff: data.is_staff || false,
                     email_verified: data.email_verified || false
                 };
+                
                 setUser(userInfo);
                 setIsAuthenticated(true);
                 localStorage.setItem('user', JSON.stringify(userInfo));
                 localStorage.setItem('token', data.token.access);
                 localStorage.setItem('refresh_token', data.token.refresh);
+                
                 // schedule token refresh ~5 minutes before expiry
                 scheduleTokenRefresh();
 
@@ -79,6 +83,7 @@ export const AuthProvider = ({children}) => {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         localStorage.removeItem('refresh_token');
+        
         if(refreshTimer) {
             clearTimeout(refreshTimer);
             setRefreshTimer(null);
@@ -156,13 +161,16 @@ export const AuthProvider = ({children}) => {
 
     const refreshAccessToken = async () => {
         const refresh = localStorage.getItem('refresh_token');
-        if(!refresh) return false;
+        if(!refresh) {
+            return false;
+        }
         try {
             const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'REFRESH'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({refresh})
             });
+            
             if(response.ok) {
                 const data = await response.json();
                 if(data.access) {
@@ -177,6 +185,7 @@ export const AuthProvider = ({children}) => {
             }
         } catch(e) {
             console.error('Token refresh failed', e);
+            logout();
         }
         return false;
     };
@@ -199,6 +208,7 @@ export const AuthProvider = ({children}) => {
             const savedUser = localStorage.getItem('user');
             const token = localStorage.getItem('token');
             const refresh = localStorage.getItem('refresh_token');
+            
             if(savedUser && token && refresh) {
                 try {
                     const userData = JSON.parse(savedUser);
@@ -211,7 +221,6 @@ export const AuthProvider = ({children}) => {
                     localStorage.removeItem('token');
                     localStorage.removeItem('refresh_token');
                 }
-            } else {
             }
 
             // Mark auth as initialized after the first check

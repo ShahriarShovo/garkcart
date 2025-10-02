@@ -2,6 +2,8 @@
  * WebSocket service for real-time chat communication
  */
 
+import API_CONFIG from '../../config/apiConfig';
+
 class WebSocketService {
     constructor() {
         this.socket = null;
@@ -20,7 +22,7 @@ class WebSocketService {
         }
 
         const token = localStorage.getItem('token');
-        const wsUrl = `ws://127.0.0.1:8000/ws/chat/${conversationId}/?token=${token}`;
+        const wsUrl = API_CONFIG.getWebSocketUrl(`${API_CONFIG.ENDPOINTS.WEBSOCKET.CHAT}${conversationId}/`, token);
         try {
             this.socket = new WebSocket(wsUrl);
 

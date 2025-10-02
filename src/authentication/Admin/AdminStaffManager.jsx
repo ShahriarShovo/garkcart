@@ -37,15 +37,19 @@ const AdminStaffManager = () => {
                 list.map(async (user) => {
                     try {
                         const userPermissions = await permissionApi.getUserPermissions();
+                        
+                        // Handle paginated response for user permissions
+                        const permissions = userPermissions.results || userPermissions;
+                        
                         // Find user's permissions in the response
-                        const userData = userPermissions.find(u => u.id === user.id);
+                        const userData = permissions.find(u => u.id === user.id);
                         return {
                             ...user,
                             roles: userData?.roles || [],
                             permissions: userData?.permissions || []
                         };
                     } catch (error) {
-                        console.error(`🔍 DEBUG: Error loading permissions for user ${user.id}:`, error);
+                        console.error(`Error loading permissions for user ${user.id}:`, error);
                         return {
                             ...user,
                             roles: [],
