@@ -42,7 +42,6 @@ const Store = () => {
                 </div>
             </section>
 
-
             {/* Store Content */}
             <section className="section-content padding-y">
                 <div className="container">

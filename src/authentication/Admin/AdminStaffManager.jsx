@@ -31,19 +31,12 @@ const AdminStaffManager = () => {
     const load = async () => {
         setLoading(true);
         try {
-            console.log('🔍 DEBUG: Loading admin/staff users...');
             const list = await AdminRolesApi.listAdminsAndStaff();
-            console.log('🔍 DEBUG: Loaded users:', list);
-            console.log('🔍 DEBUG: Number of users:', list.length);
-            
             // Load user permissions and roles for each user
             const usersWithPermissions = await Promise.all(
                 list.map(async (user) => {
                     try {
-                        console.log(`🔍 DEBUG: Loading permissions for user ${user.id}...`);
                         const userPermissions = await permissionApi.getUserPermissions();
-                        console.log(`🔍 DEBUG: User ${user.id} permissions:`, userPermissions);
-                        
                         // Find user's permissions in the response
                         const userData = userPermissions.find(u => u.id === user.id);
                         return {
@@ -61,8 +54,6 @@ const AdminStaffManager = () => {
                     }
                 })
             );
-            
-            console.log('🔍 DEBUG: Users with permissions:', usersWithPermissions);
             setUsers(usersWithPermissions);
         } catch (e) {
             console.error('🔍 DEBUG: Error loading users:', e);
@@ -88,11 +79,6 @@ const AdminStaffManager = () => {
     };
 
     const handleManagePermissions = (user) => {
-        console.log('🔍 DEBUG: Opening permission modal for user:', user);
-        console.log('🔍 DEBUG: User ID:', user.id);
-        console.log('🔍 DEBUG: User email:', user.email);
-        console.log('🔍 DEBUG: User roles:', user.roles);
-        console.log('🔍 DEBUG: User permissions:', user.permissions);
         setSelectedUser(user);
         setShowPermissionModal(true);
     };
@@ -102,7 +88,6 @@ const AdminStaffManager = () => {
     };
 
     const handleManageUser = (user) => {
-        console.log('🔍 DEBUG: Opening user management modal for user:', user);
         setSelectedUser(user);
         setShowUserManagement(true);
     };
@@ -148,7 +133,6 @@ const AdminStaffManager = () => {
                 }
             }
         } catch (e) {
-            console.log('Email check failed, proceeding with creation...');
         }
 
         setCreating(true);
@@ -185,7 +169,6 @@ const AdminStaffManager = () => {
                 load();
             } else {
                 const errorData = await response.json();
-                console.log('🔍 DEBUG: Backend error response:', errorData);
                 if (errorData.errors) {
                     // Handle validation errors
                     const errorMessages = [];
@@ -524,5 +507,4 @@ const AdminStaffManager = () => {
 };
 
 export default AdminStaffManager;
-
 

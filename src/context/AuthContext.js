@@ -11,8 +11,6 @@ export const AuthProvider = ({children}) => {
 
     const login = async (userData) => {
         try {
-            console.log('AuthContext: Starting login process for:', userData.email);
-
             const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'LOGIN'), {
                 method: 'POST',
                 headers: {
@@ -20,20 +18,8 @@ export const AuthProvider = ({children}) => {
                 },
                 body: JSON.stringify(userData),
             });
-
-            console.log('AuthContext: Login response status:', response.status);
-
             if(response.ok) {
                 const data = await response.json();
-                console.log('AuthContext: Login successful, full response:', data);
-                console.log('AuthContext: Login response structure:', {
-                    hasToken: !!data.token,
-                    hasUserType: !!data.user_type,
-                    hasIsAdmin: !!data.is_admin,
-                    hasIsSuperuser: !!data.is_superuser,
-                    hasIsStaff: !!data.is_staff
-                });
-
                 // Set user data from response
                 const userInfo = {
                     email: userData.email,
@@ -44,36 +30,20 @@ export const AuthProvider = ({children}) => {
                     is_staff: data.is_staff || false,
                     email_verified: data.email_verified || false
                 };
-
-                console.log('AuthContext: Prepared user info:', userInfo);
-                console.log('AuthContext: Setting user state...');
                 setUser(userInfo);
                 setIsAuthenticated(true);
-
-                console.log('AuthContext: Saving to localStorage...');
                 localStorage.setItem('user', JSON.stringify(userInfo));
                 localStorage.setItem('token', data.token.access);
                 localStorage.setItem('refresh_token', data.token.refresh);
-
-                console.log('AuthContext: User data saved successfully');
-                console.log('AuthContext: localStorage verification:', {
-                    user: localStorage.getItem('user'),
-                    token: localStorage.getItem('token'),
-                    refresh: localStorage.getItem('refresh_token')
-                });
-
                 // schedule token refresh ~5 minutes before expiry
                 scheduleTokenRefresh();
 
                 // If admin/staff is logging in, notify chat panels
                 if(userInfo.is_staff || userInfo.is_superuser || userInfo.is_admin) {
-                    console.log('AuthContext: Admin/Staff login detected, notifying chat panels');
-                    console.log('AuthContext: Dispatching admin_status_changed event with online status');
                     window.dispatchEvent(new CustomEvent('admin_status_changed', {
                         detail: {status: 'online'}
                     }));
                 } else {
-                    console.log('AuthContext: User is not admin/staff, no status change notification needed');
                 }
 
                 return {success: true, message: data.message, user: userInfo};
@@ -100,8 +70,6 @@ export const AuthProvider = ({children}) => {
     };
 
     const logout = () => {
-        console.log('AuthContext: Logout called');
-
         // Check if user is admin/staff before logout
         const currentUser = user;
         const isAdmin = currentUser && (currentUser.is_staff || currentUser.is_superuser || currentUser.is_admin);
@@ -118,13 +86,10 @@ export const AuthProvider = ({children}) => {
 
         // If admin/staff is logging out, notify chat panels
         if(isAdmin) {
-            console.log('AuthContext: Admin/Staff logout detected, notifying chat panels');
-            console.log('AuthContext: Dispatching admin_status_changed event with offline status');
             window.dispatchEvent(new CustomEvent('admin_status_changed', {
                 detail: {status: 'offline'}
             }));
         } else {
-            console.log('AuthContext: User is not admin/staff, no status change notification needed');
         }
     };
 
@@ -230,37 +195,23 @@ export const AuthProvider = ({children}) => {
 
     // Check for existing user on app load
     React.useEffect(() => {
-        console.log('AuthContext: App starting, checking localStorage...');
-
         const checkAuth = () => {
             const savedUser = localStorage.getItem('user');
             const token = localStorage.getItem('token');
             const refresh = localStorage.getItem('refresh_token');
-
-            console.log('AuthContext: localStorage contents:', {
-                savedUser: savedUser,
-                token: token,
-                refresh: refresh
-            });
-
             if(savedUser && token && refresh) {
                 try {
                     const userData = JSON.parse(savedUser);
-                    console.log('AuthContext: Successfully parsed user data:', userData);
-                    console.log('AuthContext: Setting user state from localStorage...');
                     setUser(userData);
                     setIsAuthenticated(true);
                     scheduleTokenRefresh();
                 } catch(error) {
                     console.error('AuthContext: Error parsing saved user data:', error);
-                    console.log('AuthContext: Clearing invalid localStorage data...');
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
                     localStorage.removeItem('refresh_token');
                 }
             } else {
-                console.log('AuthContext: No valid user data found in localStorage');
-                console.log('AuthContext: User will need to login');
             }
 
             // Mark auth as initialized after the first check

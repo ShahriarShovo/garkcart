@@ -123,7 +123,6 @@ const AdminChatInbox = () => {
             setMessages(messagesData);
 
             // Always mark customer messages as read when conversation is selected
-            console.log('Marking messages as read for conversation:', conversation.id);
             // Ensure WS is connecting now so we can wait for 'connected'
             try {websocketService.disconnect();} catch(_) {}
             websocketService.connect(conversation.id);
@@ -159,8 +158,6 @@ const AdminChatInbox = () => {
                         : conv
                 )
             );
-            console.log('Unread count updated to 0 for conversation:', conversation.id);
-
             // Notify parent component to update inbox counter
             window.dispatchEvent(new CustomEvent('admin_inbox_updated'));
         } catch(error) {

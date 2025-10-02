@@ -17,8 +17,6 @@ const AdminBannerManager = () => {
         display_order: 0
     });
 
-    
-
     // Load banners and stats
     const loadBanners = async () => {
         try {
@@ -59,8 +57,6 @@ const AdminBannerManager = () => {
             [name]: type === 'file' ? files[0] : (type === 'checkbox' ? checked : value)
         }));
     };
-
-    
 
     const handleCreateBanner = async (e) => {
         e.preventDefault();

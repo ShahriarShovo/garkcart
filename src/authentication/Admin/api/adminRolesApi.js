@@ -29,4 +29,3 @@ const AdminRolesApi = {
 
 export default AdminRolesApi;
 
-

@@ -14,24 +14,20 @@ class OrderWebSocketService {
 
     async connect() {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            console.log('Order WS: Already connected, disconnecting first');
             this.disconnect();
         }
         
         // Try to ensure we have a fresh access token before connecting
         let token = localStorage.getItem('token');
         if (!token || token === 'undefined' || token === 'null') {
-            console.log('Order WS: No valid token found');
             // nothing to do; attempt connect will fail quickly
         }
         
         const wsUrl = `ws://127.0.0.1:8000/ws/admin/orders/?token=${token}`;
-        console.log('Order WS: Attempting to connect to:', wsUrl);
         try {
             this.socket = new WebSocket(wsUrl);
 
             this.socket.onopen = () => {
-                console.log('Order WS: Connection opened successfully');
                 this.reconnectAttempts = 0;
                 this.emit('connected');
                 // Request initial stats when connected
@@ -41,11 +37,9 @@ class OrderWebSocketService {
             this.socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('Order WS: Message received:', data);
                     this.emit('message', data);
                     // Also emit by type for convenience
                     if (data?.type) {
-                        console.log(`Order WS: Emitting event: ${data.type}`);
                         this.emit(data.type, data);
                     }
                 } catch (e) {
@@ -54,11 +48,9 @@ class OrderWebSocketService {
             };
 
             this.socket.onclose = async (event) => {
-                console.log('Order WS: Connection closed with code:', event.code);
                 this.emit('disconnected');
                 // 4401/4403 (unauthorized/forbidden) or generic auth failure → try refresh once then reconnect
                 if (event && event.code && (event.code === 4401 || event.code === 4403)) {
-                    console.log('Order WS: Authentication error, attempting token refresh');
                     const refreshed = await this.tryRefreshToken();
                     if (refreshed) {
                         this.reconnectAttempts = 0;
@@ -67,7 +59,6 @@ class OrderWebSocketService {
                     }
                 }
                 if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
-                    console.log('Order WS: Attempting to reconnect...');
                     this.reconnect();
                 }
             };
@@ -149,25 +140,20 @@ class OrderWebSocketService {
     // Order-specific methods
     requestOrderStats() {
         if (this.isConnected()) {
-            console.log('Order WS: Requesting order stats');
             this.socket.send(JSON.stringify({ type: 'get_order_stats' }));
         } else {
-            console.log('Order WS: Not connected, cannot request order stats');
         }
     }
 
     requestPendingOrders() {
         if (this.isConnected()) {
-            console.log('Order WS: Requesting pending orders');
             this.socket.send(JSON.stringify({ type: 'get_pending_orders' }));
         } else {
-            console.log('Order WS: Not connected, cannot request pending orders');
         }
     }
 
     send(data) {
         if (this.isConnected()) {
-            console.log('Order WS: Sending message:', data);
             this.socket.send(JSON.stringify(data));
         } else {
             console.warn('Order WS: Not connected, cannot send message.');

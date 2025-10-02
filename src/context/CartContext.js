@@ -85,11 +85,8 @@ export const CartProvider = ({children}) => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('🔍 FRONTEND CART: Cart API response data:', data);
                 if(data.success && data.cart) {
-                    console.log('🔍 FRONTEND CART: Setting cart items:', data.cart.items?.length || 0);
                     if(data.cart.items && data.cart.items.length > 0) {
-                        console.log('🔍 FRONTEND CART: WARNING - Cart has items:', data.cart.items);
                     }
                     dispatch({type: 'SET_CART', payload: data.cart.items || []});
                 }
@@ -119,26 +116,16 @@ export const CartProvider = ({children}) => {
                 quantity: product.quantity || 1,
                 variant_id: product.selectedVariant?.id || null
             };
-
-            console.log('🔍 DEBUG: Request data:', requestData);
-
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             };
-
-            console.log('🔍 DEBUG: Using authenticated add to cart API');
-
-            console.log('🔍 DEBUG: Making API call to add to cart');
             const response = await fetch(API_CONFIG.getFullUrl('CART', 'ADD'), {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestData),
                 credentials: 'include'  // Include cookies in requests
             });
-
-            console.log('🔍 DEBUG: Add to cart API response status:', response.status);
-
             if(response.ok) {
                 const data = await response.json();
                 if(data.success) {

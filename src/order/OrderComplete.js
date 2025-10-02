@@ -13,20 +13,15 @@ const OrderComplete = () => {
     // Fetch active logo
     const fetchActiveLogo = async () => {
         try {
-            console.log('Invoice: Fetching active logo...');
             const logoData = await logoApi.getActiveLogo();
-            console.log('Invoice: Logo data received:', logoData);
             if(logoData && logoData.logo_url) {
                 // Convert relative URL to full URL if needed
                 let finalUrl = logoData.logo_url;
                 if(finalUrl.startsWith('/media/')) {
                     finalUrl = `${API_CONFIG.BASE_URL}${finalUrl}`;
-                    console.log('Invoice: Converted to full URL:', finalUrl);
                 }
-                console.log('Invoice: Setting logo URL:', finalUrl);
                 setLogoUrl(finalUrl);
             } else {
-                console.log('Invoice: No logo URL found, keeping default');
             }
         } catch(error) {
             console.error('Invoice: Error fetching active logo:', error);

@@ -21,10 +21,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
                 permissionApi.getPermissions(),
                 permissionApi.getRoles()
             ]);
-            
-            console.log('🔍 DEBUG: Permissions data:', permissionsData);
-            console.log('🔍 DEBUG: Roles data:', rolesData);
-            
             // Handle different response structures
             const allPermissions = permissionsData.data || permissionsData || [];
             const roles = rolesData.data || rolesData || [];
@@ -36,10 +32,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
             setRoles(roles);
             
             // Set current user permissions and roles
-            console.log('🔍 DEBUG: Setting current user permissions and roles...');
-            console.log('🔍 DEBUG: User permissions from props:', user.permissions);
-            console.log('🔍 DEBUG: User roles from props:', user.roles);
-            
             if (user.permissions) {
                 // Convert permission codenames to IDs and filter out live_chat_access
                 const permissionIds = user.permissions.map(p => {
@@ -54,14 +46,10 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
                     }
                     return p.id || p;
                 }).filter(id => id !== null);
-                
-                console.log('🔍 DEBUG: User permissions (original):', user.permissions);
-                console.log('🔍 DEBUG: Converted permission IDs:', permissionIds);
                 setSelectedPermissions(permissionIds);
             }
             if (user.roles) {
                 const roleIds = user.roles.map(r => r.id);
-                console.log('🔍 DEBUG: Setting selected roles:', roleIds);
                 setSelectedRoles(roleIds);
             }
         } catch (error) {
@@ -77,8 +65,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
     }, [user]);
 
     const handlePermissionToggle = (permissionId) => {
-        console.log('🔍 DEBUG: Toggling permission:', permissionId);
-        console.log('🔍 DEBUG: Current selected permissions:', selectedPermissions);
         setSelectedPermissions(prev => 
             prev.includes(permissionId) 
                 ? prev.filter(id => id !== permissionId)
@@ -95,13 +81,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
     };
 
     const handleSave = async () => {
-        console.log('🔍 DEBUG: Starting save process...');
-        console.log('🔍 DEBUG: User ID:', user.id);
-        console.log('🔍 DEBUG: Selected Roles:', selectedRoles);
-        console.log('🔍 DEBUG: Selected Permissions:', selectedPermissions);
-        console.log('🔍 DEBUG: Roles data:', roles);
-        console.log('🔍 DEBUG: Permissions data:', permissions);
-        
         setSaving(true);
         
         // Show loading message
@@ -114,40 +93,18 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
             const validRoleIds = selectedRoles.filter(id => 
                 typeof id === 'number' && !isNaN(id)
             );
-            
-            console.log('🔍 DEBUG: Original selected permissions:', selectedPermissions);
-            console.log('🔍 DEBUG: Valid permission IDs:', validPermissionIds);
-            console.log('🔍 DEBUG: Original selected roles:', selectedRoles);
-            console.log('🔍 DEBUG: Valid role IDs:', validRoleIds);
-            
-            console.log('🔍 DEBUG: Calling API with data:', {
-                user_id: user.id,
-                permission_ids: validPermissionIds,
-                role_ids: validRoleIds
-            });
-            
             const result = await permissionApi.assignUserPermissions(
                 user.id,
                 validPermissionIds,
                 validRoleIds
             );
-            
-            console.log('🔍 DEBUG: API Response:', result);
-            console.log('🔍 DEBUG: Save successful!');
-            
             // Show detailed success message
             const roleNames = roles.filter(r => selectedRoles.includes(r.id)).map(r => r.name);
             const permissionNames = permissions.filter(p => selectedPermissions.includes(p.id)).map(p => p.name);
-            
-            console.log('🔍 DEBUG: Role names to show:', roleNames);
-            console.log('🔍 DEBUG: Permission names to show:', permissionNames);
-            
             showToast(
                 `Permissions updated successfully! Roles: ${roleNames.join(', ')} | Direct Permissions: ${permissionNames.length}`, 
                 'success'
             );
-            
-            console.log('🔍 DEBUG: Calling onSuccess and onClose...');
             onSuccess();
             
             // Show toast for 2 seconds before closing modal
@@ -163,7 +120,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
             const errorMessage = error.message || 'Failed to save permissions. Please try again.';
             showToast(`Error: ${errorMessage}`, 'error');
         } finally {
-            console.log('🔍 DEBUG: Save process completed');
             setSaving(false);
         }
     };
@@ -306,7 +262,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
                                                                  cursor: 'pointer'
                                                              }}
                                                              onClick={() => {
-                                                                 console.log('🔍 DEBUG: Role card clicked:', role.id, role.name);
                                                                  handleRoleToggle(role.id);
                                                              }}>
                                                             <div className="d-flex align-items-start">
@@ -414,7 +369,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
                                                                                  minHeight: '80px'
                                                                              }}
                                                                              onClick={() => {
-                                                                                 console.log('🔍 DEBUG: Permission card clicked:', permission.id, permission.name);
                                                                                  handlePermissionToggle(permission.id);
                                                                              }}>
                                                                             <div className="d-flex align-items-start">
@@ -422,7 +376,6 @@ const UserPermissionAssignment = ({ user, onClose, onSuccess }) => {
                                                                                     type="checkbox"
                                                                                     checked={selectedPermissions.includes(permission.id)}
                                                                                     onChange={() => {
-                                                                                        console.log('🔍 DEBUG: Permission checkbox clicked:', permission.id, permission.name);
                                                                                         handlePermissionToggle(permission.id);
                                                                                     }}
                                                                                     style={{

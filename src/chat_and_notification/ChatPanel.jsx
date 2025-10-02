@@ -40,45 +40,36 @@ const ChatPanel = ({open, onClose}) => {
 
     // const fetchAdminStatus = async () => {
     //     try {
-    //         console.log('ChatPanel: Fetching admin status...');
-    //         const status = await chatApi.getAdminStatus();
-    //         console.log('ChatPanel: Admin status response:', status);
-    //         
+    //         //         const status = await chatApi.getAdminStatus();
+    //         //         
     //         // Be more strict about online status
     //         if(status.is_online === true && status.status === 'online') {
-    //             console.log('ChatPanel: Setting admin status to online');
-    //             setAdminStatus('online');
+    //             //             setAdminStatus('online');
     //         } else {
     //             console.log('ChatPanel: Setting admin status to offline (not truly online)');
     //             setAdminStatus('offline');
     //         }
     //     } catch(error) {
     //         console.error('Error fetching admin status:', error);
-    //         console.log('ChatPanel: Setting admin status to offline due to error');
-    //         setAdminStatus('offline');
+    //         //         setAdminStatus('offline');
     //     }
     // };
 
     // Listen for admin login/logout events - COMMENTED OUT
     // React.useEffect(() => {
     //     const handleAdminStatusChange = (event) => {
-    //         console.log('ChatPanel: Admin status change event received:', event.detail);
-    //         if(event.detail && event.detail.status) {
-    //             console.log('ChatPanel: Setting admin status from event to:', event.detail.status);
-    //             setAdminStatus(event.detail.status);
+    //         //         if(event.detail && event.detail.status) {
+    //             //             setAdminStatus(event.detail.status);
     //             
     //             // If status changed to offline, also clear any pending API calls
     //             if(event.detail.status === 'offline') {
-    //                 console.log('ChatPanel: Admin went offline, clearing any pending status checks');
-    //             }
+    //                 //             }
     //             
     //             // If status changed to online, also clear any pending API calls
     //             if(event.detail.status === 'online') {
-    //                 console.log('ChatPanel: Admin came online, clearing any pending status checks');
-    //             }
+    //                 //             }
     //         } else {
-    //             console.log('ChatPanel: Invalid event detail, ignoring');
-    //         }
+    //             //         }
     //     };
 
     //     // Listen for custom events
@@ -87,8 +78,7 @@ const ChatPanel = ({open, onClose}) => {
     //     
     //     return () => {
     //         window.removeEventListener('admin_status_changed', handleAdminStatusChange);
-    //         console.log('ChatPanel: Admin status change event listener removed');
-    //     };
+    //         //     };
     // }, []);
 
     // Connect to WebSocket when conversation is ready and panel is open
@@ -204,10 +194,7 @@ const ChatPanel = ({open, onClose}) => {
         if(open === false && conversationId) {
             (async () => {
                 try {
-                    console.log('ChatPanel: Panel closed, marking messages as read for conversation:', conversationId);
                     const response = await chatApi.markMessagesAsRead(conversationId);
-                    console.log('ChatPanel: MarkMessagesAsRead response:', response);
-                    console.log('ChatPanel: Messages marked as read successfully');
                 } catch(e) {
                     console.warn('markMessagesAsRead on close failed:', e);
                 } finally {
@@ -220,16 +207,11 @@ const ChatPanel = ({open, onClose}) => {
     const initializeConversation = async () => {
         try {
             // First, try to get existing conversations
-            console.log('Fetching existing conversations...');
             const conversations = await chatApi.getConversations();
-            console.log('Existing conversations:', conversations);
-
             if(conversations.length > 0) {
                 // Use the most recent conversation
                 const latestConversation = conversations[0];
                 setConversationId(latestConversation.id);
-                console.log('Using existing conversation:', latestConversation.id);
-
                 // Load messages and mark as read in parallel for faster loading
                 const [messagesData] = await Promise.allSettled([
                     chatApi.getMessages(latestConversation.id),
@@ -241,7 +223,6 @@ const ChatPanel = ({open, onClose}) => {
                     // Force scroll to bottom after messages are set
                     setTimeout(() => {
                         if(listRef.current) {
-                            console.log('ChatPanel: Scrolling after messages set');
                             listRef.current.scrollTop = listRef.current.scrollHeight;
                         }
                     }, 200);
@@ -253,9 +234,7 @@ const ChatPanel = ({open, onClose}) => {
                 window.dispatchEvent(new CustomEvent('chat_conversation_changed', {detail: {id: latestConversation.id}}));
             } else {
                 // Only create new conversation if none exists
-                console.log('No existing conversations found. Creating new conversation...');
                 const conversation = await chatApi.createConversation();
-                console.log('Conversation created:', conversation);
                 setConversationId(conversation.id);
                 window.dispatchEvent(new CustomEvent('chat_conversation_changed', {detail: {id: conversation.id}}));
             }
@@ -272,22 +251,18 @@ const ChatPanel = ({open, onClose}) => {
         if(!conversationId) return;
 
         try {
-            console.log('Loading messages for conversation:', conversationId);
             const messagesData = await chatApi.getMessages(conversationId);
-            console.log('Messages data:', messagesData);
             const formattedMessages = messagesData.map(msg => ({
                 id: String(msg.id),
                 side: msg.is_sender_staff ? 'admin' : 'user',
                 text: msg.content,
                 time: new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
             }));
-            console.log('Formatted messages:', formattedMessages);
             setMessages(formattedMessages);
 
             // Force scroll to bottom after messages are loaded
             setTimeout(() => {
                 if(listRef.current) {
-                    console.log('ChatPanel: Scrolling after loadMessages');
                     listRef.current.scrollTop = listRef.current.scrollHeight;
                 }
             }, 100);
@@ -340,11 +315,9 @@ const ChatPanel = ({open, onClose}) => {
     // Auto-scroll to bottom when panel opens or messages change
     React.useEffect(() => {
         if(open && listRef.current) {
-            console.log('ChatPanel: Auto-scrolling to bottom on open');
             // Use setTimeout to ensure DOM is updated
             setTimeout(() => {
                 if(listRef.current) {
-                    console.log('ChatPanel: Scrolling to bottom, scrollHeight:', listRef.current.scrollHeight);
                     listRef.current.scrollTop = listRef.current.scrollHeight;
                 }
             }, 200);
@@ -354,10 +327,8 @@ const ChatPanel = ({open, onClose}) => {
     // Auto-scroll to bottom when messages are loaded
     React.useEffect(() => {
         if(!isLoading && messages.length > 0 && listRef.current) {
-            console.log('ChatPanel: Auto-scrolling after messages loaded, count:', messages.length);
             setTimeout(() => {
                 if(listRef.current) {
-                    console.log('ChatPanel: Scrolling to bottom after load, scrollHeight:', listRef.current.scrollHeight);
                     listRef.current.scrollTop = listRef.current.scrollHeight;
                 }
             }, 100);
@@ -367,10 +338,8 @@ const ChatPanel = ({open, onClose}) => {
     // Force scroll to bottom when panel opens
     React.useEffect(() => {
         if(open) {
-            console.log('ChatPanel: Panel opened, forcing scroll to bottom');
             const scrollToBottom = () => {
                 if(listRef.current) {
-                    console.log('ChatPanel: Force scrolling to bottom, scrollHeight:', listRef.current.scrollHeight);
                     // Force scroll to bottom
                     listRef.current.scrollTop = listRef.current.scrollHeight;
                     // Also try smooth scroll
@@ -394,8 +363,6 @@ const ChatPanel = ({open, onClose}) => {
         if(!t || !conversationId) return;
 
         try {
-            console.log('Sending message:', t, 'to conversation:', conversationId);
-
             // Prefer WS send; backend persists and broadcasts
             if(!websocketService.isConnected()) {
                 websocketService.connect(conversationId);

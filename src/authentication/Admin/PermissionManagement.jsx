@@ -29,7 +29,6 @@ const PermissionManagement = () => {
         description: '',
         permissions: []
     });
-    
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
@@ -39,7 +38,6 @@ const PermissionManagement = () => {
         setLoading(true);
         try {
             const data = await permissionApi.getPermissions();
-            console.log('🔍 DEBUG: Permissions response:', data);
             const permissions = data.data || data || [];
             setPermissions(permissions);
         } catch (error) {
@@ -53,7 +51,6 @@ const PermissionManagement = () => {
         setLoading(true);
         try {
             const data = await permissionApi.getRoles();
-            console.log('🔍 DEBUG: Roles response:', data);
             const roles = data.data || data || [];
             setRoles(roles);
         } catch (error) {
@@ -62,7 +59,6 @@ const PermissionManagement = () => {
             setLoading(false);
         }
     };
-
 
     const createDefaultPermissions = async () => {
         try {
@@ -187,7 +183,6 @@ const PermissionManagement = () => {
         setShowRoleModal(true);
     };
 
-
     useEffect(() => {
         if (activeTab === 'permissions') {
             loadPermissions();
@@ -200,10 +195,7 @@ const PermissionManagement = () => {
     useEffect(() => {
         const initializeDefaults = async () => {
             try {
-                console.log('🔍 DEBUG: Creating default permissions and roles...');
                 const result = await permissionApi.createDefaultPermissions();
-                console.log('🔍 DEBUG: Create result:', result);
-                
                 // Refresh data after creating defaults
                 if (activeTab === 'permissions') {
                     loadPermissions();
@@ -211,9 +203,7 @@ const PermissionManagement = () => {
                     loadRoles();
                 }
             } catch (error) {
-                console.log('🔍 DEBUG: Error creating defaults:', error);
                 // Ignore error if already exists
-                console.log('Default permissions/roles may already exist');
             }
         };
         

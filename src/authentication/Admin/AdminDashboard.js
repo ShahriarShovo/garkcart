@@ -22,46 +22,24 @@ const AdminDashboard = () => {
 
     // Check authentication on component mount
     useEffect(() => {
-        console.log('AdminDashboard: Component mounted');
-        console.log('AdminDashboard: Current auth state - isAuthenticated:', isAuthenticated, 'user:', user);
-        console.log('AdminDashboard: localStorage check:', {
-            user: localStorage.getItem('user'),
-            token: localStorage.getItem('token'),
-            refresh: localStorage.getItem('refresh_token')
-        });
 
         // Wait until AuthContext finishes initializing from localStorage
         if(!isAuthReady) {
-            console.log('AdminDashboard: Waiting for auth initialization (isAuthReady=false)');
             return;
         }
 
         const checkAuth = () => {
-            console.log('AdminDashboard: Checking authentication...');
-            console.log('AdminDashboard: Current auth state - isAuthenticated:', isAuthenticated, 'user:', user);
-
             if(!isAuthenticated || !user) {
-                console.log('AdminDashboard: User not authenticated, redirecting to login');
                 navigate('/signin');
                 return;
             }
 
             // Check if user is admin/staff
             const isAdmin = user.is_superuser || user.is_staff || user.is_admin;
-            console.log('AdminDashboard: Admin check - isAdmin:', isAdmin, 'user flags:', {
-                is_superuser: user.is_superuser,
-                is_staff: user.is_staff,
-                is_admin: user.is_admin
-            });
-
             if(!isAdmin) {
-                console.log('AdminDashboard: User is not admin, redirecting to home');
                 navigate('/');
                 return;
             }
-
-            console.log('AdminDashboard: Admin authentication successful');
-            
             // Load user permissions after successful authentication
             loadUserPermissions();
         };
@@ -74,7 +52,6 @@ const AdminDashboard = () => {
 
         return () => clearTimeout(timeoutId);
     }, [isAuthenticated, user, navigate, isAuthReady]);
-
 
     // Order management states
     const [orders, setOrders] = useState([]);
@@ -109,7 +86,6 @@ const AdminDashboard = () => {
     // Load user permissions
     const loadUserPermissions = async () => {
         if (!user) {
-            console.log('🔍 DEBUG: No user, skipping permission load');
             return;
         }
         
@@ -122,57 +98,36 @@ const AdminDashboard = () => {
                 // Decode JWT token to get user_id
                 const tokenPayload = JSON.parse(atob(user.token.access.split('.')[1]));
                 userId = tokenPayload.user_id;
-                console.log('🔍 DEBUG: Extracted user ID from JWT token:', userId);
             } catch (error) {
-                console.log('🔍 DEBUG: Failed to decode JWT token:', error);
             }
         }
         
         if (!userId) {
-            console.log('🔍 DEBUG: No user ID found, user object:', user);
             return;
         }
-        
-        console.log('🔍 DEBUG: Loading permissions for user:', user.email, 'ID:', userId);
-        console.log('🔍 DEBUG: Full user object:', user);
         setPermissionsLoading(true);
         try {
             const token = localStorage.getItem('token');
-            console.log('🔍 DEBUG: Token exists:', !!token);
-            
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.USER_PERMISSIONS_LIST}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
             });
-
-            console.log('🔍 DEBUG: Permission API response status:', response.status);
-            
             if (response.ok) {
                 const data = await response.json();
-                console.log('🔍 DEBUG: User permissions loaded:', data);
-                console.log('🔍 DEBUG: Permissions array:', data.permissions);
-                console.log('🔍 DEBUG: Roles array:', data.roles);
-                
                 setUserPermissions(data.permissions || []);
                 setUserRoles(data.roles || []);
                 
                 // Set default tab based on permissions
                 const permissions = data.permissions || [];
-                console.log('🔍 DEBUG: Processing permissions:', permissions);
-                console.log('🔍 DEBUG: User is superuser:', user.is_superuser);
-                
                 if (permissions.length > 0 && !user.is_superuser) {
                     // Check if user has order tracking permission
                     const hasOrderTracking = permissions.some(perm => perm.codename === 'order_tracking');
-                    console.log('🔍 DEBUG: Has order tracking permission:', hasOrderTracking);
                     if (hasOrderTracking) {
-                        console.log('🔍 DEBUG: Setting active tab to order-tracking');
                         setActiveTab('order-tracking');
                     }
                 } else {
-                    console.log('🔍 DEBUG: No permissions or user is superuser, staying on dashboard');
                 }
             } else {
                 const errorText = await response.text();
@@ -187,27 +142,16 @@ const AdminDashboard = () => {
 
     // Check if user has specific permission (Dynamic permission checking)
     const hasPermission = (permissionCodename) => {
-        console.log('🔍 DEBUG: Checking permission:', permissionCodename);
-        console.log('🔍 DEBUG: User:', user?.email, 'is_superuser:', user?.is_superuser);
-        console.log('🔍 DEBUG: UserPermissions:', userPermissions);
-        console.log('🔍 DEBUG: UserPermissions type:', typeof userPermissions);
-        console.log('🔍 DEBUG: UserPermissions length:', userPermissions?.length);
-        
         if (!user || user.is_superuser) {
-            console.log('🔍 DEBUG: User is superuser or no user, returning true');
             return true; // Superuser has all permissions
         }
         
         if (!userPermissions || userPermissions.length === 0) {
-            console.log('🔍 DEBUG: No permissions loaded yet, returning false');
             return false; // No permissions loaded yet
         }
         
         // Dynamic permission checking - check if permission exists in the array
         const hasPerm = userPermissions.includes(permissionCodename);
-        console.log('🔍 DEBUG: Has permission', permissionCodename, ':', hasPerm);
-        console.log('🔍 DEBUG: Permission array contains:', userPermissions);
-        console.log('🔍 DEBUG: Looking for:', permissionCodename);
         return hasPerm;
     };
 
@@ -310,7 +254,6 @@ const AdminDashboard = () => {
             if(response.ok) {
                 const data = await response.json();
                 setInboxUnreadCount(data.unread_count || 0);
-                console.log('AdminDashboard: Inbox unread count:', data.unread_count);
             }
         } catch(error) {
             console.error('Error fetching inbox unread count:', error);
@@ -331,7 +274,6 @@ const AdminDashboard = () => {
             if(response.ok) {
                 const data = await response.json();
                 setPendingOrdersCount(data.pending_count || 0);
-                console.log('AdminDashboard: Pending orders count:', data.pending_count);
             }
         } catch(error) {
             console.error('Error fetching pending orders count:', error);
@@ -440,7 +382,6 @@ const AdminDashboard = () => {
     // Listen for inbox updates
     useEffect(() => {
         const handleInboxUpdate = () => {
-            console.log('AdminDashboard: Inbox updated, refreshing counter');
             fetchInboxUnreadCount();
         };
 
@@ -454,36 +395,28 @@ const AdminDashboard = () => {
     // Connect to admin WebSocket for real-time updates
     useEffect(() => {
         if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
-            console.log('AdminDashboard: Connecting to admin WebSocket for real-time updates');
-
             if(!adminWebsocketService.isConnected()) {
                 adminWebsocketService.connect();
             }
 
             const handleNewMessage = (payload) => {
-                console.log('AdminDashboard: New message received via WebSocket:', payload);
                 if(payload?.type === 'new_message' && payload.message?.conversation_id) {
-                    console.log('AdminDashboard: Updating inbox counter due to new message');
                     fetchInboxUnreadCount();
                 }
             };
 
             const handleConversationUpdated = (payload) => {
-                console.log('AdminDashboard: Conversation updated via WebSocket:', payload);
                 if(payload?.type === 'conversation_updated' && payload.conversation?.id) {
-                    console.log('AdminDashboard: Updating inbox counter due to conversation update');
                     fetchInboxUnreadCount();
                 }
             };
 
             // Add connection status listener
             const handleConnected = () => {
-                console.log('AdminDashboard: Admin WebSocket connected');
                 setWsConnected(true);
             };
 
             const handleDisconnected = () => {
-                console.log('AdminDashboard: Admin WebSocket disconnected');
                 setWsConnected(false);
             };
 
@@ -504,26 +437,18 @@ const AdminDashboard = () => {
     // Connect to order WebSocket for real-time order updates
     useEffect(() => {
         if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
-            console.log('AdminDashboard: Connecting to order WebSocket for real-time order updates');
-            console.log('AdminDashboard: Order WebSocket connection status:', orderWebsocketService.isConnected());
-
             if(!orderWebsocketService.isConnected()) {
-                console.log('AdminDashboard: Order WebSocket not connected, attempting to connect...');
                 orderWebsocketService.connect();
             } else {
-                console.log('AdminDashboard: Order WebSocket already connected');
             }
 
             const handleNewOrder = (payload) => {
-                console.log('AdminDashboard: New order received via WebSocket:', payload);
                 if(payload?.type === 'new_order' && payload.order) {
-                    console.log('AdminDashboard: New order notification received');
                     setOrderUpdateInProgress(true);
                     
                     // Immediate UI update for better user experience
                     setPendingOrdersCount(prev => {
                         const newCount = prev + 1;
-                        console.log('AdminDashboard: Updated pending orders count to:', newCount);
                         return newCount;
                     });
                     
@@ -544,24 +469,18 @@ const AdminDashboard = () => {
             };
 
             const handleOrderUpdated = (payload) => {
-                console.log('AdminDashboard: Order updated via WebSocket:', payload);
                 if(payload?.type === 'order_updated' && payload.order) {
-                    console.log('AdminDashboard: Order update notification received');
                     // Refresh order stats if needed
                     orderWebsocketService.requestOrderStats();
                 }
             };
 
             const handleOrderStatusChanged = (payload) => {
-                console.log('AdminDashboard: Order status changed via WebSocket:', payload);
                 if(payload?.type === 'order_status_changed' && payload.order) {
-                    console.log('AdminDashboard: Order status change notification received');
-                    
                     // Immediate UI update - no waiting for database
                     if (payload.order.previous_status === 'pending' && payload.order.status !== 'pending') {
                         setPendingOrdersCount(prev => {
                             const newCount = Math.max(0, prev - 1);
-                            console.log('AdminDashboard: Updated pending orders count to:', newCount);
                             return newCount;
                         });
                     }
@@ -581,18 +500,14 @@ const AdminDashboard = () => {
             };
 
             const handleOrderStats = (payload) => {
-                console.log('AdminDashboard: Order stats received via WebSocket:', payload);
                 if(payload?.type === 'order_stats' && payload.stats) {
-                    console.log('AdminDashboard: Updating order stats:', payload.stats);
                     setOrderStats(payload.stats);
                     setPendingOrdersCount(payload.stats.pending_orders || 0);
-                    console.log('AdminDashboard: Updated pending orders count to:', payload.stats.pending_orders || 0);
                 }
             };
 
             // Add connection status listener
             const handleOrderConnected = () => {
-                console.log('AdminDashboard: Order WebSocket connected');
                 setOrderWsConnected(true);
                 // Request initial stats
                 orderWebsocketService.requestOrderStats();
@@ -601,7 +516,6 @@ const AdminDashboard = () => {
             };
 
             const handleOrderDisconnected = () => {
-                console.log('AdminDashboard: Order WebSocket disconnected');
                 setOrderWsConnected(false);
             };
 
@@ -626,12 +540,10 @@ const AdminDashboard = () => {
     // Fetch initial pending orders count on component mount
     useEffect(() => {
         if(isAuthenticated && user && (user.is_staff || user.is_superuser)) {
-            console.log('AdminDashboard: Fetching initial pending orders count');
             fetchPendingOrdersCount();
             
             // Set up periodic refresh as fallback if WebSocket fails
             const intervalId = setInterval(() => {
-                console.log('AdminDashboard: Periodic refresh of pending orders count');
                 fetchPendingOrdersCount();
             }, 30000); // Refresh every 30 seconds
             
@@ -639,17 +551,14 @@ const AdminDashboard = () => {
         }
     }, [isAuthenticated, user]);
 
-
     // Optimistic update function for immediate UI response
     const optimisticUpdateCounter = (action, orderId) => {
-        console.log(`AdminDashboard: Optimistic update - ${action} for order ${orderId}`);
         setOrderUpdateInProgress(true);
         
         if (action === 'status_change') {
             // Immediately decrease counter if order was pending
             setPendingOrdersCount(prev => {
                 const newCount = Math.max(0, prev - 1);
-                console.log('AdminDashboard: Optimistic counter update to:', newCount);
                 return newCount;
             });
         }
@@ -904,15 +813,9 @@ const AdminDashboard = () => {
 
     // Load existing email settings on component mount
     useEffect(() => {
-        console.log('🔍 DEBUG: useEffect triggered, calling loadExistingEmailSettings...');
-        
         const loadExistingEmailSettings = async () => {
-            console.log('🔍 DEBUG: Starting to load email settings...');
             try {
                 const token = localStorage.getItem('token');
-                console.log('🔍 DEBUG: Token found:', token ? 'Yes' : 'No');
-                console.log('🔍 DEBUG: Token value:', token);
-                
                 const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
                     method: 'GET',
                     headers: {
@@ -920,32 +823,16 @@ const AdminDashboard = () => {
                         'Content-Type': 'application/json'
                     }
                 });
-                
-                console.log('🔍 DEBUG: API Response status:', response.status);
-                console.log('🔍 DEBUG: API Response ok:', response.ok);
-                
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('🔍 DEBUG: Email settings API response:', data);
-                    console.log('🔍 DEBUG: Data type:', Array.isArray(data) ? 'Array' : typeof data);
-                    console.log('🔍 DEBUG: Data length:', Array.isArray(data) ? data.length : 'Not array');
-                    
                     // Handle both array response and object with results property
                     const emailSettings = Array.isArray(data) ? data : (data.results || []);
-                    console.log('🔍 DEBUG: Email settings array:', emailSettings);
-                    console.log('🔍 DEBUG: Email settings length:', emailSettings.length);
-                    
                     if (emailSettings && emailSettings.length > 0) {
-                        console.log('🔍 DEBUG: Found email settings, storing...');
                         // Store all saved email settings
                         setSavedEmailSettings(emailSettings);
-                        console.log('🔍 DEBUG: savedEmailSettings state updated with:', emailSettings);
-                        
                         // Select the first one as default
                         const firstSetting = emailSettings[0];
                         setSelectedEmailSetting(firstSetting);
-                        console.log('🔍 DEBUG: selectedEmailSetting state updated:', firstSetting);
-                        
                         // Populate form with first setting
                         setEmailSettings({
                             admin_email: firstSetting.email_address || '',
@@ -953,8 +840,6 @@ const AdminDashboard = () => {
                             notification_email: firstSetting.from_email || '',
                             email_signature: ''
                         });
-                        console.log('🔍 DEBUG: emailSettings state updated');
-                        
                         setSmtpSettings({
                             smtp_host: firstSetting.smtp_host || 'smtp.gmail.com',
                             smtp_port: firstSetting.smtp_port || 587,
@@ -965,19 +850,12 @@ const AdminDashboard = () => {
                             from_email: firstSetting.from_email || '',
                             from_name: firstSetting.from_name || 'Your Store Name'
                         });
-                        console.log('🔍 DEBUG: smtpSettings state updated');
                     } else {
-                        console.log('🔍 DEBUG: No email settings found in API response');
-                        console.log('🔍 DEBUG: emailSettings array is:', emailSettings);
                     }
                 } else {
-                    console.log('🔍 DEBUG: API response not ok:', response.status, response.statusText);
                     const errorText = await response.text();
-                    console.log('🔍 DEBUG: Error response:', errorText);
                 }
             } catch (err) {
-                console.log('🔍 DEBUG: Error loading email settings:', err);
-                console.log('🔍 DEBUG: Error details:', err.message);
             }
         };
         
@@ -990,7 +868,6 @@ const AdminDashboard = () => {
         setOrdersError(null);
         try {
             const token = localStorage.getItem('token');
-            console.log('Using token:', token);
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/`, {
                 method: 'GET',
                 headers: {
@@ -1001,8 +878,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('All orders fetched:', data);
-                console.log('Orders count:', data.results ? data.results.length : data.length);
                 setOrders(data.results || data);
             } else {
                 const errorData = await response.json();
@@ -1045,7 +920,6 @@ const AdminDashboard = () => {
             // Optimistic update - immediately update UI for better UX
             const order = orders.find(o => o.id === orderId);
             if (order && order.status === 'pending' && newStatus !== 'pending') {
-                console.log('AdminDashboard: Optimistic update for pending order');
                 optimisticUpdateCounter('status_change', orderId);
             }
             
@@ -1061,7 +935,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Order status updated:', data);
                 setToast({show: true, message: data.message, type: 'success'});
 
                 // Refresh orders list in background
@@ -1133,8 +1006,6 @@ const AdminDashboard = () => {
             setUsersLoading(true);
             setUsersError(null);
             const token = localStorage.getItem('token');
-            console.log('Fetching users with token:', token);
-            console.log('API endpoint:', `${API_CONFIG.BASE_URL}/api/accounts/users/`);
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/users/`, {
                 method: 'GET',
                 headers: {
@@ -1145,8 +1016,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('All users fetched:', data);
-                console.log('Users count:', data.results ? data.results.length : data.length);
                 setUsers(data.results || data);
             } else {
                 const errorData = await response.json();
@@ -1191,7 +1060,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('User status updated:', data);
                 setToast({show: true, message: `User ${newStatus ? 'activated' : 'deactivated'} successfully`, type: 'success'});
 
                 // Refresh users list
@@ -1225,7 +1093,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('User promoted to staff:', data);
                 setToast({show: true, message: `${user.email} has been promoted to staff successfully`, type: 'success'});
                 
                 // Refresh users list
@@ -1260,10 +1127,6 @@ const AdminDashboard = () => {
     const getInactiveUsers = () => {
         if(!users || users.length === 0) return [];
         const inactiveUsers = users.filter(user => !user.is_active && !user.is_staff && !user.is_superuser);
-        console.log('🔍 DEBUG: getInactiveUsers called');
-        console.log('🔍 DEBUG: Total users:', users.length);
-        console.log('🔍 DEBUG: Inactive users found:', inactiveUsers.length);
-        console.log('🔍 DEBUG: Inactive users:', inactiveUsers.map(u => ({id: u.id, email: u.email, is_active: u.is_active, is_staff: u.is_staff, is_superuser: u.is_superuser})));
         return inactiveUsers;
     };
 
@@ -1286,7 +1149,6 @@ const AdminDashboard = () => {
         setUserOrdersLoading(true);
         try {
             const token = localStorage.getItem('token');
-            console.log(`🔍 Fetching orders for user ID: ${userId}`);
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/orders/?user=${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1296,7 +1158,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log(`🔍 Orders response for user ${userId}:`, data);
                 setUserOrders(data.results || data);
             } else {
                 console.error('Failed to fetch user orders:', response.statusText);
@@ -1312,8 +1173,6 @@ const AdminDashboard = () => {
 
     // View user orders
     const viewUserOrders = (user) => {
-        console.log(`🔍 Viewing orders for user:`, user);
-        console.log(`🔍 User ID: ${user.id}, Email: ${user.email}, Name: ${user.full_name || user.username}`);
         setSelectedUser(user);
         setShowUserOrdersModal(true);
         fetchUserOrders(user.id);
@@ -1446,8 +1305,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Categories fetched:', data);
-                console.log('First category image URL:', data.results?.[0]?.image || data?.[0]?.image);
                 setCategories(data.results || data);
             } else {
                 const errorData = await response.json();
@@ -1492,7 +1349,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Category saved:', data);
                 setToast({
                     show: true,
                     message: editingCategory ? 'Category updated successfully!' : 'Category created successfully!',
@@ -1588,8 +1444,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Subcategories fetched:', data);
-                console.log('Subcategories count:', (data.results || data).length);
                 setSubcategories(data.results || data);
             } else {
                 const errorData = await response.json();
@@ -1636,7 +1490,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Subcategory saved:', data);
                 setToast({
                     show: true,
                     message: editingSubcategory ? 'Subcategory updated successfully!' : 'Subcategory created successfully!',
@@ -1733,7 +1586,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Products fetched:', data);
                 // Filter out archived products
                 const allProducts = data.results || data;
                 const activeProducts = allProducts.filter(product => product.status !== 'archived');
@@ -1766,15 +1618,9 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Archived products fetched:', data);
                 // Filter only archived products
                 const allProducts = data.results || data;
                 const archivedOnly = allProducts.filter(product => product.status === 'archived');
-                console.log('Archived products with image data:', archivedOnly.map(p => ({
-                    title: p.title,
-                    primary_image: p.primary_image,
-                    image_type: typeof p.primary_image
-                })));
                 setArchivedProducts(archivedOnly);
             } else {
                 const errorData = await response.json();
@@ -1797,6 +1643,10 @@ const AdminDashboard = () => {
             if(productForm.product_type === 'variable') {
                 for(let i = 0; i < productVariants.length; i++) {
                     const variant = productVariants[i];
+                    if(!variant.title || variant.title.trim() === '') {
+                        setToast({show: true, message: `Variant ${i + 1} must have a title`, type: 'error'});
+                        return;
+                    }
                     if(!variant.price || variant.price === '') {
                         setToast({show: true, message: `Variant ${i + 1} must have a price`, type: 'error'});
                         return;
@@ -1857,7 +1707,6 @@ const AdminDashboard = () => {
 
             const method = editingProduct ? 'PUT' : 'POST';
 
-            
             const response = await fetch(url, {
                 method: method,
                 headers: {
@@ -1868,7 +1717,6 @@ const AdminDashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Product saved:', data);
                 setToast({
                     show: true,
                     message: editingProduct ? 'Product updated successfully!' : 'Product created successfully!',
@@ -2040,7 +1888,22 @@ const AdminDashboard = () => {
             });
 
             if(response.ok) {
-                const data = await response.json();
+                // Check if response has content before trying to parse JSON
+                const contentType = response.headers.get('content-type');
+                let data = {};
+                
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        data = await response.json();
+                    } catch (jsonError) {
+                        console.warn('Failed to parse JSON response:', jsonError);
+                        // If JSON parsing fails, assume successful deletion
+                        data = { deleted: true, message: 'Product deleted successfully!' };
+                    }
+                } else {
+                    // If no JSON content, assume successful deletion
+                    data = { deleted: true, message: 'Product deleted successfully!' };
+                }
 
                 if(data.archived) {
                     setToast({
@@ -2065,13 +1928,23 @@ const AdminDashboard = () => {
                 // Refresh products list
                 fetchProducts();
             } else {
-                const errorData = await response.json();
-                console.error('Failed to delete product:', errorData);
-                setToast({
-                    show: true,
-                    message: errorData.error || 'Failed to delete product',
-                    type: 'error'
-                });
+                // Handle error response
+                try {
+                    const errorData = await response.json();
+                    console.error('Failed to delete product:', errorData);
+                    setToast({
+                        show: true,
+                        message: errorData.error || 'Failed to delete product',
+                        type: 'error'
+                    });
+                } catch (jsonError) {
+                    console.error('Failed to parse error response:', jsonError);
+                    setToast({
+                        show: true,
+                        message: `Failed to delete product (${response.status})`,
+                        type: 'error'
+                    });
+                }
             }
         } catch(error) {
             console.error('Error deleting product:', error);
@@ -2276,7 +2149,6 @@ const AdminDashboard = () => {
                         <ul className="list-group">
                             {(() => {
                                 const hasDashPerm = hasPermission('dashboard_access');
-                                console.log('🔍 DEBUG: Dashboard permission check:', hasDashPerm);
                                 return hasDashPerm;
                             })() && (
                                 <a
@@ -2464,10 +2336,8 @@ const AdminDashboard = () => {
                                  </a>
                             )}
 
-
                             {(() => {
                                 const hasOrderPerm = hasPermission('order_tracking');
-                                console.log('🔍 DEBUG: Order tracking permission check:', hasOrderPerm);
                                 return hasOrderPerm;
                             })() && (
                                  <a
@@ -2734,7 +2604,6 @@ const AdminDashboard = () => {
                                 </div>
                             </article>
                         )}
-
 
                         {activeTab === 'products' && hasPermission('manage_products') && (
                             <article className="card" style={{overflow: 'hidden'}}>
@@ -3326,9 +3195,6 @@ const AdminDashboard = () => {
                                         </div>
                                     ) : (() => {
                                         const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
-                                        console.log('🔍 DEBUG: showInactiveUsers:', showInactiveUsers);
-                                        console.log('🔍 DEBUG: filteredUsers length:', filteredUsers.length);
-                                        console.log('🔍 DEBUG: filteredUsers:', filteredUsers.map(u => ({id: u.id, email: u.email, is_active: u.is_active})));
                                         return filteredUsers;
                                     })().length > 0 ? (
                                         <div className="table-responsive" style={{overflow: 'hidden', width: '100%'}}>
@@ -3348,7 +3214,6 @@ const AdminDashboard = () => {
                                                 <tbody>
                                                     {(() => {
                                                         const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
-                                                        console.log('🔍 DEBUG: Rendering users - showInactiveUsers:', showInactiveUsers, 'filteredUsers:', filteredUsers.length);
                                                         return filteredUsers;
                                                     })()
                                                         .slice((usersPage - 1) * 10, (usersPage - 1) * 10 + 10)
@@ -3451,7 +3316,6 @@ const AdminDashboard = () => {
                                             <Pagination
                                                 totalItems={(() => {
                                                     const filteredUsers = showInactiveUsers ? getInactiveUsers() : users.filter(user => user.is_active && !user.is_staff && !user.is_superuser);
-                                                    console.log('🔍 DEBUG: Pagination totalItems - showInactiveUsers:', showInactiveUsers, 'count:', filteredUsers.length);
                                                     return filteredUsers.length;
                                                 })()}
                                                 currentPage={usersPage}
@@ -3507,7 +3371,6 @@ const AdminDashboard = () => {
                                 </div>
                             </article>
                         )} */}
-
 
                         {activeTab === 'categories' && (
                             <article className="card">
@@ -3755,7 +3618,6 @@ const AdminDashboard = () => {
                             </article>
                         )}
 
-
                         {activeTab === 'inbox' && (
                             <AdminChatInbox />
                         )}
@@ -3769,7 +3631,6 @@ const AdminDashboard = () => {
                         {activeTab === 'discounts' && (
                             <AdminDiscountManager />
                         )} */}
-                        
 
                         {activeTab === 'reports' && (
                             <article className="card">
@@ -4151,7 +4012,6 @@ const AdminDashboard = () => {
                                                              </div>
                                                          </div>
 
-
                                                          {/* Order Items */}
                                                          {trackedOrder.items && trackedOrder.items.length > 0 && (
                                                              <div className="mb-3">
@@ -4217,14 +4077,6 @@ const AdminDashboard = () => {
                                                                  <i className="fa fa-times mr-2"></i>
                                                                  Clear
                                                              </button>
-                                                             <a 
-                                                                 href={`/order-tracking?track=${trackedOrder.order_number}`}
-                                                                 target="_blank"
-                                                                 className="btn btn-primary"
-                                                             >
-                                                                 <i className="fa fa-external-link-alt mr-2"></i>
-                                                                 Open Full Details
-                                                             </a>
                                                          </div>
                                                      </div>
                                                  </div>
@@ -4299,7 +4151,6 @@ const AdminDashboard = () => {
                                             </div>
                                         ) : (
                                             <div>
-                                            {console.log('🔍 DEBUG: Rendering profile form section')}
                                             <form onSubmit={async (e) => {
                                                 e.preventDefault();
                                                 try {
@@ -4421,7 +4272,6 @@ const AdminDashboard = () => {
                                                 </div>
                                             </form>
                                             
-                                            {console.log('🔍 DEBUG: Profile form closed, starting change password section')}
                                             {/* Change Password Section */}
                                             <hr className="my-4" />
                                             <div className="mt-4">
@@ -4458,8 +4308,6 @@ const AdminDashboard = () => {
                                                             setPwdError('Authentication required. Please login again.');
                                                             return;
                                                         }
-                                                        
-                                                        console.log('🔍 DEBUG: Sending change password request');
                                                         const res = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/change-password/`, {
                                                             method: 'POST',
                                                             headers: {
@@ -4471,12 +4319,8 @@ const AdminDashboard = () => {
                                                                 confirm_password: pwdForm.confirm_password
                                                             })
                                                         });
-                                                        
-                                                        console.log('🔍 DEBUG: Change password response status:', res.status);
-                                                        
                                                         if(res.ok) {
                                                             const data = await res.json();
-                                                            console.log('🔍 DEBUG: Change password success:', data);
                                                             setPwdSuccess('Password changed successfully!');
                                                             setPwdForm({
                                                                 password: '',
@@ -4484,7 +4328,6 @@ const AdminDashboard = () => {
                                                             });
                                                         } else {
                                                             const errorData = await res.json();
-                                                            console.log('🔍 DEBUG: Change password error:', errorData);
                                                             setPwdError(errorData.message || 'Failed to change password');
                                                         }
                                                     } catch(err) {
@@ -4616,7 +4459,6 @@ const AdminDashboard = () => {
                                                     </div>
                                                 </form>
                                             </div>
-                                            {console.log('🔍 DEBUG: Change password section closed, closing profile div')}
                                             </div>
                                         )
                                     )}
@@ -4819,11 +4661,9 @@ const AdminDashboard = () => {
                                                             const data = await getResponse.json();
                                                             if (data.results && data.results.length > 0) {
                                                                 existingSettings = data.results[0]; // Get the first existing setting
-                                                                console.log('Found existing email settings:', existingSettings);
                                                             }
                                                         }
                                                     } catch (err) {
-                                                        console.log('No existing email settings found');
                                                     }
                                                     
                                                     // Use PUT if exists, POST if new
@@ -4865,8 +4705,6 @@ const AdminDashboard = () => {
                                                     if (response.ok) {
                                                         const data = await response.json();
                                                         setEmailSettingsSuccess('Email settings saved successfully!');
-                                                        console.log('Email settings saved:', data);
-                                                        
                                                         // Auto-refresh email settings list
                                                         try {
                                                             const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
@@ -5152,9 +4990,6 @@ const AdminDashboard = () => {
                                                                         if (testEmail && testEmail.trim() !== '') {
                                                                             testData.test_email = testEmail;
                                                                         }
-                                                                        
-                                                                        console.log('SMTP Test Data:', testData);
-                                                                        
                                                                         const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/smtp/test/`, {
                                                                             method: 'POST',
                                                                             headers: {
@@ -5236,11 +5071,9 @@ const AdminDashboard = () => {
                                                                                 const data = await getResponse.json();
                                                                                 if (data.results && data.results.length > 0) {
                                                                                     existingSettings = data.results[0]; // Get the first existing setting
-                                                                                    console.log('Found existing email settings for SMTP:', existingSettings);
                                                                                 }
                                                                             }
                                                                         } catch (err) {
-                                                                            console.log('No existing email settings found for SMTP');
                                                                         }
                                                                         
                                                                         // Use PUT if exists, POST if new
@@ -5281,8 +5114,6 @@ const AdminDashboard = () => {
                                                     if (response.ok) {
                                                         const data = await response.json();
                                                         setSmtpSuccess('SMTP settings saved successfully!');
-                                                        console.log('SMTP settings saved:', data);
-                                                        
                                                         // Auto-refresh email settings list
                                                         try {
                                                             const refreshResponse = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
@@ -5408,12 +5239,8 @@ const AdminDashboard = () => {
                                                             type="button" 
                                                             className="btn btn-outline-primary btn-sm mr-2"
                                                             onClick={async () => {
-                                                                console.log('🔍 DEBUG: Refresh button clicked');
                                                                 try {
                                                                     const token = localStorage.getItem('token');
-                                                                    console.log('🔍 DEBUG: Refresh - Token found:', token ? 'Yes' : 'No');
-                                                                    console.log('🔍 DEBUG: Refresh - Token value:', token);
-                                                                    
                                                                     const response = await fetch(`${API_CONFIG.BASE_URL}/api/settings/email-settings/`, {
                                                                         method: 'GET',
                                                                         headers: {
@@ -5421,21 +5248,10 @@ const AdminDashboard = () => {
                                                                             'Content-Type': 'application/json'
                                                                         }
                                                                     });
-                                                                    
-                                                                    console.log('🔍 DEBUG: Refresh - API Response status:', response.status);
-                                                                    console.log('🔍 DEBUG: Refresh - API Response ok:', response.ok);
-                                                                    
                                                                     if (response.ok) {
                                                                         const data = await response.json();
-                                                                        console.log('🔍 DEBUG: Refresh - Email settings API response:', data);
-                                                                        console.log('🔍 DEBUG: Refresh - Data type:', Array.isArray(data) ? 'Array' : typeof data);
-                                                                        console.log('🔍 DEBUG: Refresh - Data length:', Array.isArray(data) ? data.length : 'Not array');
-                                                                        
                                                                         // Handle both array response and object with results property
                                                                         const emailSettings = Array.isArray(data) ? data : (data.results || []);
-                                                                        console.log('🔍 DEBUG: Refresh - Email settings array:', emailSettings);
-                                                                        console.log('🔍 DEBUG: Refresh - Email settings length:', emailSettings.length);
-                                                                        
                                                                         if (emailSettings && emailSettings.length > 0) {
                                                                             setSavedEmailSettings(emailSettings);
                                                                             setSelectedEmailSetting(emailSettings[0]);
@@ -5475,9 +5291,6 @@ const AdminDashboard = () => {
                                                     </div>
                                                     
                                                     {(() => {
-                                                        console.log('🔍 DEBUG: Rendering email settings section');
-                                                        console.log('🔍 DEBUG: savedEmailSettings length:', savedEmailSettings.length);
-                                                        console.log('🔍 DEBUG: savedEmailSettings:', savedEmailSettings);
                                                         return null;
                                                     })()}
                                                     
@@ -5489,7 +5302,6 @@ const AdminDashboard = () => {
                                                                         <div
                                                                             className={`card email-setting-card ${selectedEmailSetting && selectedEmailSetting.id === emailSetting.id ? 'email-setting-selected' : ''}`}
                                                                             onClick={() => {
-                                                                                console.log('Email setting selected:', emailSetting);
                                                                                 setSelectedEmailSetting(emailSetting);
                                                                                 
                                                                                 // Populate form with selected email setting
@@ -5515,10 +5327,6 @@ const AdminDashboard = () => {
                                                                         >
                                                                             <div className="card-body">
                                                                                 {(() => {
-                                                                                    console.log('🔍 DEBUG: Rendering email setting card:', emailSetting);
-                                                                                    console.log('🔍 DEBUG: SMTP Host:', emailSetting.smtp_host);
-                                                                                    console.log('🔍 DEBUG: SMTP Port:', emailSetting.smtp_port);
-                                                                                    console.log('🔍 DEBUG: SMTP Username:', emailSetting.smtp_username);
                                                                                     return null;
                                                                                 })()}
                                                                                 
@@ -6319,6 +6127,10 @@ const AdminDashboard = () => {
                                                 onChange={(e) => setProductForm({...productForm, short_description: e.target.value})}
                                                 placeholder="Brief product description"
                                             />
+                                            <small className="form-text text-muted">
+                                                <i className="fas fa-info-circle text-info"></i> 
+                                                Maximum 500 characters. Keep it concise and engaging.
+                                            </small>
                                         </div>
 
                                         <div className="form-group">
@@ -6331,6 +6143,10 @@ const AdminDashboard = () => {
                                                 onChange={(e) => setProductForm({...productForm, description: e.target.value})}
                                                 placeholder="Detailed product description"
                                             />
+                                            <small className="form-text text-muted">
+                                                <i className="fas fa-info-circle text-info"></i> 
+                                                No character limit. Provide detailed information about features, benefits, and specifications.
+                                            </small>
                                         </div>
 
                                         {/* Pricing & Inventory */}
@@ -6443,7 +6259,6 @@ const AdminDashboard = () => {
                                             </div>
                                         )}
 
-
                                         {/* Variants for Variable Products */}
                                         {productForm.product_type === 'variable' && (
                                             <div className="row mb-4 mt-4">
@@ -6483,6 +6298,7 @@ const AdminDashboard = () => {
                                                                     value={variant.title}
                                                                     onChange={(e) => updateVariant(index, 'title', e.target.value)}
                                                                     placeholder="e.g., Small - Red"
+                                                                    required
                                                                 />
                                                             </div>
                                                         </div>

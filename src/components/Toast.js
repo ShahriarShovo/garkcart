@@ -22,7 +22,12 @@ const Toast = ({show, message, type = 'success', onClose, duration = 3000}) => {
 
     const getToastClass = () => {
         const baseClass = "toast-notification";
-        const typeClass = type === 'success' ? 'toast-success' : 'toast-error';
+        let typeClass = 'toast-success';
+        if(type === 'error') {
+            typeClass = 'toast-error';
+        } else if(type === 'warning') {
+            typeClass = 'toast-warning';
+        }
         const visibilityClass = isVisible ? 'toast-show' : 'toast-hide';
         return `${baseClass} ${typeClass} ${visibilityClass}`;
     };
@@ -30,6 +35,8 @@ const Toast = ({show, message, type = 'success', onClose, duration = 3000}) => {
     const getIcon = () => {
         if(type === 'success') {
             return <i className="fa fa-check-circle"></i>;
+        } else if(type === 'warning') {
+            return <i className="fa fa-exclamation-triangle"></i>;
         } else {
             return <i className="fa fa-exclamation-circle"></i>;
         }
@@ -44,7 +51,10 @@ const Toast = ({show, message, type = 'success', onClose, duration = 3000}) => {
                     {getIcon()}
                 </div>
                 <div className="toast-message">
-                    <strong>{type === 'success' ? 'Success!' : 'Error!'}</strong>
+                    <strong>
+                        {type === 'success' ? 'Success!' : 
+                         type === 'warning' ? 'Warning!' : 'Error!'}
+                    </strong>
                     <p>{message}</p>
                 </div>
                 <button className="toast-close" onClick={handleClose}>

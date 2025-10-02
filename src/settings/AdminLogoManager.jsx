@@ -24,9 +24,12 @@ const AdminLogoManager = () => {
                 logoApi.getAllLogos(),
                 logoApi.getLogoStats()
             ]);
+            console.log('Loaded logos data:', logosData);
+            console.log('Loaded stats data:', statsData);
             setLogos(logosData);
             setStats(statsData);
         } catch(error) {
+            console.error('Error loading logos:', error);
             setError('Failed to load logos: ' + error.message);
         } finally {
             setLoading(false);
@@ -315,13 +318,25 @@ const AdminLogoManager = () => {
                                                 <tr key={logo.id}>
                                                     <td>
                                                         {logo.logo_url ? (
-                                                            <img
-                                                                src={logo.logo_url}
-                                                                alt={logo.name}
-                                                                style={{width: '50px', height: '30px', objectFit: 'contain'}}
-                                                            />
+                                                            <div>
+                                                                <img
+                                                                    src={logo.logo_url}
+                                                                    alt={logo.name}
+                                                                    style={{width: '120px', height: '80px', objectFit: 'contain', border: '1px solid #ddd', borderRadius: '4px', padding: '5px'}}
+                                                                    onError={(e) => {
+                                                                        console.log('Image failed to load:', logo.logo_url);
+                                                                        e.target.style.display = 'none';
+                                                                        e.target.nextSibling.style.display = 'block';
+                                                                    }}
+                                                                />
+                                                                <div style={{display: 'none', color: '#dc3545', fontSize: '12px'}}>
+                                                                    <i className="fa fa-exclamation-triangle"></i> Image failed to load
+                                                                    <br/>
+                                                                    <small>URL: {logo.logo_url}</small>
+                                                                </div>
+                                                            </div>
                                                         ) : (
-                                                            <span className="text-muted">No image</span>
+                                                            <span className="text-muted">No image URL</span>
                                                         )}
                                                     </td>
                                                     <td>{logo.name}</td>

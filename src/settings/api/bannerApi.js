@@ -29,7 +29,6 @@ class BannerApi {
     // Get active banners (public endpoint)
     async getActiveBanners() {
         try {
-            console.log('BannerApi: Fetching active banners from:', `${API_BASE_URL}/banners/get_active_banners/`);
             const response = await fetch(`${API_BASE_URL}/banners/get_active_banners/`, {
                 method: 'GET',
                 headers: {

@@ -65,8 +65,6 @@ const AdminDiscountManager = () => {
     const handleCreateDiscount = async (e) => {
         e.preventDefault();
         try {
-            console.log('AdminDiscountManager: Creating discount with data:', formData);
-
             // Prepare form data for file upload
             const formDataToSend = new FormData();
 
@@ -99,17 +97,10 @@ const AdminDiscountManager = () => {
             // Add image file if exists
             if(formData.discount_image && formData.discount_image instanceof File) {
                 formDataToSend.append('discount_image', formData.discount_image);
-                console.log('AdminDiscountManager: Added image file:', formData.discount_image.name);
             } else {
-                console.log('AdminDiscountManager: No image file to upload');
             }
-
-            console.log('AdminDiscountManager: Prepared form data for upload');
-
             // TODO: Discount features will be developed in future
             // const result = await discountApi.createDiscount(formDataToSend);
-            console.log('AdminDiscountManager: Discount created successfully:', result);
-
             setShowCreateForm(false);
             resetForm();
             loadDiscounts();

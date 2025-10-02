@@ -126,7 +126,7 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Active orders fetched:', data);
+
                 setOrders(data.results || data); // Handle both paginated and non-paginated responses
             } else {
                 const errorData = await response.json();
@@ -157,7 +157,7 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Received orders fetched:', data);
+
                 setReceivedOrders(data.results || data); // Handle both paginated and non-paginated responses
             } else {
                 const errorData = await response.json();
@@ -188,7 +188,7 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Cancelled/Refunded orders fetched:', data);
+
                 setCancelledRefundedOrders(data.results || data); // Handle both paginated and non-paginated responses
             } else {
                 const errorData = await response.json();
@@ -218,7 +218,7 @@ const Dashboard = () => {
 
             if(response.ok) {
                 const data = await response.json();
-                console.log('Order status updated:', data);
+
                 setToast({show: true, message: data.message, type: 'success'});
 
                 // Refresh both order lists
@@ -987,9 +987,9 @@ const Dashboard = () => {
                                                         <div className="col-md-4">
                                                             <h6 className="text-muted">Order Summary</h6>
                                                             <p className="mb-1">
-                                                                Subtotal: ${order.subtotal} <br />
-                                                                Shipping: ${order.shipping_cost} <br />
-                                                                <strong>Total: ${order.total_amount}</strong>
+                                                                Subtotal: {formatBDT(order.subtotal)} <br />
+                                                                Shipping: {formatBDT(order.shipping_cost)} <br />
+                                                                <strong>Total: {formatBDT(order.total_amount)}</strong>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1019,13 +1019,13 @@ const Dashboard = () => {
                                                                             )}
                                                                         </td>
                                                                         <td>
-                                                                            <var className="price text-muted">${item.unit_price}</var>
+                                                                            <var className="price text-muted">{formatBDT(item.unit_price)}</var>
                                                                         </td>
                                                                         <td>
                                                                             <span className="badge badge-secondary">{item.quantity}</span>
                                                                         </td>
                                                                         <td>
-                                                                            <strong>${item.total_price}</strong>
+                                                                            <strong>{formatBDT(item.total_price)}</strong>
                                                                         </td>
                                                                         <td>
                                                                             {/* Show Cancel Order button only for first item and pending orders */}
@@ -1110,7 +1110,7 @@ const Dashboard = () => {
                                                                 </span>
                                                             </td>
                                                             <td>
-                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                                <strong>{formatBDT(order.total_amount)}</strong>
                                                             </td>
                                                             <td>
                                                                 <div className="d-flex flex-wrap">
@@ -1237,7 +1237,7 @@ const Dashboard = () => {
                                                                 </span>
                                                             </td>
                                                             <td>
-                                                                <strong>${parseFloat(order.total_amount || 0).toFixed(2)}</strong>
+                                                                <strong>{formatBDT(order.total_amount)}</strong>
                                                             </td>
                                                             <td>
                                                                 <div className="d-flex flex-wrap">
@@ -1684,7 +1684,7 @@ const Dashboard = () => {
                                     <div className="bg-light p-3 rounded mb-3">
                                         <strong>Order #{orderToCancel.order_number}</strong><br />
                                         <small className="text-muted">
-                                            Total: ${orderToCancel.total_amount} |
+                                            Total: {formatBDT(orderToCancel.total_amount)} |
                                             Items: {orderToCancel.items?.length || 0}
                                         </small>
                                     </div>

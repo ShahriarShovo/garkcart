@@ -32,8 +32,6 @@ const Home = () => {
 
     // Fetch products from API with pagination and price filter
     const fetchProducts = async (page = 1, minPrice = null, maxPrice = null) => {
-        console.log('🔍 HOME_PAGE: fetchProducts called - Page:', page, 'MinPrice:', minPrice, 'MaxPrice:', maxPrice);
-        console.log('🔍 HOME_PAGE: Stack trace:');
         console.trace();
         
         setLoading(true);
@@ -47,14 +45,9 @@ const Home = () => {
                 if(minPrice !== null) url += `&min_price=${minPrice}`;
                 if(maxPrice !== null) url += `&max_price=${maxPrice}`;
             }
-
-            console.log('🔍 HOME_PAGE: Fetching products from URL:', url);
             const response = await fetch(url);
-
-            console.log('🔍 HOME_PAGE: Products API response status:', response.status);
             if(response.ok) {
                 const data = await response.json();
-                console.log('🔍 HOME_PAGE: Products data received:', data.results?.length || 0, 'products');
                 setProducts(data.results || []);
                 setCurrentPage(data.current_page || 1);
                 setTotalPages(data.total_pages || 1);
@@ -126,7 +119,6 @@ const Home = () => {
     const handleCategoryLeave = () => {
         setHoveredCategory(null);
     };
-
 
     // Pagination functions
     const handlePageChange = (page) => {
@@ -406,7 +398,6 @@ const Home = () => {
                                         )}
                                     </article>
 
-
                                     <PriceRangeFilter
                                         onPriceFilter={(minPrice, maxPrice) => {
                                             setCurrentPage(1);
@@ -519,14 +510,6 @@ const Home = () => {
                                                                 if (loading) return;
                                                                 
                                                                 // Determine variant ID - use default variant if product has variants
-                                                                console.log('🏠 Home - Add to Cart clicked for product:', product);
-                                                                console.log('🏠 Home - Product ID:', product.id);
-                                                                console.log('🏠 Home - Product Type:', product.product_type);
-                                                                console.log('🏠 Home - Has Variants:', product.has_variants);
-                                                                console.log('🏠 Home - Default Variant ID:', product.default_variant_id);
-                                                                console.log('🏠 Home - Default Variant:', product.default_variant);
-                                                                console.log('🏠 Home - Variants:', product.variants);
-                                                                
                                                                 let variantId = null;
                                                                 let selectedVariant = null;
                                                                 
@@ -535,16 +518,12 @@ const Home = () => {
                                                                     if(product.default_variant) {
                                                                         selectedVariant = product.default_variant;
                                                                         variantId = product.default_variant.id;
-                                                                        console.log('🏠 Home - Using default variant:', product.default_variant);
                                                                     } else if(product.variants && product.variants.length > 0) {
                                                                         selectedVariant = product.variants[0];
                                                                         variantId = product.variants[0].id;
-                                                                        console.log('🏠 Home - Using first variant as default:', product.variants[0]);
                                                                     } else {
-                                                                        console.log('🏠 Home - No variants available for variable product');
                                                                     }
                                                                 } else {
-                                                                    console.log('🏠 Home - Simple product, no variant needed');
                                                                 }
 
                                                                 const productToAdd = {
@@ -556,13 +535,7 @@ const Home = () => {
                                                                     quantity: 1,
                                                                     selectedVariant: selectedVariant
                                                                 };
-                                                                
-                                                                console.log('🏠 Home - Product to Add:', productToAdd);
-                                                                console.log('🏠 Home - Calling addToCart API...');
-                                                                
                                                                 const result = await addToCart(productToAdd);
-                                                                console.log('🏠 Home - API Result:', result);
-
                                                                 if(result && result.success) {
                                                                     setToast({
                                                                         show: true,

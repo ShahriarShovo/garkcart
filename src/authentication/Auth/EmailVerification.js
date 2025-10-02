@@ -21,26 +21,24 @@ const EmailVerification = () => {
         // Check URL parameters first (most recent registration)
         const urlParams = new URLSearchParams(window.location.search);
         const emailFromUrl = urlParams.get('email');
-        console.log('🔍 DEBUG: Email from URL params:', emailFromUrl);
-        
+
         if (emailFromUrl) {
             // Use email from URL (most recent registration)
             setUserEmail(emailFromUrl);
-            console.log('🔍 DEBUG: Using email from URL:', emailFromUrl);
-            
+
             // Clear old localStorage data to prevent conflicts
             localStorage.removeItem('user');
-            console.log('🔍 DEBUG: Cleared old localStorage data');
+
         } else {
             // Fallback to localStorage if no URL parameter
             const savedUser = localStorage.getItem('user');
-            console.log('🔍 DEBUG: Saved user from localStorage:', savedUser);
+
             if (savedUser) {
                 try {
                     const userData = JSON.parse(savedUser);
-                    console.log('🔍 DEBUG: Parsed user data:', userData);
+
                     setUserEmail(userData.email || '');
-                    console.log('🔍 DEBUG: Using email from localStorage:', userData.email);
+
                 } catch (error) {
                     console.error('Error parsing user data:', error);
                 }
@@ -77,14 +75,9 @@ const EmailVerification = () => {
         
         try {
             const emailToSend = userEmail || user?.email;
-            console.log('🔍 DEBUG: Sending resend verification request with email:', emailToSend);
-            console.log('🔍 DEBUG: userEmail state:', userEmail);
-            console.log('🔍 DEBUG: user from context:', user);
-            console.log('🔍 DEBUG: user?.email:', user?.email);
-            
+
             // Use the original email as entered by user during registration
-            console.log('🔍 DEBUG: Using original email from registration:', emailToSend);
-            
+
             const response = await fetch(API_CONFIG.getFullUrl('AUTH', 'RESEND_VERIFICATION'), {
                 method: 'POST',
                 headers: {
@@ -114,7 +107,6 @@ const EmailVerification = () => {
     const handleContinue = () => {
         navigate('/');
     };
-
 
     return (
         <>

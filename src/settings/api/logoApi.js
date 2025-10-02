@@ -19,7 +19,18 @@ class LogoApi {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            
+            // Convert relative URLs to full URLs for all logos
+            if(Array.isArray(data)) {
+                data.forEach(logo => {
+                    if(logo.logo_url && logo.logo_url.startsWith('/media/')) {
+                        logo.logo_url = `${API_CONFIG.BASE_URL}${logo.logo_url}`;
+                    }
+                });
+            }
+
+            return data;
         } catch(error) {
             console.error('LogoApi: Error fetching all logos:', error);
             throw error;

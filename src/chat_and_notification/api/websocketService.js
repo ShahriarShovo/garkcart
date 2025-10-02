@@ -20,15 +20,11 @@ class WebSocketService {
         }
 
         const token = localStorage.getItem('token');
-        console.log('WebSocket token from localStorage:', token);
         const wsUrl = `ws://127.0.0.1:8000/ws/chat/${conversationId}/?token=${token}`;
-        console.log('WebSocket URL:', wsUrl);
-
         try {
             this.socket = new WebSocket(wsUrl);
 
             this.socket.onopen = () => {
-                console.log('WebSocket connected');
                 this.reconnectAttempts = 0;
                 this.emit('connected');
             };
@@ -36,7 +32,6 @@ class WebSocketService {
             this.socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('WebSocket message received:', data);
                     this.emit('message', data);
                 } catch(error) {
                     console.error('Error parsing WebSocket message:', error);
@@ -44,7 +39,6 @@ class WebSocketService {
             };
 
             this.socket.onclose = (event) => {
-                console.log('WebSocket disconnected:', event.code, event.reason);
                 this.emit('disconnected');
 
                 // Attempt to reconnect if not a normal closure
@@ -69,8 +63,6 @@ class WebSocketService {
      */
     reconnect(conversationId) {
         this.reconnectAttempts++;
-        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-
         setTimeout(() => {
             this.connect(conversationId);
         }, this.reconnectInterval);

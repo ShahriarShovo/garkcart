@@ -183,7 +183,6 @@ const FooterSettings = () => {
         await saveFooterSettings();
     };
 
-
     // Load footer settings on component mount
     useEffect(() => {
         loadFooterSettings();

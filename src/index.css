@@ -61,6 +61,10 @@ a:hover {
     border-left: 4px solid #dc3545;
 }
 
+.toast-warning {
+    border-left: 4px solid #ffc107;
+}
+
 .toast-content {
     display: flex;
     align-items: center;
@@ -78,6 +82,10 @@ a:hover {
 
 .toast-error .toast-icon {
     color: #dc3545;
+}
+
+.toast-warning .toast-icon {
+    color: #ffc107;
 }
 
 .toast-message {

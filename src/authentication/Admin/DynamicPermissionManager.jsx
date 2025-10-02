@@ -21,7 +21,6 @@ const DynamicPermissionManager = () => {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedPermissions, setSelectedPermissions] = useState([]);
-    
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
@@ -79,7 +78,6 @@ const DynamicPermissionManager = () => {
             showToast(error.message, 'error');
         }
     };
-
 
     useEffect(() => {
         loadPermissions();

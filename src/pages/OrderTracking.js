@@ -56,21 +56,12 @@ const OrderTracking = () => {
         setOrderDetails(null);
 
         try {
-            console.log('Tracking order:', trackingNumber);
-            console.log('API URL:', `${API_CONFIG.getFullUrl('ORDERS', 'TRACKING')}${trackingNumber}/`);
-            
             const response = await fetch(`${API_CONFIG.getFullUrl('ORDERS', 'TRACKING')}${trackingNumber}/`, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
             const data = await response.json();
-            console.log('Response data:', data);
-
             if (response.ok && data.success) {
                 setOrderDetails(data.data);
                 showMessage('Order found successfully!', 'success');
@@ -293,7 +284,6 @@ const OrderTracking = () => {
                                     </div>
                                 </div>
 
-
                                 {/* Shipping Information */}
                                 {orderDetails.shipping_address && (
                                     <div className="mb-4">
@@ -328,8 +318,6 @@ const OrderTracking = () => {
                                                 </thead>
                                                 <tbody>
                                                     {orderDetails.items.map((item, index) => {
-                                                        console.log(`Item ${index}:`, item);
-                                                        console.log(`Product image for ${item.product_name}:`, item.product_image);
                                                         return (
                                                             <tr key={index}>
                                                                 <td>
@@ -341,7 +329,6 @@ const OrderTracking = () => {
                                                                                 className="mr-2"
                                                                                 style={{width: '40px', height: '40px', objectFit: 'cover'}}
                                                                                 onLoad={() => {
-                                                                                    console.log(`Image loaded for ${item.product_name}: ${item.product_image}`);
                                                                                     setImageLoadStates(prev => ({
                                                                                         ...prev,
                                                                                         [`${item.product_name}-${index}`]: 'loaded'

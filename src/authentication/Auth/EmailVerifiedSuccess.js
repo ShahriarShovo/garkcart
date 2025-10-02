@@ -25,21 +25,14 @@ const EmailVerifiedSuccess = () => {
 
     const verifyEmailToken = async (token) => {
         try {
-            console.log('🔍 DEBUG: Verifying email token:', token);
             const response = await fetch(`${API_CONFIG.BASE_URL}/api/accounts/verify-email/${token}/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-
-            console.log('🔍 DEBUG: Verification response status:', response.status);
-            console.log('🔍 DEBUG: Verification response ok:', response.ok);
-
             if (response.ok) {
                 const data = await response.json();
-                console.log('🔍 DEBUG: Verification success data:', data);
-                
                 if (data.already_verified) {
                     setVerificationStatus('success');
                     setMessage('Email is already verified! You can now log in to your account.');
@@ -49,7 +42,6 @@ const EmailVerifiedSuccess = () => {
                 }
             } else {
                 const errorData = await response.json();
-                console.log('🔍 DEBUG: Verification error data:', errorData);
                 setVerificationStatus('error');
                 setMessage(errorData.message || 'Email verification failed.');
             }

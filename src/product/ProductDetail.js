@@ -37,19 +37,14 @@ const ProductDetail = () => {
 
     // Fetch product details
     const fetchProduct = async () => {
-        console.log('🔍 DEBUG: fetchProduct called - Slug:', slug, 'ID:', id);
         setLoading(true);
         setError(null);
         try {
             // Use slug if available, otherwise use id
             const identifier = slug || id;
-            console.log('🔍 DEBUG: Using identifier:', identifier);
             const response = await fetch(`${API_CONFIG.getFullUrl('PRODUCTS', 'DETAIL')}${identifier}/`);
-
-            console.log('🔍 DEBUG: Product API response status:', response.status);
             if(response.ok) {
                 const data = await response.json();
-                console.log('🔍 DEBUG: Product data received:', data.product?.title);
                 setProduct(data.product);
             } else {
                 const errorData = await response.json();
@@ -121,7 +116,7 @@ const ProductDetail = () => {
     const submitReview = async (e) => {
         e.preventDefault();
         if(!user) {
-            alert('Please login to submit a review');
+            setToast({show: true, message: 'Please login to submit a review', type: 'warning'});
             return;
         }
 
@@ -142,13 +137,13 @@ const ProductDetail = () => {
                 setReviewForm({rating: 5, title: '', comment: ''});
                 setShowReviewForm(false);
                 fetchReviews(); // Refresh reviews
-                alert('Review submitted successfully!');
+                setToast({show: true, message: 'Review submitted successfully!', type: 'success'});
             } else {
                 const errorData = await response.json();
-                alert(errorData.error || 'Failed to submit review');
+                setToast({show: true, message: errorData.error || 'Failed to submit review', type: 'error'});
             }
         } catch(error) {
-            alert('Network error occurred');
+            setToast({show: true, message: 'Network error occurred', type: 'error'});
         }
     };
 
@@ -399,7 +394,6 @@ const ProductDetail = () => {
                                         </div>
                                     </div>
 
-
                                     <div className="mb-3">
                                         <div className="rating">
                                             {renderStars(ratingData.average_rating || 0)}
@@ -423,12 +417,9 @@ const ProductDetail = () => {
                                                         <div
                                                             className={`card variant-card ${selectedVariant && selectedVariant.id === variant.id ? 'variant-selected' : ''}`}
                                                             onClick={() => {
-                                                                console.log('Variant selected:', variant);
-                                                                console.log('Current quantity before selection:', quantity);
                                                                 setSelectedVariant(variant);
                                                                 // Reset quantity to 1 when variant is selected
                                                                 setQuantity(1);
-                                                                console.log('Quantity reset to 1');
                                                             }}
                                                             style={{cursor: 'pointer'}}
                                                         >
@@ -483,9 +474,7 @@ const ProductDetail = () => {
                                                         className="btn btn-light"
                                                         type="button"
                                                         onClick={() => {
-                                                            console.log('Quantity decrease clicked. Current quantity:', quantity);
                                                             const newQuantity = Math.max(1, quantity - 1);
-                                                            console.log('New quantity:', newQuantity);
                                                             setQuantity(newQuantity);
                                                         }}
                                                     >
@@ -497,7 +486,6 @@ const ProductDetail = () => {
                                                     className="form-control"
                                                     value={quantity}
                                                     onChange={(e) => {
-                                                        console.log('Quantity input changed. Value:', e.target.value);
                                                         const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
                                                         const availableStock = selectedVariant ? selectedVariant.quantity : (
                                                             product.product_type === 'variable' ? (
@@ -505,9 +493,7 @@ const ProductDetail = () => {
                                                                 (product.variants && product.variants.length > 0 ? product.variants[0].quantity : 0)
                                                             ) : (product?.quantity || 0)
                                                         );
-                                                        console.log('Available stock:', availableStock);
                                                         const finalQuantity = Math.min(newQuantity, availableStock);
-                                                        console.log('Final quantity:', finalQuantity);
                                                         setQuantity(finalQuantity);
                                                     }}
                                                 />
@@ -516,19 +502,13 @@ const ProductDetail = () => {
                                                         className="btn btn-light"
                                                         type="button"
                                                         onClick={() => {
-                                                            console.log('Quantity increase clicked. Current quantity:', quantity);
-                                                            console.log('Product type:', product.product_type);
-                                                            console.log('Selected variant:', selectedVariant);
-                                                            console.log('Default variant:', product.default_variant);
                                                             const availableStock = selectedVariant ? selectedVariant.quantity : (
                                                                 product.product_type === 'variable' ? (
                                                                     product.default_variant ? product.default_variant.quantity : 
                                                                     (product.variants && product.variants.length > 0 ? product.variants[0].quantity : 0)
                                                                 ) : (product?.quantity || 0)
                                                             );
-                                                            console.log('Available stock:', availableStock);
                                                             const newQuantity = Math.min(quantity + 1, availableStock);
-                                                            console.log('New quantity:', newQuantity);
                                                             setQuantity(newQuantity);
                                                         }}
                                                     >

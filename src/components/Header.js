@@ -24,7 +24,6 @@ const Header = () => {
         }
     };
 
-
     // Fetch user profile
     const fetchProfile = async () => {
         if(!isAuthenticated || !user) return;

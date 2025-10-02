@@ -69,4 +69,3 @@ const Pagination = ({totalItems, currentPage, pageSize = 10, onPageChange, maxPa
 
 export default Pagination;
 
-
