@@ -9,6 +9,7 @@ import ProductFilters from './ProductFilters';
 import ProductSorting from './ProductSorting';
 import Pagination from '../../../components/Pagination';
 import useProductSearch from '../hooks/useProductSearch';
+import API_CONFIG from '../../../config/apiConfig';
 
 const AdvancedProductSearch = ({ onSearchResults, onSearchClear }) => {
     const {
@@ -131,7 +132,7 @@ const AdvancedProductSearch = ({ onSearchResults, onSearchClear }) => {
                                     <td>
                                         {product.primary_image_url ? (
                                             <img
-                                                src={product.primary_image_url.startsWith('http') ? product.primary_image_url : `http://127.0.0.1:8000${product.primary_image_url}`}
+                                                src={product.primary_image_url.startsWith('http') ? product.primary_image_url : `${API_CONFIG.BASE_URL}${product.primary_image_url}`}
                                                 className="img-xs border"
                                                 alt={product.title}
                                                 style={{width: '50px', height: '50px', objectFit: 'cover'}}
